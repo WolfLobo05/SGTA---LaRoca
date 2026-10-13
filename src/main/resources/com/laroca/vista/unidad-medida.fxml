@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.laroca.controlador.UnidadMedidaController"
+    stylesheets="@unidad-medida.css"
+    styleClass="root">
+
+    <!-- ENCABEZADO -->
+    <top>
+
+        <VBox>
+
+            <HBox
+                    styleClass="encabezado"
+                    alignment="CENTER_LEFT">
+
+                <Label
+                    text="Sistema abarrotes &quot;La Roca&quot; — Gestión de Unidades de Medida"
+                    styleClass="titulo"/>
+
+            </HBox>
+
+            <!-- BOTONES -->
+            <HBox
+    spacing="10"
+    styleClass="barra-botones"
+    alignment="CENTER_LEFT">
+
+    <Button
+        fx:id="btnNuevo"
+        text="Nuevo"
+        onAction="#nuevo"
+        styleClass="btn-principal"/>
+
+    <Button
+        fx:id="btnEditar"
+        text="Editar"
+        onAction="#editar"
+        styleClass="btn-secundario"/>
+
+    <Button
+        fx:id="btnEliminar"
+        text="Eliminar"
+        onAction="#eliminar"
+        styleClass="btn-eliminar"/>
+
+    <Region HBox.hgrow="ALWAYS"/>
+
+    <Label
+        fx:id="lblFecha"
+        text="07/10/2026"
+        styleClass="fecha"/>
+
+</HBox>
+
+        </VBox>
+
+    </top>
+
+
+    <!-- CONTENIDO -->
+    <center>
+
+        <HBox
+            spacing="18"
+            styleClass="contenido">
+
+            <!-- TABLA -->
+            <VBox
+                spacing="8"
+                HBox.hgrow="ALWAYS"
+                styleClass="panel">
+
+                <Label
+                    text="Unidades registradas"
+                    styleClass="subtitulo"/>
+
+                <TableView
+                    fx:id="tablaUnidades"
+                    VBox.vgrow="ALWAYS">
+
+                    <columns>
+
+                        <TableColumn
+                            fx:id="columnaId"
+                            text="ID"
+                            prefWidth="70"/>
+
+                        <TableColumn
+                            fx:id="columnaNombre"
+                            text="Nombre"
+                            prefWidth="180"/>
+
+                        <TableColumn
+                            fx:id="columnaAbreviatura"
+                            text="Abreviatura"
+                            prefWidth="120"/>
+
+                    </columns>
+
+                </TableView>
+
+            </VBox>
+
+
+            <!-- DETALLE -->
+            <VBox
+                spacing="15"
+                prefWidth="320"
+                styleClass="panel detalle">
+
+                <Label
+                    text="Detalle"
+                    styleClass="subtitulo"/>
+
+
+                <VBox spacing="6">
+
+                    <Label
+                        text="Nombre de la unidad"
+                        styleClass="etiqueta"/>
+
+                    <TextField
+                        fx:id="txtNombre"
+                        promptText="Nombre de la unidad"/>
+
+                </VBox>
+
+
+                <VBox spacing="6">
+
+                    <Label
+                        text="Abreviatura"
+                        styleClass="etiqueta"/>
+
+                    <TextField
+                        fx:id="txtAbreviatura"
+                        promptText="Abreviatura"/>
+
+                </VBox>
+
+
+                <HBox
+                    spacing="10"
+                    alignment="CENTER_RIGHT">
+
+                    <Button
+                        fx:id="btnGuardar"
+                        text="Guardar"
+                        onAction="#guardar"
+                        styleClass="btn-guardar"/>
+
+                    <Button
+                        fx:id="btnCancelar"
+                        text="Cancelar"
+                        onAction="#cancelar"
+                        styleClass="btn-cancelar"/>
+
+                </HBox>
+
+            </VBox>
+
+        </HBox>
+
+    </center>
+
+
+    <!-- PIE -->
+    <bottom>
+
+        <HBox
+            styleClass="pie"
+            alignment="CENTER_LEFT">
+
+            <Label
+                fx:id="lblRegistros"
+                text="0 unidades registradas"/>
+
+        </HBox>
+
+    </bottom>
+
+</BorderPane>

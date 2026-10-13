@@ -1,0 +1,151 @@
+.root {
+    -fx-background-color: #eeeeee;
+    -fx-font-family: "Arial";
+}
+
+
+/* =========================
+   ENCABEZADO
+   ========================= */
+
+.encabezado {
+    -fx-background-color: #333333;
+    -fx-padding: 14 18 14 18;
+    -fx-spacing: 20;
+}
+
+.titulo {
+    -fx-text-fill: white;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+.fecha {
+    -fx-text-fill: #333333;
+    -fx-font-size: 12px;
+}
+
+
+/* =========================
+   BARRA DE BOTONES
+   ========================= */
+
+.barra-botones {
+    -fx-background-color: #dddddd;
+    -fx-padding: 10 18 10 18;
+}
+
+
+/* =========================
+   CONTENIDO
+   ========================= */
+
+.contenido {
+    -fx-padding: 18;
+}
+
+.panel {
+    -fx-background-color: white;
+    -fx-border-color: #c8c8c8;
+    -fx-border-width: 1;
+    -fx-padding: 14;
+}
+
+.detalle {
+    -fx-background-color: #f7f7f7;
+}
+
+.subtitulo {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.etiqueta {
+    -fx-font-size: 13px;
+    -fx-text-fill: #444444;
+}
+
+
+/* =========================
+   CAMPOS
+   ========================= */
+
+.text-field {
+    -fx-background-color: white;
+    -fx-border-color: #bbbbbb;
+    -fx-border-radius: 2;
+    -fx-padding: 8;
+}
+
+
+/* =========================
+   BOTONES
+   ========================= */
+
+.button {
+    -fx-cursor: hand;
+    -fx-padding: 8 18 8 18;
+    -fx-font-size: 13px;
+}
+
+.btn-principal {
+    -fx-background-color: #2878b5;
+    -fx-text-fill: white;
+}
+
+.btn-secundario {
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #aaaaaa;
+}
+
+.btn-eliminar {
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #aaaaaa;
+    -fx-text-fill: #b00000;
+}
+
+.btn-guardar {
+    -fx-background-color: #2878b5;
+    -fx-text-fill: white;
+}
+
+.btn-cancelar {
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #aaaaaa;
+}
+
+
+/* =========================
+   TABLA
+   ========================= */
+
+.table-view {
+    -fx-border-color: #cccccc;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #dddddd;
+}
+
+.table-view .column-header {
+    -fx-background-color: #dddddd;
+    -fx-border-color: #c5c5c5;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #d5e6f5;
+    -fx-text-fill: #222222;
+}
+
+
+/* =========================
+   PIE
+   ========================= */
+
+.pie {
+    -fx-background-color: #dddddd;
+    -fx-padding: 8 18 8 18;
+    -fx-border-color: #c0c0c0;
+}
+
