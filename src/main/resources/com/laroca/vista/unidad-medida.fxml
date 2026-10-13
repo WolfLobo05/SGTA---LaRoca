@@ -9,6 +9,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ComboBox?>
 
 <BorderPane
     xmlns="http://javafx.com/javafx/21"
@@ -55,6 +56,12 @@
         text="Eliminar"
         onAction="#eliminar"
         styleClass="btn-eliminar"/>
+
+    <Button text="Volver al menú"
+        onAction="#volverAlMenu"
+        layoutX="245.0"
+        layoutY="10.0"
+        styleClass="boton-secundario"/>
 
     <Region HBox.hgrow="ALWAYS"/>
 
@@ -107,6 +114,9 @@
                             fx:id="columnaAbreviatura"
                             text="Abreviatura"
                             prefWidth="120"/>
+                        
+                         <TableColumn fx:id="columnaEstado"
+                            text="Estado" prefWidth="100.0"/>
 
                     </columns>
 
@@ -150,6 +160,21 @@
                         promptText="Abreviatura"/>
 
                 </VBox>
+
+                
+                <VBox spacing="6">
+
+                    <Label
+                       text="Estado"
+                       styleClass="etiqueta"/>
+
+                    <ComboBox
+                       fx:id="cmbEstado"
+                       promptText="Selecciona un estado"
+                       maxWidth="Infinity"/>
+
+                 </VBox>
+
 
 
                 <HBox

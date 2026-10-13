@@ -1,22 +1,30 @@
+
 package com.laroca.controlador;
 
 import com.laroca.dao.UnidadMedidaDAO;
 import com.laroca.modelo.UnidadMedida;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import javafx.stage.Stage;
 
 public class UnidadMedidaController {
 
@@ -33,10 +41,16 @@ public class UnidadMedidaController {
     private TableColumn<UnidadMedida, String> columnaAbreviatura;
 
     @FXML
+    private TableColumn<UnidadMedida, String> columnaEstado;
+
+    @FXML
     private TextField txtNombre;
 
     @FXML
     private TextField txtAbreviatura;
+
+    @FXML
+    private ComboBox<String> cmbEstado;
 
     @FXML
     private Button btnNuevo;
@@ -63,94 +77,88 @@ public class UnidadMedidaController {
 
     private UnidadMedida unidadSeleccionada;
 
-    // Indica si estamos creando o editando
     private boolean modoEdicion = false;
 
     @FXML
     public void initialize() {
 
         lblFecha.setText(
-                LocalDate.now().format(
-                        DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                )
+            LocalDate.now().format(
+                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+            )
         );
 
         columnaId.setCellValueFactory(
-                new PropertyValueFactory<>("idUnidadMedida")
+            new PropertyValueFactory<>("idUnidadMedida")
         );
 
         columnaNombre.setCellValueFactory(
-                new PropertyValueFactory<>("nombre")
+            new PropertyValueFactory<>("nombre")
         );
 
         columnaAbreviatura.setCellValueFactory(
-                new PropertyValueFactory<>("abreviatura")
+            new PropertyValueFactory<>("abreviatura")
+        );
+
+        columnaEstado.setCellValueFactory(
+            new PropertyValueFactory<>("estado")
+        );
+
+        cmbEstado.setItems(
+            FXCollections.observableArrayList("Activo", "Inactivo")
         );
 
         cargarUnidades();
 
         tablaUnidades.getSelectionModel()
-                .selectedItemProperty()
-                .addListener((observable, anterior, actual) -> {
+            .selectedItemProperty()
+            .addListener((observable, anterior, actual) -> {
 
-                    if (actual != null) {
+                if (actual != null) {
+                    unidadSeleccionada = actual;
 
-                        unidadSeleccionada = actual;
+                    txtNombre.setText(actual.getNombre());
+                    txtAbreviatura.setText(actual.getAbreviatura());
+                    cmbEstado.setValue(actual.getEstado());
 
-                        txtNombre.setText(
-                                actual.getNombre()
-                        );
-
-                        txtAbreviatura.setText(
-                                actual.getAbreviatura()
-                        );
-
-                        btnEditar.setDisable(false);
-                        btnEliminar.setDisable(false);
-                    }
-                });
+                    btnEditar.setDisable(false);
+                    btnEliminar.setDisable(false);
+                } else {
+                    btnEditar.setDisable(true);
+                    btnEliminar.setDisable(true);
+                }
+            });
 
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
 
-        // Al iniciar, el formulario está en modo nuevo
         bloquearFormulario(true);
     }
 
-
-    /**
-     * Carga las unidades desde MySQL.
-     */
     private void cargarUnidades() {
-
         ObservableList<UnidadMedida> lista =
-                FXCollections.observableArrayList(
-                        dao.listar()
-                );
+            FXCollections.observableArrayList(dao.listar());
 
         tablaUnidades.setItems(lista);
 
+        int total = lista.size();
+
         lblRegistros.setText(
-                lista.size() + " unidades registradas"
+            total + (total == 1
+                ? " unidad registrada"
+                : " unidades registradas")
         );
     }
 
-
-    /**
-     * Activa el modo NUEVO.
-     */
     @FXML
     private void nuevo() {
-
         modoEdicion = false;
-
         unidadSeleccionada = null;
 
-        tablaUnidades.getSelectionModel()
-                .clearSelection();
+        tablaUnidades.getSelectionModel().clearSelection();
 
-        txtNombre.clear();
-        txtAbreviatura.clear();
+        limpiarFormulario();
+        cmbEstado.setValue("Activo");
 
         bloquearFormulario(false);
 
@@ -160,251 +168,209 @@ public class UnidadMedidaController {
         txtNombre.requestFocus();
     }
 
-
-    /**
-     * Activa el modo EDICIÓN.
-     */
     @FXML
     private void editar() {
-
         if (unidadSeleccionada == null) {
-
             mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Sin selección",
-                    "Selecciona primero una unidad."
+                Alert.AlertType.WARNING,
+                "Sin selección",
+                "Selecciona primero una unidad."
             );
-
             return;
         }
 
         modoEdicion = true;
 
-        bloquearFormulario(false);
+        txtNombre.setText(unidadSeleccionada.getNombre());
+        txtAbreviatura.setText(unidadSeleccionada.getAbreviatura());
+        cmbEstado.setValue(unidadSeleccionada.getEstado());
 
+        bloquearFormulario(false);
         txtNombre.requestFocus();
     }
 
-
-    /**
-     * Guarda una unidad nueva o actualiza una existente.
-     */
     @FXML
     private void guardar() {
-
         String nombre = txtNombre.getText().trim();
         String abreviatura = txtAbreviatura.getText().trim();
+        String estado = cmbEstado.getValue();
 
         if (nombre.isEmpty() || abreviatura.isEmpty()) {
-
             mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Datos incompletos",
-                    "Debes ingresar el nombre y la abreviatura."
+                Alert.AlertType.WARNING,
+                "Datos incompletos",
+                "Debes ingresar el nombre y la abreviatura."
             );
-
             return;
         }
 
-
-        // ==========================================
-        // MODO EDICIÓN
-        // ==========================================
+        if (estado == null || estado.isBlank()) {
+            mostrarAlerta(
+                Alert.AlertType.WARNING,
+                "Estado obligatorio",
+                "Selecciona el estado de la unidad."
+            );
+            return;
+        }
 
         if (modoEdicion) {
-
             if (unidadSeleccionada == null) {
-
                 mostrarAlerta(
-                        Alert.AlertType.WARNING,
-                        "Sin selección",
-                        "Selecciona una unidad para editar."
+                    Alert.AlertType.WARNING,
+                    "Sin selección",
+                    "Selecciona una unidad para editar."
                 );
-
                 return;
             }
 
             unidadSeleccionada.setNombre(nombre);
             unidadSeleccionada.setAbreviatura(abreviatura);
+            unidadSeleccionada.setEstado(estado);
 
             if (dao.actualizar(unidadSeleccionada)) {
-
-                cargarUnidades();
-
-                modoEdicion = false;
-
-                bloquearFormulario(true);
+                finalizarOperacion();
 
                 mostrarAlerta(
-                        Alert.AlertType.INFORMATION,
-                        "Actualización exitosa",
-                        "La unidad se actualizó correctamente."
+                    Alert.AlertType.INFORMATION,
+                    "Actualización exitosa",
+                    "La unidad se actualizó correctamente."
                 );
-
             } else {
-
                 mostrarAlerta(
-                        Alert.AlertType.ERROR,
-                        "Error",
-                        "No se pudo actualizar la unidad."
+                    Alert.AlertType.ERROR,
+                    "Error",
+                    "No se pudo actualizar la unidad."
                 );
             }
 
-            return;
-        }
+        } else {
+            int id = dao.obtenerSiguienteId();
 
+            if (id <= 0) {
+                mostrarAlerta(
+                    Alert.AlertType.ERROR,
+                    "Error",
+                    "No se pudo obtener el ID de la unidad."
+                );
+                return;
+            }
 
-        // ==========================================
-        // MODO NUEVO
-        // ==========================================
+            UnidadMedida unidad = new UnidadMedida();
 
-        int id = dao.obtenerSiguienteId();
+            unidad.setIdUnidadMedida(id);
+            unidad.setEstado(estado);
+            unidad.setNombre(nombre);
+            unidad.setAbreviatura(abreviatura);
 
-        UnidadMedida unidad = new UnidadMedida();
+            if (dao.insertar(unidad)) {
+                finalizarOperacion();
 
-        unidad.setIdUnidadMedida(id);
-        unidad.setEstado("Activo");
-        unidad.setNombre(nombre);
-        unidad.setAbreviatura(abreviatura);
-
-        if (dao.insertar(unidad)) {
-
-            cargarUnidades();
-
-            txtNombre.clear();
-            txtAbreviatura.clear();
-
-            bloquearFormulario(true);
-
-            mostrarAlerta(
+                mostrarAlerta(
                     Alert.AlertType.INFORMATION,
                     "Registro exitoso",
                     "La unidad se registró correctamente."
-            );
-
-        } else {
-
-            mostrarAlerta(
+                );
+            } else {
+                mostrarAlerta(
                     Alert.AlertType.ERROR,
                     "Error",
                     "No se pudo registrar la unidad."
-            );
-        }
-    }
-
-
-    /**
-     * Elimina la unidad seleccionada.
-     */
-    @FXML
-    private void eliminar() {
-
-        if (unidadSeleccionada == null) {
-
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Sin selección",
-                    "Selecciona primero una unidad."
-            );
-
-            return;
-        }
-
-        Alert confirmacion =
-                new Alert(Alert.AlertType.CONFIRMATION);
-
-        confirmacion.setTitle("Eliminar unidad");
-        confirmacion.setHeaderText(null);
-
-        confirmacion.setContentText(
-                "¿Deseas eliminar la unidad \""
-                + unidadSeleccionada.getNombre()
-                + "\"?"
-        );
-
-        ButtonType respuesta =
-                confirmacion.showAndWait()
-                        .orElse(ButtonType.CANCEL);
-
-        if (respuesta == ButtonType.OK) {
-
-            if (dao.eliminar(
-                    unidadSeleccionada.getIdUnidadMedida()
-            )) {
-
-                cargarUnidades();
-
-                unidadSeleccionada = null;
-
-                txtNombre.clear();
-                txtAbreviatura.clear();
-
-                btnEditar.setDisable(true);
-                btnEliminar.setDisable(true);
-
-                bloquearFormulario(true);
-
-                mostrarAlerta(
-                        Alert.AlertType.INFORMATION,
-                        "Eliminación exitosa",
-                        "La unidad se eliminó correctamente."
-                );
-
-            } else {
-
-                mostrarAlerta(
-                        Alert.AlertType.ERROR,
-                        "Error",
-                        "No se pudo eliminar la unidad."
                 );
             }
         }
     }
 
+    @FXML
+    private void eliminar() {
+        if (unidadSeleccionada == null) {
+            mostrarAlerta(
+                Alert.AlertType.WARNING,
+                "Sin selección",
+                "Selecciona primero una unidad."
+            );
+            return;
+        }
 
-    /**
-     * Cancela la operación actual.
-     */
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+
+        confirmacion.setTitle("Eliminar unidad");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText(
+            "¿Deseas eliminar la unidad \""
+                + unidadSeleccionada.getNombre() + "\"?"
+        );
+
+        Optional<ButtonType> respuesta = confirmacion.showAndWait();
+
+        if (respuesta.isPresent()
+                && respuesta.get() == ButtonType.OK) {
+
+            if (dao.eliminar(unidadSeleccionada.getIdUnidadMedida())) {
+                finalizarOperacion();
+
+                mostrarAlerta(
+                    Alert.AlertType.INFORMATION,
+                    "Eliminación exitosa",
+                    "La unidad se eliminó correctamente."
+                );
+            } else {
+                mostrarAlerta(
+                    Alert.AlertType.ERROR,
+                    "Error",
+                    "No se pudo eliminar la unidad. "
+                        + "Puede estar relacionada con otros registros."
+                );
+            }
+        }
+    }
+
     @FXML
     private void cancelar() {
-
         modoEdicion = false;
-
         unidadSeleccionada = null;
 
-        tablaUnidades.getSelectionModel()
-                .clearSelection();
+        tablaUnidades.getSelectionModel().clearSelection();
 
-        txtNombre.clear();
-        txtAbreviatura.clear();
+        limpiarFormulario();
+        bloquearFormulario(true);
 
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
-
-        bloquearFormulario(true);
     }
 
+    private void finalizarOperacion() {
+        modoEdicion = false;
+        unidadSeleccionada = null;
 
-    /**
-     * Bloquea o desbloquea los campos.
-     */
+        limpiarFormulario();
+        bloquearFormulario(true);
+
+        cargarUnidades();
+
+        tablaUnidades.getSelectionModel().clearSelection();
+
+        btnEditar.setDisable(true);
+        btnEliminar.setDisable(true);
+    }
+
+    private void limpiarFormulario() {
+        txtNombre.clear();
+        txtAbreviatura.clear();
+        cmbEstado.getSelectionModel().clearSelection();
+    }
+
     private void bloquearFormulario(boolean bloquear) {
-
         txtNombre.setDisable(bloquear);
         txtAbreviatura.setDisable(bloquear);
+        cmbEstado.setDisable(bloquear);
         btnGuardar.setDisable(bloquear);
         btnCancelar.setDisable(bloquear);
     }
 
-
-    /**
-     * Muestra mensajes.
-     */
     private void mostrarAlerta(
             Alert.AlertType tipo,
             String titulo,
-            String mensaje
-    ) {
+            String mensaje) {
 
         Alert alerta = new Alert(tipo);
 
@@ -413,5 +379,21 @@ public class UnidadMedidaController {
         alerta.setContentText(mensaje);
 
         alerta.showAndWait();
+    }
+
+    @FXML
+    private void volverAlMenu() throws IOException {
+        FXMLLoader loader = new FXMLLoader(
+            getClass().getResource("/com/laroca/vista/menu.fxml")
+        );
+
+        Parent vista = loader.load();
+
+        Stage ventanaActual =
+            (Stage) txtNombre.getScene().getWindow();
+
+        ventanaActual.setScene(new Scene(vista));
+        ventanaActual.setTitle("Sistema Abarrotes La Roca");
+        ventanaActual.setResizable(false);
     }
 }
