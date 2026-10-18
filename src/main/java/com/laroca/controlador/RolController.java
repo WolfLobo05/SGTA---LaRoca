@@ -1,4 +1,3 @@
-
 package com.laroca.controlador;
 
 import com.laroca.dao.RolDAO;
@@ -80,51 +79,44 @@ public class RolController {
     public void initialize() {
 
         lblFecha.setText(
-            LocalDate.now().format(
-                DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            )
-        );
+                LocalDate.now().format(
+                        DateTimeFormatter.ofPattern("dd/MM/yyyy")));
 
         columnaId.setCellValueFactory(
-            new PropertyValueFactory<>("idRol")
-        );
+                new PropertyValueFactory<>("idRol"));
 
         columnaNombre.setCellValueFactory(
-            new PropertyValueFactory<>("nombre")
-        );
+                new PropertyValueFactory<>("nombre"));
 
         columnaDescripcion.setCellValueFactory(
-            new PropertyValueFactory<>("descripcion")
-        );
+                new PropertyValueFactory<>("descripcion"));
 
         columnaEstado.setCellValueFactory(
-            new PropertyValueFactory<>("estado")
-        );
+                new PropertyValueFactory<>("estado"));
 
         cmbEstado.setItems(
-            FXCollections.observableArrayList("Activo", "Inactivo")
-        );
+                FXCollections.observableArrayList("Activo", "Inactivo"));
 
         cargarRoles();
 
         tablaRoles.getSelectionModel()
-            .selectedItemProperty()
-            .addListener((observable, anterior, actual) -> {
+                .selectedItemProperty()
+                .addListener((observable, anterior, actual) -> {
 
-                if (actual != null) {
-                    rolSeleccionado = actual;
+                    if (actual != null) {
+                        rolSeleccionado = actual;
 
-                    txtNombre.setText(actual.getNombre());
-                    txtDescripcion.setText(actual.getDescripcion());
-                    cmbEstado.setValue(actual.getEstado());
+                        txtNombre.setText(actual.getNombre());
+                        txtDescripcion.setText(actual.getDescripcion());
+                        cmbEstado.setValue(actual.getEstado());
 
-                    btnEditar.setDisable(false);
-                    btnEliminar.setDisable(false);
-                } else {
-                    btnEditar.setDisable(true);
-                    btnEliminar.setDisable(true);
-                }
-            });
+                        btnEditar.setDisable(false);
+                        btnEliminar.setDisable(false);
+                    } else {
+                        btnEditar.setDisable(true);
+                        btnEliminar.setDisable(true);
+                    }
+                });
 
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
@@ -133,18 +125,16 @@ public class RolController {
     }
 
     private void cargarRoles() {
-        ObservableList<Rol> lista =
-            FXCollections.observableArrayList(dao.listar());
+        ObservableList<Rol> lista = FXCollections.observableArrayList(dao.listar());
 
         tablaRoles.setItems(lista);
 
         int total = lista.size();
 
         lblRegistros.setText(
-            total + (total == 1
-                ? " rol registrado"
-                : " roles registrados")
-        );
+                total + (total == 1
+                        ? " rol registrado"
+                        : " roles registrados"));
     }
 
     @FXML
@@ -169,10 +159,9 @@ public class RolController {
     private void editar() {
         if (rolSeleccionado == null) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Sin selección",
-                "Selecciona primero un rol."
-            );
+                    Alert.AlertType.WARNING,
+                    "Sin selección",
+                    "Selecciona primero un rol.");
             return;
         }
 
@@ -194,53 +183,63 @@ public class RolController {
 
         if (nombre.isEmpty()) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Campo obligatorio",
-                "Debes ingresar el nombre del rol."
-            );
+                    Alert.AlertType.WARNING,
+                    "Campo obligatorio",
+                    "Debes ingresar el nombre del rol.");
             txtNombre.requestFocus();
             return;
         }
 
         if (estado == null || estado.isBlank()) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Estado obligatorio",
-                "Selecciona el estado del rol."
-            );
+                    Alert.AlertType.WARNING,
+                    "Estado obligatorio",
+                    "Selecciona el estado del rol.");
             return;
         }
 
+        int idExcluir = 0;
+
+        if (modoEdicion && rolSeleccionado != null) {
+            idExcluir = rolSeleccionado.getIdRol();
+        }
+
+        if (dao.existeNombre(nombre, idExcluir)) {
+            mostrarAlerta(
+                    Alert.AlertType.WARNING,
+                    "Nombre duplicado",
+                    "Ya existe un rol con ese nombre. Escribe un nombre diferente.");
+
+            txtNombre.requestFocus();
+            return;
+        }
+        
         if (modoEdicion) {
             if (rolSeleccionado == null) {
                 mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Sin selección",
-                    "Selecciona un rol para editar."
-                );
+                        Alert.AlertType.WARNING,
+                        "Sin selección",
+                        "Selecciona un rol para editar.");
                 return;
             }
 
             rolSeleccionado.setNombre(nombre);
             rolSeleccionado.setDescripcion(
-                descripcion.isEmpty() ? null : descripcion
-            );
+                    descripcion.isEmpty() ? null : descripcion);
             rolSeleccionado.setEstado(estado);
 
             if (dao.actualizar(rolSeleccionado)) {
                 finalizarOperacion();
 
                 mostrarAlerta(
-                    Alert.AlertType.INFORMATION,
-                    "Actualización exitosa",
-                    "El rol se actualizó correctamente."
-                );
+                        Alert.AlertType.INFORMATION,
+                        "Actualización exitosa",
+                        "El rol se actualizó correctamente.");
             } else {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo actualizar el rol."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo actualizar el rol.");
             }
 
         } else {
@@ -248,30 +247,27 @@ public class RolController {
 
             if (id <= 0) {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo obtener el ID del rol."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo obtener el ID del rol.");
                 return;
             }
 
             Rol rol = new Rol(id, estado, nombre,
-                descripcion.isEmpty() ? null : descripcion);
+                    descripcion.isEmpty() ? null : descripcion);
 
             if (dao.insertar(rol)) {
                 finalizarOperacion();
 
                 mostrarAlerta(
-                    Alert.AlertType.INFORMATION,
-                    "Registro exitoso",
-                    "El rol se registró correctamente."
-                );
+                        Alert.AlertType.INFORMATION,
+                        "Registro exitoso",
+                        "El rol se registró correctamente.");
             } else {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo registrar el rol."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo registrar el rol.");
             }
         }
     }
@@ -287,9 +283,8 @@ public class RolController {
         confirmacion.setTitle("Eliminar rol");
         confirmacion.setHeaderText(null);
         confirmacion.setContentText(
-            "¿Deseas eliminar el rol \""
-                + rolSeleccionado.getNombre() + "\"?"
-        );
+                "¿Deseas eliminar el rol \""
+                        + rolSeleccionado.getNombre() + "\"?");
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
@@ -300,16 +295,14 @@ public class RolController {
                 finalizarOperacion();
 
                 mostrarAlerta(
-                    Alert.AlertType.INFORMATION,
-                    "Eliminación exitosa",
-                    "El rol se eliminó correctamente."
-                );
+                        Alert.AlertType.INFORMATION,
+                        "Eliminación exitosa",
+                        "El rol se eliminó correctamente.");
             } else {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "No se pudo eliminar",
-                    "El rol podría estar asociado a uno o más empleados."
-                );
+                        Alert.AlertType.ERROR,
+                        "No se pudo eliminar",
+                        "El rol podría estar asociado a uno o más empleados.");
             }
         }
     }
@@ -363,13 +356,11 @@ public class RolController {
     @FXML
     private void volverAlMenu() throws IOException {
         FXMLLoader loader = new FXMLLoader(
-            getClass().getResource("/com/laroca/vista/menu.fxml")
-        );
+                getClass().getResource("/com/laroca/vista/menu.fxml"));
 
         Parent vista = loader.load();
 
-        Stage ventanaActual =
-            (Stage) txtNombre.getScene().getWindow();
+        Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();
 
         ventanaActual.setScene(new Scene(vista));
         ventanaActual.setTitle("Sistema Abarrotes La Roca");
