@@ -1,4 +1,3 @@
-
 package com.laroca.controlador;
 
 import com.laroca.dao.CategoriaDAO;
@@ -14,6 +13,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -21,59 +21,35 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import javafx.scene.control.Label;
-
 import java.util.Optional;
 
 public class CategoriaController {
 
-    @FXML
-    private TableView<Categoria> tablaCategorias;
+    @FXML private TableView<Categoria> tablaCategorias;
+    @FXML private TableColumn<Categoria, Integer> columnaId;
+    @FXML private TableColumn<Categoria, String> columnaNombre;
+    @FXML private TableColumn<Categoria, String> columnaDescripcion;
+    @FXML private TableColumn<Categoria, String> columnaEstado;
 
-    @FXML
-    private TableColumn<Categoria, Integer> columnaId;
+    @FXML private TextField txtNombre;
+    @FXML private TextField txtDescripcion;
+    @FXML private ComboBox<String> cmbEstado;
 
-    @FXML
-    private TableColumn<Categoria, String> columnaNombre;
+    @FXML private Button btnEditar;
+    @FXML private Button btnEliminar;
+    @FXML private Button btnGuardar;
+    @FXML private Button btnCancelar;
 
-    @FXML
-    private TableColumn<Categoria, String> columnaDescripcion;
-
-    @FXML
-    private TableColumn<Categoria, String> columnaEstado;
-
-    @FXML
-    private TextField txtNombre;
-
-    @FXML
-    private TextField txtDescripcion;
-
-    @FXML
-    private ComboBox<String> cmbEstado;
-
-    @FXML
-    private Button btnEditar;
-
-    @FXML
-    private Button btnEliminar;
-
-    @FXML
-    private Button btnGuardar;
-
-    @FXML
-    private Button btnCancelar;
-
-    @FXML
-    private Label lblFecha;
-
-    @FXML
-    private Label lblTotalCategorias;
+    @FXML private Label lblFecha;
+    @FXML private Label lblTotalCategorias;
 
     private final CategoriaDAO categoriaDAO = new CategoriaDAO();
-    private final ObservableList<Categoria> listaCategorias = FXCollections.observableArrayList();
+    private final ObservableList<Categoria> listaCategorias =
+            FXCollections.observableArrayList();
 
     private boolean modoEdicion = false;
 
@@ -109,16 +85,15 @@ public class CategoriaController {
         cargarCategorias();
         bloquearFormulario();
 
-        lblFecha.setText(
-                LocalDate.now().format(
-                        DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault())));
+        lblFecha.setText(LocalDate.now().format(
+                DateTimeFormatter.ofPattern(
+                        "dd/MM/yyyy", Locale.getDefault())));
     }
 
     private void cargarCategorias() {
         listaCategorias.setAll(categoriaDAO.listar());
 
         int total = listaCategorias.size();
-
         lblTotalCategorias.setText(
                 total + (total == 1
                         ? " categoría registrada"
@@ -133,8 +108,8 @@ public class CategoriaController {
 
     @FXML
     private void nuevo() {
-        tablaCategorias.getSelectionModel().clearSelection();
         modoEdicion = false;
+        tablaCategorias.getSelectionModel().clearSelection();
         limpiarFormulario();
         cmbEstado.setValue("Activo");
         desbloquearFormulario();
@@ -178,35 +153,40 @@ public class CategoriaController {
             return;
         }
 
+        Categoria seleccionada = tablaCategorias
+                .getSelectionModel().getSelectedItem();
+
+        if (modoEdicion && seleccionada == null) {
+            mostrarAlerta(Alert.AlertType.WARNING,
+                    "Sin selección",
+                    "Selecciona la categoría que deseas actualizar.");
+            return;
+        }
+
+        int idExcluir = modoEdicion
+                ? seleccionada.getIdCategoria() : 0;
+
+        // Validar antes de intentar insertar o actualizar.
+        if (categoriaDAO.existeNombre(nombre, idExcluir)) {
+            mostrarAlerta(Alert.AlertType.WARNING,
+                    "Nombre duplicado",
+                    "Ya existe una categoría con ese nombre. "
+                    + "Escribe un nombre diferente.");
+            txtNombre.requestFocus();
+            return;
+        }
+
         Categoria categoria;
+        boolean guardado;
 
         if (modoEdicion) {
-            categoria = tablaCategorias.getSelectionModel()
-                    .getSelectedItem();
-
-            if (categoria == null) {
-                mostrarAlerta(Alert.AlertType.WARNING,
-                        "Sin selección",
-                        "Selecciona la categoría que deseas actualizar.");
-                return;
-            }
-
+            categoria = seleccionada;
             categoria.setNombre(nombre);
             categoria.setDescripcion(
                     descripcion.isEmpty() ? null : descripcion);
             categoria.setEstado(estado);
 
-            if (categoriaDAO.actualizar(categoria)) {
-                mostrarAlerta(Alert.AlertType.INFORMATION,
-                        "Actualización exitosa",
-                        "La categoría se actualizó correctamente.");
-                terminarEdicion();
-            } else {
-                mostrarAlerta(Alert.AlertType.ERROR,
-                        "Error",
-                        "No se pudo actualizar la categoría.");
-            }
-
+            guardado = categoriaDAO.actualizar(categoria);
         } else {
             int siguienteId = categoriaDAO.obtenerSiguienteId();
 
@@ -223,17 +203,22 @@ public class CategoriaController {
                     nombre,
                     descripcion.isEmpty() ? null : descripcion);
 
-            if (categoriaDAO.insertar(categoria)) {
-                mostrarAlerta(Alert.AlertType.INFORMATION,
-                        "Registro exitoso",
-                        "La categoría se agregó correctamente.");
-                terminarEdicion();
-            } else {
-                mostrarAlerta(Alert.AlertType.ERROR,
-                        "Error",
-                        "No se pudo guardar la categoría. "
-                                + "Revisa la conexión y los datos.");
-            }
+            guardado = categoriaDAO.insertar(categoria);
+        }
+
+        if (guardado) {
+            mostrarAlerta(Alert.AlertType.INFORMATION,
+                    modoEdicion ? "Actualización exitosa" : "Registro exitoso",
+                    modoEdicion
+                            ? "La categoría se actualizó correctamente."
+                            : "La categoría se agregó correctamente.");
+
+            terminarEdicion();
+        } else {
+            mostrarAlerta(Alert.AlertType.ERROR,
+                    "No se pudo guardar",
+                    "No se pudo guardar la categoría. "
+                    + "Comprueba la conexión y que el nombre no exista.");
         }
     }
 
@@ -266,7 +251,7 @@ public class CategoriaController {
                 mostrarAlerta(Alert.AlertType.ERROR,
                         "No se pudo eliminar",
                         "Puede que esta categoría esté asociada "
-                                + "a uno o más productos.");
+                        + "a uno o más productos.");
             }
         }
     }
@@ -309,7 +294,6 @@ public class CategoriaController {
 
     private void mostrarAlerta(
             Alert.AlertType tipo, String titulo, String mensaje) {
-
         Alert alerta = new Alert(tipo);
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
@@ -323,7 +307,6 @@ public class CategoriaController {
                 getClass().getResource("/com/laroca/vista/menu.fxml"));
 
         Parent vista = loader.load();
-
         Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();
 
         ventanaActual.setScene(new Scene(vista));

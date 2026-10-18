@@ -6,12 +6,19 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.control.ComboBox?>
 
 <BorderPane
+    prefWidth="760.0"
+    prefHeight="429.0"
+    minWidth="760.0"
+    minHeight="429.0"
+    maxWidth="760.0"
+    maxHeight="429.0"
     xmlns="http://javafx.com/javafx/21"
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.laroca.controlador.UnidadMedidaController"
@@ -20,73 +27,95 @@
 
     <!-- ENCABEZADO -->
     <top>
-
         <VBox>
 
-            <HBox
-                    styleClass="encabezado"
-                    alignment="CENTER_LEFT">
+            <!-- BARRA DE TITULO -->
+            <AnchorPane
+                prefWidth="760.0"
+                prefHeight="31.0"
+                styleClass="encabezado">
 
                 <Label
+                    layoutX="12.0"
+                    layoutY="8.0"
                     text="Sistema abarrotes &quot;La Roca&quot; — Gestión de Unidades de Medida"
                     styleClass="titulo"/>
 
-            </HBox>
+                <!-- TRES CUADROS DECORATIVOS -->
+                <HBox
+                    layoutX="704.0"
+                    layoutY="10.5"
+                    spacing="4.0">
 
-            <!-- BOTONES -->
+                    <Region
+                        layoutX="0.0"
+                        prefWidth="10.0"
+                        prefHeight="10.0"
+                        styleClass="boton-ventana"/>
+
+                    <Region
+                        prefWidth="10.0"
+                        prefHeight="10.0"
+                        styleClass="boton-ventana"/>
+
+                    <Region
+                        prefWidth="10.0"
+                        prefHeight="10.0"
+                        styleClass="boton-ventana"/>
+
+                </HBox>
+            </AnchorPane>
+
+            <!-- BARRA DE BOTONES -->
             <HBox
-    spacing="10"
-    styleClass="barra-botones"
-    alignment="CENTER_LEFT">
+                spacing="10.0"
+                styleClass="barra-botones"
+                alignment="CENTER_LEFT">
 
-    <Button
-        fx:id="btnNuevo"
-        text="Nuevo"
-        onAction="#nuevo"
-        styleClass="btn-principal"/>
+                <Button
+                    fx:id="btnNuevo"
+                    text="Nuevo"
+                    onAction="#nuevo"
+                    styleClass="btn-principal"/>
 
-    <Button
-        fx:id="btnEditar"
-        text="Editar"
-        onAction="#editar"
-        styleClass="btn-secundario"/>
+                <Button
+                    fx:id="btnEditar"
+                    text="Editar"
+                    onAction="#editar"
+                    styleClass="btn-secundario"
+                    disable="true"/>
 
-    <Button
-        fx:id="btnEliminar"
-        text="Eliminar"
-        onAction="#eliminar"
-        styleClass="btn-eliminar"/>
+                <Button
+                    fx:id="btnEliminar"
+                    text="Eliminar"
+                    onAction="#eliminar"
+                    styleClass="btn-eliminar"
+                    disable="true"/>
 
-    <Button text="Volver al menú"
-        onAction="#volverAlMenu"
-        layoutX="245.0"
-        layoutY="10.0"
-        styleClass="boton-secundario"/>
+                <Button
+                    text="Volver al menú"
+                    onAction="#volverAlMenu"
+                    styleClass="btn-secundario"/>
 
-    <Region HBox.hgrow="ALWAYS"/>
+                <Region HBox.hgrow="ALWAYS"/>
 
-    <Label
-        fx:id="lblFecha"
-        text="07/10/2026"
-        styleClass="fecha"/>
+                <Label
+                    fx:id="lblFecha"
+                    styleClass="fecha"/>
 
-</HBox>
-
+            </HBox>
         </VBox>
-
     </top>
-
 
     <!-- CONTENIDO -->
     <center>
-
         <HBox
-            spacing="18"
+            spacing="18.0"
             styleClass="contenido">
 
-            <!-- TABLA -->
+            <!-- TABLA DE UNIDADES -->
             <VBox
-                spacing="8"
+                spacing="8.0"
                 HBox.hgrow="ALWAYS"
                 styleClass="panel">
 
@@ -99,45 +128,42 @@
                     VBox.vgrow="ALWAYS">
 
                     <columns>
-
                         <TableColumn
                             fx:id="columnaId"
                             text="ID"
-                            prefWidth="70"/>
+                            prefWidth="70.0"/>
 
                         <TableColumn
                             fx:id="columnaNombre"
                             text="Nombre"
-                            prefWidth="180"/>
+                            prefWidth="180.0"/>
 
                         <TableColumn
                             fx:id="columnaAbreviatura"
                             text="Abreviatura"
-                            prefWidth="120"/>
-                        
-                         <TableColumn fx:id="columnaEstado"
-                            text="Estado" prefWidth="100.0"/>
+                            prefWidth="120.0"/>
 
+                        <TableColumn
+                            fx:id="columnaEstado"
+                            text="Estado"
+                            prefWidth="100.0"/>
                     </columns>
-
                 </TableView>
-
             </VBox>
 
-
-            <!-- DETALLE -->
+            <!-- PANEL DE DETALLE -->
             <VBox
-                spacing="15"
-                prefWidth="320"
+                spacing="15.0"
+                prefWidth="320.0"
+                minWidth="320.0"
+                maxWidth="320.0"
                 styleClass="panel detalle">
 
                 <Label
                     text="Detalle"
                     styleClass="subtitulo"/>
 
-
-                <VBox spacing="6">
-
+                <VBox spacing="6.0">
                     <Label
                         text="Nombre de la unidad"
                         styleClass="etiqueta"/>
@@ -145,12 +171,9 @@
                     <TextField
                         fx:id="txtNombre"
                         promptText="Nombre de la unidad"/>
-
                 </VBox>
 
-
-                <VBox spacing="6">
-
+                <VBox spacing="6.0">
                     <Label
                         text="Abreviatura"
                         styleClass="etiqueta"/>
@@ -158,53 +181,43 @@
                     <TextField
                         fx:id="txtAbreviatura"
                         promptText="Abreviatura"/>
-
                 </VBox>
 
-                
-                <VBox spacing="6">
-
+                <VBox spacing="6.0">
                     <Label
-                       text="Estado"
-                       styleClass="etiqueta"/>
+                        text="Estado"
+                        styleClass="etiqueta"/>
 
                     <ComboBox
-                       fx:id="cmbEstado"
-                       promptText="Selecciona un estado"
-                       maxWidth="Infinity"/>
-
-                 </VBox>
-
-
+                        fx:id="cmbEstado"
+                        promptText="Selecciona un estado"
+                        maxWidth="Infinity"/>
+                </VBox>
 
                 <HBox
-                    spacing="10"
+                    spacing="10.0"
                     alignment="CENTER_RIGHT">
 
                     <Button
                         fx:id="btnGuardar"
                         text="Guardar"
                         onAction="#guardar"
-                        styleClass="btn-guardar"/>
+                        styleClass="btn-guardar"
+                        disable="true"/>
 
                     <Button
                         fx:id="btnCancelar"
                         text="Cancelar"
                         onAction="#cancelar"
-                        styleClass="btn-cancelar"/>
-
+                        styleClass="btn-cancelar"
+                        disable="true"/>
                 </HBox>
-
             </VBox>
-
         </HBox>
-
     </center>
-
 
     <!-- PIE -->
     <bottom>
-
         <HBox
             styleClass="pie"
             alignment="CENTER_LEFT">
@@ -212,9 +225,7 @@
             <Label
                 fx:id="lblRegistros"
                 text="0 unidades registradas"/>
-
         </HBox>
-
     </bottom>
 
 </BorderPane>

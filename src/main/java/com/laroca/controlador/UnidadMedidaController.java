@@ -1,4 +1,3 @@
-
 package com.laroca.controlador;
 
 import com.laroca.dao.UnidadMedidaDAO;
@@ -76,30 +75,23 @@ public class UnidadMedidaController {
     private final UnidadMedidaDAO dao = new UnidadMedidaDAO();
 
     private UnidadMedida unidadSeleccionada;
-
     private boolean modoEdicion = false;
 
     @FXML
     public void initialize() {
-
         lblFecha.setText(
-            LocalDate.now().format(
-                DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            )
+            LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         );
 
         columnaId.setCellValueFactory(
             new PropertyValueFactory<>("idUnidadMedida")
         );
-
         columnaNombre.setCellValueFactory(
             new PropertyValueFactory<>("nombre")
         );
-
         columnaAbreviatura.setCellValueFactory(
             new PropertyValueFactory<>("abreviatura")
         );
-
         columnaEstado.setCellValueFactory(
             new PropertyValueFactory<>("estado")
         );
@@ -113,10 +105,8 @@ public class UnidadMedidaController {
         tablaUnidades.getSelectionModel()
             .selectedItemProperty()
             .addListener((observable, anterior, actual) -> {
-
                 if (actual != null) {
                     unidadSeleccionada = actual;
-
                     txtNombre.setText(actual.getNombre());
                     txtAbreviatura.setText(actual.getAbreviatura());
                     cmbEstado.setValue(actual.getEstado());
@@ -131,7 +121,6 @@ public class UnidadMedidaController {
 
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
-
         bloquearFormulario(true);
     }
 
@@ -142,7 +131,6 @@ public class UnidadMedidaController {
         tablaUnidades.setItems(lista);
 
         int total = lista.size();
-
         lblRegistros.setText(
             total + (total == 1
                 ? " unidad registrada"
@@ -156,15 +144,12 @@ public class UnidadMedidaController {
         unidadSeleccionada = null;
 
         tablaUnidades.getSelectionModel().clearSelection();
-
         limpiarFormulario();
         cmbEstado.setValue("Activo");
 
         bloquearFormulario(false);
-
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
-
         txtNombre.requestFocus();
     }
 
@@ -180,7 +165,6 @@ public class UnidadMedidaController {
         }
 
         modoEdicion = true;
-
         txtNombre.setText(unidadSeleccionada.getNombre());
         txtAbreviatura.setText(unidadSeleccionada.getAbreviatura());
         cmbEstado.setValue(unidadSeleccionada.getEstado());
@@ -213,6 +197,23 @@ public class UnidadMedidaController {
             return;
         }
 
+        // Evita nombres repetidos al insertar y al editar.
+        int idExcluir = modoEdicion && unidadSeleccionada != null
+            ? unidadSeleccionada.getIdUnidadMedida()
+            : 0;
+
+        if (dao.existeNombre(nombre, idExcluir)) {
+            mostrarAlerta(
+                Alert.AlertType.WARNING,
+                "Nombre duplicado",
+                "Ya existe una unidad de medida con ese nombre. "
+                    + "Escribe un nombre diferente."
+            );
+            txtNombre.requestFocus();
+            txtNombre.selectAll();
+            return;
+        }
+
         if (modoEdicion) {
             if (unidadSeleccionada == null) {
                 mostrarAlerta(
@@ -239,10 +240,10 @@ public class UnidadMedidaController {
                 mostrarAlerta(
                     Alert.AlertType.ERROR,
                     "Error",
-                    "No se pudo actualizar la unidad."
+                    "No se pudo actualizar la unidad. "
+                        + "Verifica los datos y la conexión."
                 );
             }
-
         } else {
             int id = dao.obtenerSiguienteId();
 
@@ -256,7 +257,6 @@ public class UnidadMedidaController {
             }
 
             UnidadMedida unidad = new UnidadMedida();
-
             unidad.setIdUnidadMedida(id);
             unidad.setEstado(estado);
             unidad.setNombre(nombre);
@@ -274,7 +274,8 @@ public class UnidadMedidaController {
                 mostrarAlerta(
                     Alert.AlertType.ERROR,
                     "Error",
-                    "No se pudo registrar la unidad."
+                    "No se pudo registrar la unidad. "
+                        + "Verifica los datos y la conexión."
                 );
             }
         }
@@ -292,7 +293,6 @@ public class UnidadMedidaController {
         }
 
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-
         confirmacion.setTitle("Eliminar unidad");
         confirmacion.setHeaderText(null);
         confirmacion.setContentText(
@@ -302,9 +302,7 @@ public class UnidadMedidaController {
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
-        if (respuesta.isPresent()
-                && respuesta.get() == ButtonType.OK) {
-
+        if (respuesta.isPresent() && respuesta.get() == ButtonType.OK) {
             if (dao.eliminar(unidadSeleccionada.getIdUnidadMedida())) {
                 finalizarOperacion();
 
@@ -326,16 +324,7 @@ public class UnidadMedidaController {
 
     @FXML
     private void cancelar() {
-        modoEdicion = false;
-        unidadSeleccionada = null;
-
-        tablaUnidades.getSelectionModel().clearSelection();
-
-        limpiarFormulario();
-        bloquearFormulario(true);
-
-        btnEditar.setDisable(true);
-        btnEliminar.setDisable(true);
+        finalizarOperacion();
     }
 
     private void finalizarOperacion() {
@@ -344,11 +333,9 @@ public class UnidadMedidaController {
 
         limpiarFormulario();
         bloquearFormulario(true);
-
         cargarUnidades();
 
         tablaUnidades.getSelectionModel().clearSelection();
-
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
     }
@@ -373,11 +360,9 @@ public class UnidadMedidaController {
             String mensaje) {
 
         Alert alerta = new Alert(tipo);
-
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
-
         alerta.showAndWait();
     }
 
@@ -388,9 +373,7 @@ public class UnidadMedidaController {
         );
 
         Parent vista = loader.load();
-
-        Stage ventanaActual =
-            (Stage) txtNombre.getScene().getWindow();
+        Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();
 
         ventanaActual.setScene(new Scene(vista));
         ventanaActual.setTitle("Sistema Abarrotes La Roca");
