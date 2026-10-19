@@ -6,6 +6,7 @@ import com.laroca.modelo.UnidadMedida;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.Optional;
 
 import javafx.collections.FXCollections;
@@ -53,9 +54,6 @@ public class UnidadMedidaController {
 
     @FXML
     private Button btnNuevo;
-
-    @FXML
-    private Button btnEditar;
 
     @FXML
     private Button btnEliminar;
@@ -107,19 +105,18 @@ public class UnidadMedidaController {
             .addListener((observable, anterior, actual) -> {
                 if (actual != null) {
                     unidadSeleccionada = actual;
-                    txtNombre.setText(actual.getNombre());
-                    txtAbreviatura.setText(actual.getAbreviatura());
+                    modoEdicion = true;
+                    txtNombre.setText(Objects.toString(actual.getNombre(), ""));
+                    txtAbreviatura.setText(Objects.toString(actual.getAbreviatura(), ""));
                     cmbEstado.setValue(actual.getEstado());
 
-                    btnEditar.setDisable(false);
+                    bloquearFormulario(false);
                     btnEliminar.setDisable(false);
                 } else {
-                    btnEditar.setDisable(true);
                     btnEliminar.setDisable(true);
                 }
             });
 
-        btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
         bloquearFormulario(true);
     }
@@ -148,28 +145,7 @@ public class UnidadMedidaController {
         cmbEstado.setValue("Activo");
 
         bloquearFormulario(false);
-        btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
-        txtNombre.requestFocus();
-    }
-
-    @FXML
-    private void editar() {
-        if (unidadSeleccionada == null) {
-            mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Sin selección",
-                "Selecciona primero una unidad."
-            );
-            return;
-        }
-
-        modoEdicion = true;
-        txtNombre.setText(unidadSeleccionada.getNombre());
-        txtAbreviatura.setText(unidadSeleccionada.getAbreviatura());
-        cmbEstado.setValue(unidadSeleccionada.getEstado());
-
-        bloquearFormulario(false);
         txtNombre.requestFocus();
     }
 
@@ -336,7 +312,6 @@ public class UnidadMedidaController {
         cargarUnidades();
 
         tablaUnidades.getSelectionModel().clearSelection();
-        btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
     }
 

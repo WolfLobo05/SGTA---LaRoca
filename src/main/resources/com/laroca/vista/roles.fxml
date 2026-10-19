@@ -46,19 +46,13 @@
                 text="Nuevo" onAction="#nuevo"
                 styleClass="boton-principal"/>
 
-        <Button fx:id="btnEditar"
-                layoutX="89.0" layoutY="10.0"
-                text="Editar" onAction="#editar"
-                styleClass="boton-secundario"
-                disable="true"/>
-
         <Button fx:id="btnEliminar"
-                layoutX="158.0" layoutY="10.0"
+                layoutX="89.0" layoutY="10.0"
                 text="Eliminar" onAction="#eliminar"
                 styleClass="boton-eliminar"
                 disable="true"/>
 
-        <Button layoutX="245.0" layoutY="10.0"
+        <Button layoutX="176.0" layoutY="10.0"
                 text="Volver al menú"
                 onAction="#volverAlMenu"
                 styleClass="boton-secundario"/>

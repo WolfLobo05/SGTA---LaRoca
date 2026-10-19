@@ -79,13 +79,6 @@
                     styleClass="btn-principal"/>
 
                 <Button
-                    fx:id="btnEditar"
-                    text="Editar"
-                    onAction="#editar"
-                    styleClass="btn-secundario"
-                    disable="true"/>
-
-                <Button
                     fx:id="btnEliminar"
                     text="Eliminar"
                     onAction="#eliminar"
