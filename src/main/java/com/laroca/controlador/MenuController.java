@@ -1,4 +1,3 @@
-
 package com.laroca.controlador;
 
 import java.io.IOException;
@@ -37,6 +36,13 @@ public class MenuController {
         abrirVentana(
                 "/com/laroca/vista/roles.fxml",
                 "La Roca - Roles");
+    }
+
+    @FXML
+    private void abrirProveedores() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/proveedores.fxml",
+                "La Roca - Proveedores");
     }
 
     private void abrirVentana(String ruta, String titulo)

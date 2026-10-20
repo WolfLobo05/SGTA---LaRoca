@@ -19,8 +19,8 @@
                style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
     </AnchorPane>
 
-    <VBox layoutX="150.0" layoutY="95.0"
-          prefWidth="460.0" spacing="18.0"
+    <VBox layoutX="150.0" layoutY="80.0"
+          prefWidth="460.0" spacing="14.0"
           alignment="CENTER">
 
         <Label text="MENÚ PRINCIPAL"
@@ -32,19 +32,27 @@
         <Button fx:id="btnUnidades"
                 text="Unidades de Medida"
                 onAction="#abrirUnidades"
-                prefWidth="300.0" prefHeight="45.0"
+                prefWidth="300.0" prefHeight="40.0"
                 style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
         <Button fx:id="btnCategorias"
                 text="Categorías de Productos"
                 onAction="#abrirCategorias"
-                prefWidth="300.0" prefHeight="45.0"
+                prefWidth="300.0" prefHeight="40.0"
                 style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
         <Button text="Roles"
                 onAction="#abrirRoles"
                 prefWidth="300.0"
-                prefHeight="45.0"
+                prefHeight="40.0"
+                style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+        <!-- NUEVO BOTÓN DE PROVEEDORES -->
+        <Button fx:id="btnProveedores"
+                text="Proveedores"
+                onAction="#abrirProveedores"
+                prefWidth="300.0"
+                prefHeight="40.0"
                 style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
     </VBox>
