@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 public class CategoriaController {
@@ -39,7 +40,6 @@ public class CategoriaController {
     @FXML private TextField txtDescripcion;
     @FXML private ComboBox<String> cmbEstado;
 
-    @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     @FXML private Button btnGuardar;
     @FXML private Button btnCancelar;
@@ -73,11 +73,11 @@ public class CategoriaController {
                 .selectedItemProperty()
                 .addListener((observable, anterior, seleccionada) -> {
                     if (seleccionada != null) {
+                        modoEdicion = true;
                         mostrarCategoria(seleccionada);
-                        btnEditar.setDisable(false);
+                        desbloquearFormulario();
                         btnEliminar.setDisable(false);
                     } else {
-                        btnEditar.setDisable(true);
                         btnEliminar.setDisable(true);
                     }
                 });
@@ -101,8 +101,8 @@ public class CategoriaController {
     }
 
     private void mostrarCategoria(Categoria categoria) {
-        txtNombre.setText(categoria.getNombre());
-        txtDescripcion.setText(categoria.getDescripcion());
+        txtNombre.setText(Objects.toString(categoria.getNombre(), ""));
+        txtDescripcion.setText(Objects.toString(categoria.getDescripcion(), ""));
         cmbEstado.setValue(categoria.getEstado());
     }
 
@@ -113,23 +113,7 @@ public class CategoriaController {
         limpiarFormulario();
         cmbEstado.setValue("Activo");
         desbloquearFormulario();
-    }
-
-    @FXML
-    private void editar() {
-        Categoria seleccionada = tablaCategorias
-                .getSelectionModel().getSelectedItem();
-
-        if (seleccionada == null) {
-            mostrarAlerta(Alert.AlertType.WARNING,
-                    "Selecciona una categoría",
-                    "Selecciona una categoría de la tabla para editarla.");
-            return;
-        }
-
-        modoEdicion = true;
-        mostrarCategoria(seleccionada);
-        desbloquearFormulario();
+        txtNombre.requestFocus();
     }
 
     @FXML
@@ -289,7 +273,6 @@ public class CategoriaController {
         cmbEstado.setDisable(false);
         btnGuardar.setDisable(false);
         btnCancelar.setDisable(false);
-        txtNombre.requestFocus();
     }
 
     private void mostrarAlerta(

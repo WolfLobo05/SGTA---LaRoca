@@ -6,6 +6,7 @@ import com.laroca.modelo.Rol;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.Optional;
 
 import javafx.collections.FXCollections;
@@ -50,9 +51,6 @@ public class RolController {
 
     @FXML
     private ComboBox<String> cmbEstado;
-
-    @FXML
-    private Button btnEditar;
 
     @FXML
     private Button btnEliminar;
@@ -105,20 +103,19 @@ public class RolController {
 
                     if (actual != null) {
                         rolSeleccionado = actual;
+                        modoEdicion = true;
 
-                        txtNombre.setText(actual.getNombre());
-                        txtDescripcion.setText(actual.getDescripcion());
+                        txtNombre.setText(Objects.toString(actual.getNombre(), ""));
+                        txtDescripcion.setText(Objects.toString(actual.getDescripcion(), ""));
                         cmbEstado.setValue(actual.getEstado());
 
-                        btnEditar.setDisable(false);
+                        bloquearFormulario(false);
                         btnEliminar.setDisable(false);
                     } else {
-                        btnEditar.setDisable(true);
                         btnEliminar.setDisable(true);
                     }
                 });
 
-        btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
 
         bloquearFormulario(true);
@@ -149,29 +146,8 @@ public class RolController {
 
         bloquearFormulario(false);
 
-        btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
 
-        txtNombre.requestFocus();
-    }
-
-    @FXML
-    private void editar() {
-        if (rolSeleccionado == null) {
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Sin selección",
-                    "Selecciona primero un rol.");
-            return;
-        }
-
-        modoEdicion = true;
-
-        txtNombre.setText(rolSeleccionado.getNombre());
-        txtDescripcion.setText(rolSeleccionado.getDescripcion());
-        cmbEstado.setValue(rolSeleccionado.getEstado());
-
-        bloquearFormulario(false);
         txtNombre.requestFocus();
     }
 
@@ -323,7 +299,6 @@ public class RolController {
 
         tablaRoles.getSelectionModel().clearSelection();
 
-        btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
     }
 
