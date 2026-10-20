@@ -38,6 +38,13 @@ public class MenuController {
                 "La Roca - Roles");
     }
 
+    @FXML
+    private void abrirProveedores() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/proveedores.fxml",
+                "La Roca - Proveedores");
+    }
+
     private void abrirVentana(String ruta, String titulo)
             throws IOException {
 
