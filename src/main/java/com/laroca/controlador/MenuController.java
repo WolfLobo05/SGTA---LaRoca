@@ -59,6 +59,13 @@ public class MenuController {
                 "La Roca - Usuarios");
     }
 
+    @FXML
+    private void abrirClientes() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/clientes.fxml",
+                "La Roca - Clientes");
+    }
+
     private void abrirVentana(String ruta, String titulo)
             throws IOException {
 

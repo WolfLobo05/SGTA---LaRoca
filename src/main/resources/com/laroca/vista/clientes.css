@@ -1,0 +1,40 @@
+.root {
+    -fx-font-family: "System";
+    -fx-font-size: 11px;
+    -fx-background-color: #ECECEC;
+}
+
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #B5B5B5;
+    -fx-table-cell-border-color: #E5E5E5;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #E5E5E5;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #333333;
+    -fx-font-weight: bold;
+}
+
+.text-field {
+    -fx-background-color: white;
+    -fx-border-color: #CCCCCC;
+    -fx-border-radius: 2px;
+    -fx-background-radius: 2px;
+}
+
+.text-field:focused {
+    -fx-border-color: #2F6FA8;
+}
+
+.button {
+    -fx-cursor: hand;
+}
+
+.button:disabled {
+    -fx-opacity: 0.55;
+    -fx-cursor: default;
+}

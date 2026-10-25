@@ -60,6 +60,11 @@
                 onAction="#abrirUsuarios"
                 prefWidth="300.0" prefHeight="36.0"
                 style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+        
+        <Button text="Clientes"
+                onAction="#abrirClientes"
+                prefWidth="300.0" prefHeight="36.0"
+                style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
     </VBox>
 
