@@ -41,9 +41,6 @@ public class ProductoController {
     private TableView<Producto> tablaProductos;
 
     @FXML
-    private TableColumn<Producto, Integer> columnaId;
-
-    @FXML
     private TableColumn<Producto, String> columnaCodigo;
 
     @FXML
@@ -105,9 +102,6 @@ public class ProductoController {
                 LocalDate.now().format(
                         DateTimeFormatter.ofPattern("dd/MM/yyyy")));
 
-        columnaId.setCellValueFactory(
-                new PropertyValueFactory<>("idProducto"));
-
         columnaCodigo.setCellValueFactory(
                 new PropertyValueFactory<>("codigoBarras"));
 
@@ -152,6 +146,50 @@ public class ProductoController {
         cargarUnidades();
         cargarProductos();
 
+        // Código de barras: únicamente números, máximo 50 dígitos.
+        txtCodigo.textProperty().addListener(
+                (observable, anterior, actual) -> {
+
+                    if (!actual.matches("\\d{0,50}")) {
+                        txtCodigo.setText(anterior);
+                        return;
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
+        // Nombre del producto: máximo 50 caracteres.
+        txtNombre.textProperty().addListener(
+                (observable, anterior, actual) -> {
+
+                    if (actual.length() > 50) {
+                        txtNombre.setText(anterior);
+                        return;
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
+        // Precio: únicamente números y hasta dos decimales.
+        txtPrecio.textProperty().addListener(
+                (observable, anterior, actual) -> {
+
+                    if (!actual.matches("\\d*(\\.\\d{0,2})?")) {
+                        txtPrecio.setText(anterior);
+                        return;
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
+        // Categoría obligatoria.
+        cmbCategoria.valueProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
+
+        // Unidad de medida obligatoria.
+        cmbUnidad.valueProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
+
         tablaProductos.getSelectionModel()
                 .selectedItemProperty()
                 .addListener((observable, anterior, actual) -> {
@@ -172,6 +210,45 @@ public class ProductoController {
         btnEliminar.setDisable(true);
 
         bloquearFormulario(true);
+    }
+
+    private void actualizarEstadoGuardar() {
+        String codigo = txtCodigo.getText().trim();
+        String nombre = txtNombre.getText().trim();
+        String textoPrecio = txtPrecio.getText().trim();
+
+        Categoria categoria = cmbCategoria.getValue();
+        UnidadMedida unidad = cmbUnidad.getValue();
+
+        boolean codigoValido = codigo.matches("\\d{1,50}");
+
+        boolean nombreValido = !nombre.isEmpty()
+                && nombre.length() <= 50;
+
+        boolean categoriaValida = categoria != null;
+
+        boolean unidadValida = unidad != null;
+
+        boolean precioValido = false;
+
+        try {
+            BigDecimal precio = new BigDecimal(textoPrecio);
+
+            precioValido = textoPrecio.matches("\\d+(\\.\\d{1,2})?")
+                    && precio.compareTo(BigDecimal.ZERO) > 0
+                    && precio.compareTo(PRECIO_MAXIMO) <= 0;
+
+        } catch (NumberFormatException e) {
+            precioValido = false;
+        }
+
+        boolean formularioValido = codigoValido
+                && nombreValido
+                && categoriaValida
+                && unidadValida
+                && precioValido;
+
+        btnGuardar.setDisable(!formularioValido);
     }
 
     private void cargarProductos() {
@@ -499,8 +576,16 @@ public class ProductoController {
         cmbCategoria.setDisable(bloquear);
         cmbUnidad.setDisable(bloquear);
         txtPrecio.setDisable(bloquear);
-        btnGuardar.setDisable(bloquear);
+
+        // Guardar siempre empieza deshabilitado.
+        btnGuardar.setDisable(true);
+
+        // Cancelar se habilita durante la captura.
         btnCancelar.setDisable(bloquear);
+
+        if (!bloquear) {
+            actualizarEstadoGuardar();
+        }
     }
 
     private void mostrarAlerta(

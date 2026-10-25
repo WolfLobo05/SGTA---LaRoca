@@ -69,9 +69,6 @@
                styleClass="tabla">
 
         <columns>
-            <TableColumn fx:id="columnaId"
-                         text="ID" prefWidth="35.0"/>
-
             <TableColumn fx:id="columnaCodigo"
                          text="Código de barras"
                          prefWidth="80.0"/>

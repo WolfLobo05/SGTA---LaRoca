@@ -32,7 +32,7 @@ public class LoginController {
     @FXML
     private void ingresar(ActionEvent event) {
         String usuario = txtUsuario.getText().trim();
-        String password = txtPassword.getText().trim();
+        String password = txtPassword.getText();
 
         if (usuario.isEmpty() || password.isEmpty()) {
             lblMensaje.setText("Por favor, ingresa usuario y contraseña.");

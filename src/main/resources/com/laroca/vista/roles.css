@@ -134,3 +134,7 @@
     -fx-text-fill: #5c5c5c;
     -fx-font-size: 10.1px;
 }
+.button:disabled {
+    -fx-opacity: 0.55;
+    -fx-cursor: default;
+}

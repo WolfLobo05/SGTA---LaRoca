@@ -32,9 +32,6 @@ public class RolController {
     private TableView<Rol> tablaRoles;
 
     @FXML
-    private TableColumn<Rol, Integer> columnaId;
-
-    @FXML
     private TableColumn<Rol, String> columnaNombre;
 
     @FXML
@@ -80,9 +77,6 @@ public class RolController {
                 LocalDate.now().format(
                         DateTimeFormatter.ofPattern("dd/MM/yyyy")));
 
-        columnaId.setCellValueFactory(
-                new PropertyValueFactory<>("idRol"));
-
         columnaNombre.setCellValueFactory(
                 new PropertyValueFactory<>("nombre"));
 
@@ -94,6 +88,27 @@ public class RolController {
 
         cmbEstado.setItems(
                 FXCollections.observableArrayList("Activo", "Inactivo"));
+
+        // Nombre: solo letras, espacios y acentos.
+        txtNombre.textProperty().addListener(
+                (observable, anterior, actual) -> {
+                    String nombreValido = actual.replaceAll("[^\\p{L} ]", "");
+
+                    if (!actual.equals(nombreValido)) {
+                        txtNombre.setText(nombreValido);
+                        return;
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
+        // La descripción es obligatoria.
+        txtDescripcion.textProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
+
+        // El estado también es obligatorio.
+        cmbEstado.valueProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
 
         cargarRoles();
 
@@ -118,7 +133,27 @@ public class RolController {
 
         btnEliminar.setDisable(true);
 
-        bloquearFormulario(true);
+        desbloquearFormulario();
+    }
+
+    private void actualizarEstadoGuardar() {
+        String nombre = txtNombre.getText().trim();
+        String descripcion = txtDescripcion.getText().trim();
+        String estado = cmbEstado.getValue();
+
+        boolean nombreValido = !nombre.isEmpty()
+                && nombre.matches("[\\p{L} ]+");
+
+        boolean descripcionValida = !descripcion.isEmpty();
+
+        boolean estadoValido = estado != null
+                && !estado.isBlank();
+
+        boolean formularioValido = nombreValido
+                && descripcionValida
+                && estadoValido;
+
+        btnGuardar.setDisable(!formularioValido);
     }
 
     private void cargarRoles() {
@@ -144,7 +179,7 @@ public class RolController {
         limpiarFormulario();
         cmbEstado.setValue("Activo");
 
-        bloquearFormulario(false);
+        desbloquearFormulario();
 
         btnEliminar.setDisable(true);
 
@@ -189,7 +224,7 @@ public class RolController {
             txtNombre.requestFocus();
             return;
         }
-        
+
         if (modoEdicion) {
             if (rolSeleccionado == null) {
                 mostrarAlerta(
@@ -312,8 +347,19 @@ public class RolController {
         txtNombre.setDisable(bloquear);
         txtDescripcion.setDisable(bloquear);
         cmbEstado.setDisable(bloquear);
-        btnGuardar.setDisable(bloquear);
+
+        btnGuardar.setDisable(true);
         btnCancelar.setDisable(bloquear);
+    }
+
+    private void desbloquearFormulario() {
+        txtNombre.setDisable(false);
+        txtDescripcion.setDisable(false);
+        cmbEstado.setDisable(false);
+
+        btnCancelar.setDisable(false);
+
+        actualizarEstadoGuardar();
     }
 
     private void mostrarAlerta(

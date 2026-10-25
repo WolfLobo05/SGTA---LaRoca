@@ -67,9 +67,6 @@
                styleClass="tabla">
 
         <columns>
-            <TableColumn fx:id="columnaId"
-             text="ID" prefWidth="35.0"/>
-
             <TableColumn fx:id="columnaNombre"
              text="Nombre de la categoría"
              prefWidth="115.0"/>

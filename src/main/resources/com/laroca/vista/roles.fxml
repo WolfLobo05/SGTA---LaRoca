@@ -69,9 +69,6 @@
                styleClass="tabla">
 
         <columns>
-            <TableColumn fx:id="columnaId"
-                         text="ID" prefWidth="35.0"/>
-
             <TableColumn fx:id="columnaNombre"
                          text="Nombre del rol"
                          prefWidth="110.0"/>

@@ -122,11 +122,6 @@
 
                     <columns>
                         <TableColumn
-                            fx:id="columnaId"
-                            text="ID"
-                            prefWidth="70.0"/>
-
-                        <TableColumn
                             fx:id="columnaNombre"
                             text="Nombre"
                             prefWidth="180.0"/>

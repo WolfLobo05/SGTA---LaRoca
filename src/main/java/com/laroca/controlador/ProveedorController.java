@@ -53,14 +53,14 @@ public class ProveedorController {
 
     private final ProveedorDAO proveedorDAO = new ProveedorDAO();
     private ObservableList<Proveedor> listaProveedores;
-    private Proveedor proveedorSeleccionado = null;
+    private Proveedor proveedorSeleccionado;
 
     @FXML
     public void initialize() {
-        // 1. Mostrar fecha real de la laptop
-        lblFechaActual.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        lblFechaActual.setText(
+                LocalDate.now().format(
+                        DateTimeFormatter.ofPattern("dd/MM/yyyy")));
 
-        // 2. Configurar columnas de la tabla
         colRfc.setCellValueFactory(new PropertyValueFactory<>("rfc"));
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colContacto.setCellValueFactory(new PropertyValueFactory<>("contacto"));
@@ -68,72 +68,120 @@ public class ProveedorController {
         colDireccion.setCellValueFactory(new PropertyValueFactory<>("direccion"));
         colTelefono.setCellValueFactory(new PropertyValueFactory<>("telefono"));
 
-        // 3. Cargar datos
+        aplicarRestricciones();
         cargarTabla();
-
-        // 4. Estado inicial: campos bloqueados y botones restringidos
         bloquearFormulario(true);
+
         btnEliminar.setDisable(true);
         btnGuardar.setDisable(true);
+        btnCancelar.setDisable(true);
 
-        // 5. Listener para seleccionar de la tabla y habilitar edición/eliminación
-        tableProveedores.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                proveedorSeleccionado = newSelection;
-                
-                // Desbloquear para permitir modificar el registro seleccionado
-                bloquearFormulario(false);
-                btnGuardar.setDisable(false);
+        tableProveedores.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((obs, anterior, seleccionado) -> {
+                    if (seleccionado != null) {
+                        proveedorSeleccionado = seleccionado;
 
-                txtRfc.setText(newSelection.getRfc());
-                txtNombre.setText(newSelection.getNombre());
-                txtContacto.setText(newSelection.getContacto());
-                txtCorreo.setText(newSelection.getCorreo());
-                txtDireccion.setText(newSelection.getDireccion());
-                txtTelefono.setText(newSelection.getTelefono());
+                        txtRfc.setText(seleccionado.getRfc());
+                        txtNombre.setText(seleccionado.getNombre());
+                        txtContacto.setText(seleccionado.getContacto());
+                        txtCorreo.setText(seleccionado.getCorreo());
+                        txtDireccion.setText(seleccionado.getDireccion());
+                        txtTelefono.setText(seleccionado.getTelefono());
 
-                btnEliminar.setDisable(false);
-            } else {
-                btnEliminar.setDisable(true);
-            }
-        });
+                        bloquearFormulario(false);
+                        btnCancelar.setDisable(false);
+                        btnEliminar.setDisable(false);
 
-        // 6. Aplicar validaciones estrictas por tipo de dato
-        aplicarRestricciones();
+                        actualizarEstadoGuardar();
+                        lblEstadoFooter.setText("Modo: Editando proveedor");
+                    } else {
+                        btnEliminar.setDisable(true);
+                    }
+                });
     }
 
     private void cargarTabla() {
-        listaProveedores = FXCollections.observableArrayList(proveedorDAO.listar());
+        listaProveedores =
+                FXCollections.observableArrayList(proveedorDAO.listar());
+
         tableProveedores.setItems(listaProveedores);
-        lblEstadoFooter.setText(listaProveedores.size() + " proveedores registrados");
+
+        lblEstadoFooter.setText(
+                listaProveedores.size() + " proveedores registrados");
+    }
+
+    @FXML
+    private void nuevoProveedor() {
+        proveedorSeleccionado = null;
+        tableProveedores.getSelectionModel().clearSelection();
+
+        limpiarCamposTexto();
+        bloquearFormulario(false);
+
+        btnEliminar.setDisable(true);
+        btnCancelar.setDisable(false);
+
+        actualizarEstadoGuardar();
+
+        txtRfc.requestFocus();
+        lblEstadoFooter.setText("Modo: Registrando nuevo proveedor");
     }
 
     @FXML
     private void guardarProveedor() {
-        String rfc = txtRfc.getText().trim();
+        String rfc = txtRfc.getText().trim().toUpperCase();
         String nombre = txtNombre.getText().trim();
         String contacto = txtContacto.getText().trim();
         String correo = txtCorreo.getText().trim();
         String direccion = txtDireccion.getText().trim();
         String telefono = txtTelefono.getText().trim();
 
-        if (nombre.isEmpty()) {
-            mostrarAlerta("Campo Requerido", "El campo Nombre es obligatorio.");
+        // Validación final antes de guardar.
+        if (!formularioValido()) {
+            mostrarAlerta(
+                    "Datos incompletos o inválidos",
+                    "Completa todos los campos correctamente antes de guardar.");
+            actualizarEstadoGuardar();
+            return;
+        }
+
+        // Comprobar RFC duplicado, excepto el proveedor que se está editando.
+        boolean rfcDuplicado = proveedorDAO.listar().stream()
+                .anyMatch(p ->
+                        p.getRfc() != null
+                        && p.getRfc().trim().equalsIgnoreCase(rfc)
+                        && (proveedorSeleccionado == null
+                            || p.getIdProveedor()
+                               != proveedorSeleccionado.getIdProveedor()));
+
+        if (rfcDuplicado) {
+            mostrarAlerta(
+                    "RFC duplicado",
+                    "Ya existe un proveedor registrado con ese RFC.");
+            txtRfc.requestFocus();
+            txtRfc.selectAll();
             return;
         }
 
         if (proveedorSeleccionado == null) {
-            // INSERTAR NUEVO
-            Proveedor nuevo = new Proveedor(0, rfc, nombre, telefono, correo, direccion, contacto, "ACTIVO");
+            Proveedor nuevo = new Proveedor(
+                    0, rfc, nombre, telefono, correo,
+                    direccion, contacto, "ACTIVO");
+
             if (proveedorDAO.guardar(nuevo)) {
-                lblEstadoFooter.setText("Proveedor guardado correctamente.");
+                mostrarAlerta(
+                        "Registro exitoso",
+                        "El proveedor se registró correctamente.");
                 limpiarFormulario();
                 cargarTabla();
             } else {
-                mostrarAlerta("Error", "No se pudo guardar el proveedor.");
+                mostrarAlerta(
+                        "Error",
+                        "No se pudo guardar el proveedor. "
+                        + "Comprueba los datos y la conexión.");
             }
         } else {
-            // ACTUALIZAR EXISTENTE (Usa su ID sin duplicar)
             proveedorSeleccionado.setRfc(rfc);
             proveedorSeleccionado.setNombre(nombre);
             proveedorSeleccionado.setContacto(contacto);
@@ -142,43 +190,52 @@ public class ProveedorController {
             proveedorSeleccionado.setTelefono(telefono);
 
             if (proveedorDAO.actualizar(proveedorSeleccionado)) {
-                lblEstadoFooter.setText("Proveedor actualizado correctamente.");
+                mostrarAlerta(
+                        "Actualización exitosa",
+                        "El proveedor se actualizó correctamente.");
                 limpiarFormulario();
                 cargarTabla();
             } else {
-                mostrarAlerta("Error", "No se pudo actualizar el proveedor.");
+                mostrarAlerta(
+                        "Error",
+                        "No se pudo actualizar el proveedor.");
             }
         }
     }
 
     @FXML
     private void eliminarProveedor() {
-        if (proveedorSeleccionado != null) {
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "¿Deseas eliminar el proveedor " + proveedorSeleccionado.getNombre() + "?", ButtonType.YES, ButtonType.NO);
-            confirm.showAndWait();
+        if (proveedorSeleccionado == null) {
+            return;
+        }
 
-            if (confirm.getResult() == ButtonType.YES) {
-                if (proveedorDAO.eliminar(proveedorSeleccionado.getIdProveedor())) {
-                    lblEstadoFooter.setText("Proveedor eliminado.");
-                    limpiarFormulario();
-                    cargarTabla();
-                } else {
-                    mostrarAlerta("Error", "No se pudo eliminar el proveedor.");
-                }
+        Alert confirmacion = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "¿Deseas eliminar el proveedor "
+                        + proveedorSeleccionado.getNombre() + "?",
+                ButtonType.YES,
+                ButtonType.NO);
+
+        confirmacion.setTitle("Confirmar eliminación");
+        confirmacion.setHeaderText(null);
+        confirmacion.showAndWait();
+
+        if (confirmacion.getResult() == ButtonType.YES) {
+            if (proveedorDAO.eliminar(
+                    proveedorSeleccionado.getIdProveedor())) {
+
+                limpiarFormulario();
+                cargarTabla();
+
+                mostrarAlerta(
+                        "Eliminación exitosa",
+                        "El proveedor se eliminó correctamente.");
+            } else {
+                mostrarAlerta(
+                        "No se pudo eliminar",
+                        "El proveedor podría estar relacionado con otros registros.");
             }
         }
-    }
-
-    @FXML
-    private void nuevoProveedor() {
-        proveedorSeleccionado = null; // Indica que es un registro nuevo
-        tableProveedores.getSelectionModel().clearSelection();
-        limpiarCamposTexto();
-        bloquearFormulario(false); // Habilita la escritura
-        btnGuardar.setDisable(false);
-        btnEliminar.setDisable(true);
-        txtRfc.requestFocus();
-        lblEstadoFooter.setText("Modo: Registrando nuevo proveedor");
     }
 
     @FXML
@@ -191,10 +248,13 @@ public class ProveedorController {
     private void limpiarFormulario() {
         proveedorSeleccionado = null;
         tableProveedores.getSelectionModel().clearSelection();
+
         limpiarCamposTexto();
-        bloquearFormulario(true); // Bloquea los campos nuevamente
+        bloquearFormulario(true);
+
         btnEliminar.setDisable(true);
         btnGuardar.setDisable(true);
+        btnCancelar.setDisable(true);
     }
 
     private void limpiarCamposTexto() {
@@ -213,67 +273,130 @@ public class ProveedorController {
         txtCorreo.setDisable(bloquear);
         txtDireccion.setDisable(bloquear);
         txtTelefono.setDisable(bloquear);
+
+        btnGuardar.setDisable(true);
+        btnCancelar.setDisable(bloquear);
+    }
+
+    private boolean formularioValido() {
+        String rfc = txtRfc.getText().trim();
+        String nombre = txtNombre.getText().trim();
+        String contacto = txtContacto.getText().trim();
+        String correo = txtCorreo.getText().trim();
+        String direccion = txtDireccion.getText().trim();
+        String telefono = txtTelefono.getText().trim();
+
+        return rfc.matches(
+                    "(?:[A-ZÑ&]{3}\\d{6}[A-Z0-9]{3}|"
+                    + "[A-ZÑ&]{4}\\d{6}[A-Z0-9]{3})")
+                && !nombre.isBlank()
+                && nombre.length() <= 100
+                && !contacto.isBlank()
+                && contacto.matches("[\\p{L} ]{1,15}")
+                && correo.matches(
+                    "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
+                && correo.length() <= 150
+                && !direccion.isBlank()
+                && direccion.length() <= 100
+                && telefono.matches("\\d{10}");
+    }
+
+    private void actualizarEstadoGuardar() {
+        btnGuardar.setDisable(!formularioValido());
+    }
+
+    private void aplicarRestricciones() {
+        // RFC: letras, números y &, en mayúsculas; máximo 13 caracteres.
+        txtRfc.textProperty().addListener((obs, anterior, actual) -> {
+            String corregido = actual.toUpperCase();
+
+            if (!corregido.matches("[A-ZÑ&0-9]*")
+                    || corregido.length() > 13) {
+                txtRfc.setText(anterior);
+                return;
+            }
+
+            if (!actual.equals(corregido)) {
+                txtRfc.setText(corregido);
+                return;
+            }
+
+            actualizarEstadoGuardar();
+        });
+
+        // Nombre comercial: admite letras, números y signos razonables.
+        txtNombre.textProperty().addListener((obs, anterior, actual) -> {
+            if (actual.length() > 100) {
+                txtNombre.setText(anterior);
+                return;
+            }
+            actualizarEstadoGuardar();
+        });
+
+        // Contacto: letras, acentos y espacios; máximo 15 caracteres.
+        txtContacto.textProperty().addListener((obs, anterior, actual) -> {
+            if (!actual.matches("[\\p{L} ]{0,15}")) {
+                txtContacto.setText(anterior);
+                return;
+            }
+            actualizarEstadoGuardar();
+        });
+
+        // Correo: máximo 150 caracteres.
+        txtCorreo.textProperty().addListener((obs, anterior, actual) -> {
+            if (actual.length() > 150) {
+                txtCorreo.setText(anterior);
+                return;
+            }
+            actualizarEstadoGuardar();
+        });
+
+        // Dirección: máximo 100 caracteres.
+        txtDireccion.textProperty().addListener((obs, anterior, actual) -> {
+            if (actual.length() > 100) {
+                txtDireccion.setText(anterior);
+                return;
+            }
+            actualizarEstadoGuardar();
+        });
+
+        // Teléfono: solo números, máximo 10 dígitos.
+        txtTelefono.textProperty().addListener((obs, anterior, actual) -> {
+            if (!actual.matches("\\d{0,10}")) {
+                txtTelefono.setText(anterior);
+                return;
+            }
+            actualizarEstadoGuardar();
+        });
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.WARNING);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 
     @FXML
     private void volverAlMenu(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/laroca/vista/menu.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource(
+                            "/com/laroca/vista/menu.fxml"));
+
             Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Stage stage = (Stage) ((Node) event.getSource())
+                    .getScene().getWindow();
+
             stage.setScene(new Scene(root));
             stage.setTitle("Sistema Abarrotes \"La Roca\" — Menú");
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
+            mostrarAlerta(
+                    "Error",
+                    "No se pudo abrir el menú principal.");
         }
-    }
-
-    private void aplicarRestricciones() {
-        // RFC: Máximo 13 caracteres, convierte a mayúsculas automáticamente
-        txtRfc.textProperty().addListener((obs, oldText, newText) -> {
-            if (newText.length() > 13) {
-                txtRfc.setText(oldText);
-            } else {
-                txtRfc.setText(newText.toUpperCase());
-            }
-        });
-
-        // Nombre: Máximo 100 caracteres (VARCHAR 100)
-        txtNombre.textProperty().addListener((obs, oldText, newText) -> {
-            if (newText.length() > 100) txtNombre.setText(oldText);
-        });
-
-        // Contacto: SOLO LETRAS, espacios y acentos (máximo 15 caracteres)
-        txtContacto.textProperty().addListener((obs, oldText, newText) -> {
-            if (!newText.matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]*$") || newText.length() > 15) {
-                txtContacto.setText(oldText);
-            }
-        });
-
-        // Correo: Máximo 150 caracteres (VARCHAR 150)
-        txtCorreo.textProperty().addListener((obs, oldText, newText) -> {
-            if (newText.length() > 150) txtCorreo.setText(oldText);
-        });
-
-        // Dirección: Máximo 100 caracteres (VARCHAR 100)
-        txtDireccion.textProperty().addListener((obs, oldText, newText) -> {
-            if (newText.length() > 100) txtDireccion.setText(oldText);
-        });
-
-        // Teléfono: SOLO NÚMEROS (máximo 15 dígitos)
-        txtTelefono.textProperty().addListener((obs, oldText, newText) -> {
-            if (!newText.matches("\\d*") || newText.length() > 15) {
-                txtTelefono.setText(oldText);
-            }
-        });
-    }
-
-    private void mostrarAlerta(String titulo, String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
     }
 }

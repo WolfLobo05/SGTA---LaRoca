@@ -32,9 +32,6 @@ public class UnidadMedidaController {
     private TableView<UnidadMedida> tablaUnidades;
 
     @FXML
-    private TableColumn<UnidadMedida, Integer> columnaId;
-
-    @FXML
     private TableColumn<UnidadMedida, String> columnaNombre;
 
     @FXML
@@ -78,61 +75,84 @@ public class UnidadMedidaController {
     @FXML
     public void initialize() {
         lblFecha.setText(
-            LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-        );
-
-        columnaId.setCellValueFactory(
-            new PropertyValueFactory<>("idUnidadMedida")
-        );
+                LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         columnaNombre.setCellValueFactory(
-            new PropertyValueFactory<>("nombre")
-        );
+                new PropertyValueFactory<>("nombre"));
         columnaAbreviatura.setCellValueFactory(
-            new PropertyValueFactory<>("abreviatura")
-        );
+                new PropertyValueFactory<>("abreviatura"));
         columnaEstado.setCellValueFactory(
-            new PropertyValueFactory<>("estado")
-        );
+                new PropertyValueFactory<>("estado"));
 
         cmbEstado.setItems(
-            FXCollections.observableArrayList("Activo", "Inactivo")
-        );
+                FXCollections.observableArrayList("Activo", "Inactivo"));
+
+        // Validar automáticamente mientras se capturan los datos.
+        txtNombre.textProperty().addListener(
+                (observable, anterior, actual) -> {
+                    if (!actual.matches("[\\p{L} ]*")) {
+                        txtNombre.setText(actual.replaceAll("[^\\p{L} ]", ""));
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
+        txtAbreviatura.textProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
+
+        cmbEstado.valueProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
 
         cargarUnidades();
 
         tablaUnidades.getSelectionModel()
-            .selectedItemProperty()
-            .addListener((observable, anterior, actual) -> {
-                if (actual != null) {
-                    unidadSeleccionada = actual;
-                    modoEdicion = true;
-                    txtNombre.setText(Objects.toString(actual.getNombre(), ""));
-                    txtAbreviatura.setText(Objects.toString(actual.getAbreviatura(), ""));
-                    cmbEstado.setValue(actual.getEstado());
+                .selectedItemProperty()
+                .addListener((observable, anterior, actual) -> {
+                    if (actual != null) {
+                        unidadSeleccionada = actual;
+                        modoEdicion = true;
+                        txtNombre.setText(Objects.toString(actual.getNombre(), ""));
+                        txtAbreviatura.setText(Objects.toString(actual.getAbreviatura(), ""));
+                        cmbEstado.setValue(actual.getEstado());
 
-                    bloquearFormulario(false);
-                    btnEliminar.setDisable(false);
-                } else {
-                    btnEliminar.setDisable(true);
-                }
-            });
+                        bloquearFormulario(false);
+                        btnEliminar.setDisable(false);
+                    } else {
+                        btnEliminar.setDisable(true);
+                    }
+                });
 
         btnEliminar.setDisable(true);
         bloquearFormulario(true);
     }
 
+    private void actualizarEstadoGuardar() {
+        String nombre = txtNombre.getText().trim();
+        String abreviatura = txtAbreviatura.getText().trim();
+        String estado = cmbEstado.getValue();
+
+        boolean nombreValido = nombre.matches("[\\p{L} ]+");
+
+        boolean abreviaturaValida = abreviatura.matches("[\\p{L}\\p{N}./²³-]+");
+
+        boolean estadoValido = estado != null && !estado.isBlank();
+
+        boolean formularioValido = nombreValido
+                && abreviaturaValida
+                && estadoValido;
+
+        btnGuardar.setDisable(!formularioValido);
+    }
+
     private void cargarUnidades() {
-        ObservableList<UnidadMedida> lista =
-            FXCollections.observableArrayList(dao.listar());
+        ObservableList<UnidadMedida> lista = FXCollections.observableArrayList(dao.listar());
 
         tablaUnidades.setItems(lista);
 
         int total = lista.size();
         lblRegistros.setText(
-            total + (total == 1
-                ? " unidad registrada"
-                : " unidades registradas")
-        );
+                total + (total == 1
+                        ? " unidad registrada"
+                        : " unidades registradas"));
     }
 
     @FXML
@@ -157,34 +177,31 @@ public class UnidadMedidaController {
 
         if (nombre.isEmpty() || abreviatura.isEmpty()) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Datos incompletos",
-                "Debes ingresar el nombre y la abreviatura."
-            );
+                    Alert.AlertType.WARNING,
+                    "Datos incompletos",
+                    "Debes ingresar el nombre y la abreviatura.");
             return;
         }
 
         if (estado == null || estado.isBlank()) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Estado obligatorio",
-                "Selecciona el estado de la unidad."
-            );
+                    Alert.AlertType.WARNING,
+                    "Estado obligatorio",
+                    "Selecciona el estado de la unidad.");
             return;
         }
 
         // Evita nombres repetidos al insertar y al editar.
         int idExcluir = modoEdicion && unidadSeleccionada != null
-            ? unidadSeleccionada.getIdUnidadMedida()
-            : 0;
+                ? unidadSeleccionada.getIdUnidadMedida()
+                : 0;
 
         if (dao.existeNombre(nombre, idExcluir)) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Nombre duplicado",
-                "Ya existe una unidad de medida con ese nombre. "
-                    + "Escribe un nombre diferente."
-            );
+                    Alert.AlertType.WARNING,
+                    "Nombre duplicado",
+                    "Ya existe una unidad de medida con ese nombre. "
+                            + "Escribe un nombre diferente.");
             txtNombre.requestFocus();
             txtNombre.selectAll();
             return;
@@ -193,10 +210,9 @@ public class UnidadMedidaController {
         if (modoEdicion) {
             if (unidadSeleccionada == null) {
                 mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Sin selección",
-                    "Selecciona una unidad para editar."
-                );
+                        Alert.AlertType.WARNING,
+                        "Sin selección",
+                        "Selecciona una unidad para editar.");
                 return;
             }
 
@@ -208,27 +224,24 @@ public class UnidadMedidaController {
                 finalizarOperacion();
 
                 mostrarAlerta(
-                    Alert.AlertType.INFORMATION,
-                    "Actualización exitosa",
-                    "La unidad se actualizó correctamente."
-                );
+                        Alert.AlertType.INFORMATION,
+                        "Actualización exitosa",
+                        "La unidad se actualizó correctamente.");
             } else {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo actualizar la unidad. "
-                        + "Verifica los datos y la conexión."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo actualizar la unidad. "
+                                + "Verifica los datos y la conexión.");
             }
         } else {
             int id = dao.obtenerSiguienteId();
 
             if (id <= 0) {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo obtener el ID de la unidad."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo obtener el ID de la unidad.");
                 return;
             }
 
@@ -242,17 +255,15 @@ public class UnidadMedidaController {
                 finalizarOperacion();
 
                 mostrarAlerta(
-                    Alert.AlertType.INFORMATION,
-                    "Registro exitoso",
-                    "La unidad se registró correctamente."
-                );
+                        Alert.AlertType.INFORMATION,
+                        "Registro exitoso",
+                        "La unidad se registró correctamente.");
             } else {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo registrar la unidad. "
-                        + "Verifica los datos y la conexión."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo registrar la unidad. "
+                                + "Verifica los datos y la conexión.");
             }
         }
     }
@@ -261,10 +272,9 @@ public class UnidadMedidaController {
     private void eliminar() {
         if (unidadSeleccionada == null) {
             mostrarAlerta(
-                Alert.AlertType.WARNING,
-                "Sin selección",
-                "Selecciona primero una unidad."
-            );
+                    Alert.AlertType.WARNING,
+                    "Sin selección",
+                    "Selecciona primero una unidad.");
             return;
         }
 
@@ -272,9 +282,8 @@ public class UnidadMedidaController {
         confirmacion.setTitle("Eliminar unidad");
         confirmacion.setHeaderText(null);
         confirmacion.setContentText(
-            "¿Deseas eliminar la unidad \""
-                + unidadSeleccionada.getNombre() + "\"?"
-        );
+                "¿Deseas eliminar la unidad \""
+                        + unidadSeleccionada.getNombre() + "\"?");
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
@@ -283,17 +292,15 @@ public class UnidadMedidaController {
                 finalizarOperacion();
 
                 mostrarAlerta(
-                    Alert.AlertType.INFORMATION,
-                    "Eliminación exitosa",
-                    "La unidad se eliminó correctamente."
-                );
+                        Alert.AlertType.INFORMATION,
+                        "Eliminación exitosa",
+                        "La unidad se eliminó correctamente.");
             } else {
                 mostrarAlerta(
-                    Alert.AlertType.ERROR,
-                    "Error",
-                    "No se pudo eliminar la unidad. "
-                        + "Puede estar relacionada con otros registros."
-                );
+                        Alert.AlertType.ERROR,
+                        "Error",
+                        "No se pudo eliminar la unidad. "
+                                + "Puede estar relacionada con otros registros.");
             }
         }
     }
@@ -325,8 +332,16 @@ public class UnidadMedidaController {
         txtNombre.setDisable(bloquear);
         txtAbreviatura.setDisable(bloquear);
         cmbEstado.setDisable(bloquear);
-        btnGuardar.setDisable(bloquear);
+
+        // Guardar solo se habilita si los datos son válidos.
+        btnGuardar.setDisable(true);
+
+        // Cancelar queda disponible durante la captura.
         btnCancelar.setDisable(bloquear);
+
+        if (!bloquear) {
+            actualizarEstadoGuardar();
+        }
     }
 
     private void mostrarAlerta(
@@ -344,8 +359,7 @@ public class UnidadMedidaController {
     @FXML
     private void volverAlMenu() throws IOException {
         FXMLLoader loader = new FXMLLoader(
-            getClass().getResource("/com/laroca/vista/menu.fxml")
-        );
+                getClass().getResource("/com/laroca/vista/menu.fxml"));
 
         Parent vista = loader.load();
         Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();

@@ -30,33 +30,41 @@ import java.util.Optional;
 
 public class CategoriaController {
 
-    @FXML private TableView<Categoria> tablaCategorias;
-    @FXML private TableColumn<Categoria, Integer> columnaId;
-    @FXML private TableColumn<Categoria, String> columnaNombre;
-    @FXML private TableColumn<Categoria, String> columnaDescripcion;
-    @FXML private TableColumn<Categoria, String> columnaEstado;
+    @FXML
+    private TableView<Categoria> tablaCategorias;
+    @FXML
+    private TableColumn<Categoria, String> columnaNombre;
+    @FXML
+    private TableColumn<Categoria, String> columnaDescripcion;
+    @FXML
+    private TableColumn<Categoria, String> columnaEstado;
 
-    @FXML private TextField txtNombre;
-    @FXML private TextField txtDescripcion;
-    @FXML private ComboBox<String> cmbEstado;
+    @FXML
+    private TextField txtNombre;
+    @FXML
+    private TextField txtDescripcion;
+    @FXML
+    private ComboBox<String> cmbEstado;
 
-    @FXML private Button btnEliminar;
-    @FXML private Button btnGuardar;
-    @FXML private Button btnCancelar;
+    @FXML
+    private Button btnEliminar;
+    @FXML
+    private Button btnGuardar;
+    @FXML
+    private Button btnCancelar;
 
-    @FXML private Label lblFecha;
-    @FXML private Label lblTotalCategorias;
+    @FXML
+    private Label lblFecha;
+    @FXML
+    private Label lblTotalCategorias;
 
     private final CategoriaDAO categoriaDAO = new CategoriaDAO();
-    private final ObservableList<Categoria> listaCategorias =
-            FXCollections.observableArrayList();
+    private final ObservableList<Categoria> listaCategorias = FXCollections.observableArrayList();
 
     private boolean modoEdicion = false;
 
     @FXML
     public void initialize() {
-        columnaId.setCellValueFactory(
-                new PropertyValueFactory<>("idCategoria"));
         columnaNombre.setCellValueFactory(
                 new PropertyValueFactory<>("nombre"));
         columnaDescripcion.setCellValueFactory(
@@ -66,6 +74,27 @@ public class CategoriaController {
 
         cmbEstado.setItems(FXCollections.observableArrayList(
                 "Activo", "Inactivo"));
+
+        // Validar el nombre mientras se escribe.
+        txtNombre.textProperty().addListener(
+                (observable, anterior, actual) -> {
+                    String nombreValido = actual.replaceAll("[^\\p{L} ]", "");
+
+                    if (!actual.equals(nombreValido)) {
+                        txtNombre.setText(nombreValido);
+                        return;
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
+        // Actualizar Guardar cuando cambie la descripción.
+        txtDescripcion.textProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
+
+        // Actualizar Guardar cuando cambie el estado.
+        cmbEstado.valueProperty().addListener(
+                (observable, anterior, actual) -> actualizarEstadoGuardar());
 
         tablaCategorias.setItems(listaCategorias);
 
@@ -88,6 +117,26 @@ public class CategoriaController {
         lblFecha.setText(LocalDate.now().format(
                 DateTimeFormatter.ofPattern(
                         "dd/MM/yyyy", Locale.getDefault())));
+    }
+
+    private void actualizarEstadoGuardar() {
+        String nombre = txtNombre.getText().trim();
+        String descripcion = txtDescripcion.getText().trim();
+        String estado = cmbEstado.getValue();
+
+        boolean nombreValido = !nombre.isEmpty()
+                && nombre.matches("[\\p{L} ]+");
+
+        boolean descripcionValida = !descripcion.isEmpty();
+
+        boolean estadoValido = estado != null
+                && !estado.isBlank();
+
+        boolean formularioValido = nombreValido
+                && descripcionValida
+                && estadoValido;
+
+        btnGuardar.setDisable(!formularioValido);
     }
 
     private void cargarCategorias() {
@@ -148,14 +197,15 @@ public class CategoriaController {
         }
 
         int idExcluir = modoEdicion
-                ? seleccionada.getIdCategoria() : 0;
+                ? seleccionada.getIdCategoria()
+                : 0;
 
         // Validar antes de intentar insertar o actualizar.
         if (categoriaDAO.existeNombre(nombre, idExcluir)) {
             mostrarAlerta(Alert.AlertType.WARNING,
                     "Nombre duplicado",
                     "Ya existe una categoría con ese nombre. "
-                    + "Escribe un nombre diferente.");
+                            + "Escribe un nombre diferente.");
             txtNombre.requestFocus();
             return;
         }
@@ -202,7 +252,7 @@ public class CategoriaController {
             mostrarAlerta(Alert.AlertType.ERROR,
                     "No se pudo guardar",
                     "No se pudo guardar la categoría. "
-                    + "Comprueba la conexión y que el nombre no exista.");
+                            + "Comprueba la conexión y que el nombre no exista.");
         }
     }
 
@@ -235,7 +285,7 @@ public class CategoriaController {
                 mostrarAlerta(Alert.AlertType.ERROR,
                         "No se pudo eliminar",
                         "Puede que esta categoría esté asociada "
-                        + "a uno o más productos.");
+                                + "a uno o más productos.");
             }
         }
     }
@@ -263,6 +313,7 @@ public class CategoriaController {
         txtNombre.setDisable(true);
         txtDescripcion.setDisable(true);
         cmbEstado.setDisable(true);
+
         btnGuardar.setDisable(true);
         btnCancelar.setDisable(true);
     }
@@ -271,8 +322,12 @@ public class CategoriaController {
         txtNombre.setDisable(false);
         txtDescripcion.setDisable(false);
         cmbEstado.setDisable(false);
-        btnGuardar.setDisable(false);
+
+        // Cancelar permanece disponible durante la captura.
         btnCancelar.setDisable(false);
+
+        // Guardar depende de que los datos sean válidos.
+        actualizarEstadoGuardar();
     }
 
     private void mostrarAlerta(
