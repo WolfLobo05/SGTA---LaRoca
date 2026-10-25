@@ -1,6 +1,7 @@
 package com.laroca.dao;
 
 import com.laroca.conexion.Conexion;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.UnidadMedida;
 
 import java.sql.Connection;
@@ -10,6 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UnidadMedidaDAO {
+
+    // Un registro es inactivo si su estado no es Activo (NULL cuenta como Activo).
+    private static final String ES_INACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
 
     public List<UnidadMedida> listar() {
         List<UnidadMedida> unidades = new ArrayList<>();
@@ -99,6 +104,33 @@ public class UnidadMedidaDAO {
         }
     }
 
+    // Indica si el valor duplicado pertenece a un registro inactivo.
+    public boolean existeNombreInactivo(String nombre, int idExcluir) {
+        String sql = "SELECT COUNT(*) FROM Unidad_Medida "
+                   + "WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?)) "
+                   + "AND id_unidad <> ? "
+                   + "AND " + ES_INACTIVO;
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                return false;
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, nombre);
+                ps.setInt(2, idExcluir);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al comprobar el estado de la unidad:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean insertar(UnidadMedida unidad) {
         String sql = "INSERT INTO Unidad_Medida "
                    + "(id_unidad, estado, abreviatura, nombre) "
@@ -126,7 +158,7 @@ public class UnidadMedidaDAO {
 
     public boolean actualizar(UnidadMedida unidad) {
         String sql = "UPDATE Unidad_Medida "
-                   + "SET estado = ?, abreviatura = ?, nombre = ? "
+                   + "SET abreviatura = ?, nombre = ? "
                    + "WHERE id_unidad = ?";
 
         try (Connection conexion = Conexion.conectar()) {
@@ -135,10 +167,9 @@ public class UnidadMedidaDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setString(1, unidad.getEstado());
-                ps.setString(2, unidad.getAbreviatura());
-                ps.setString(3, unidad.getNombre());
-                ps.setInt(4, unidad.getIdUnidadMedida());
+                ps.setString(1, unidad.getAbreviatura());
+                ps.setString(2, unidad.getNombre());
+                ps.setInt(3, unidad.getIdUnidadMedida());
 
                 return ps.executeUpdate() > 0;
             }
@@ -149,8 +180,17 @@ public class UnidadMedidaDAO {
         }
     }
 
-    public boolean eliminar(int idUnidadMedida) {
-        String sql = "DELETE FROM Unidad_Medida WHERE id_unidad = ?";
+    // Ya no se borran registros: solo se cambia el estado.
+    public boolean desactivar(int idUnidadMedida) {
+        return cambiarEstado(idUnidadMedida, Estados.INACTIVO);
+    }
+
+    public boolean reactivar(int idUnidadMedida) {
+        return cambiarEstado(idUnidadMedida, Estados.ACTIVO);
+    }
+
+    private boolean cambiarEstado(int idUnidadMedida, String estado) {
+        String sql = "UPDATE Unidad_Medida SET estado = ? WHERE id_unidad = ?";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -158,11 +198,12 @@ public class UnidadMedidaDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, idUnidadMedida);
+                ps.setString(1, estado);
+                ps.setInt(2, idUnidadMedida);
                 return ps.executeUpdate() > 0;
             }
         } catch (Exception e) {
-            System.err.println("Error al eliminar unidad de medida:");
+            System.err.println("Error al cambiar el estado de la unidad:");
             e.printStackTrace();
             return false;
         }

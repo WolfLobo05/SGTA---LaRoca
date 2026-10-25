@@ -3,8 +3,10 @@ package com.laroca.controlador;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 import com.laroca.dao.ProveedorDAO;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Proveedor;
 
 import javafx.collections.FXCollections;
@@ -14,10 +16,10 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -33,12 +35,15 @@ public class ProveedorController {
     @FXML private Button btnGuardar;
     @FXML private Button btnCancelar;
 
+    @FXML private CheckBox chkMostrarInactivos;
+
     @FXML private TextField txtRfc;
     @FXML private TextField txtNombre;
     @FXML private TextField txtContacto;
     @FXML private TextField txtCorreo;
     @FXML private TextField txtDireccion;
     @FXML private TextField txtTelefono;
+    @FXML private TextField txtEstado;
 
     @FXML private TableView<Proveedor> tableProveedores;
     @FXML private TableColumn<Proveedor, String> colRfc;
@@ -47,6 +52,7 @@ public class ProveedorController {
     @FXML private TableColumn<Proveedor, String> colCorreo;
     @FXML private TableColumn<Proveedor, String> colDireccion;
     @FXML private TableColumn<Proveedor, String> colTelefono;
+    @FXML private TableColumn<Proveedor, String> colEstado;
 
     @FXML private Label lblFechaActual;
     @FXML private Label lblEstadoFooter;
@@ -67,6 +73,7 @@ public class ProveedorController {
         colCorreo.setCellValueFactory(new PropertyValueFactory<>("correo"));
         colDireccion.setCellValueFactory(new PropertyValueFactory<>("direccion"));
         colTelefono.setCellValueFactory(new PropertyValueFactory<>("telefono"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
 
         aplicarRestricciones();
         cargarTabla();
@@ -82,41 +89,64 @@ public class ProveedorController {
                     if (seleccionado != null) {
                         proveedorSeleccionado = seleccionado;
 
-                        txtRfc.setText(seleccionado.getRfc());
-                        txtNombre.setText(seleccionado.getNombre());
-                        txtContacto.setText(seleccionado.getContacto());
-                        txtCorreo.setText(seleccionado.getCorreo());
-                        txtDireccion.setText(seleccionado.getDireccion());
-                        txtTelefono.setText(seleccionado.getTelefono());
+                        txtRfc.setText(Objects.toString(seleccionado.getRfc(), ""));
+                        txtNombre.setText(Objects.toString(seleccionado.getNombre(), ""));
+                        txtContacto.setText(Objects.toString(seleccionado.getContacto(), ""));
+                        txtCorreo.setText(Objects.toString(seleccionado.getCorreo(), ""));
+                        txtDireccion.setText(Objects.toString(seleccionado.getDireccion(), ""));
+                        txtTelefono.setText(Objects.toString(seleccionado.getTelefono(), ""));
+                        txtEstado.setText(Estados.mostrar(seleccionado.getEstado()));
 
-                        bloquearFormulario(false);
+                        if (chkMostrarInactivos.isSelected()) {
+                            // Los proveedores inactivos solo se consultan.
+                            bloquearFormulario(true);
+                            lblEstadoFooter.setText("Modo: Consultando proveedor inactivo");
+                        } else {
+                            bloquearFormulario(false);
+                            actualizarEstadoGuardar();
+                            lblEstadoFooter.setText("Modo: Editando proveedor");
+                        }
+
                         btnCancelar.setDisable(false);
                         btnEliminar.setDisable(false);
-
-                        actualizarEstadoGuardar();
-                        lblEstadoFooter.setText("Modo: Editando proveedor");
                     } else {
                         btnEliminar.setDisable(true);
                     }
                 });
     }
 
+    // Muestra solo los activos o solo los inactivos, según la casilla.
     private void cargarTabla() {
-        listaProveedores =
-                FXCollections.observableArrayList(proveedorDAO.listar());
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        listaProveedores = FXCollections.observableArrayList();
+
+        for (Proveedor p : proveedorDAO.listar()) {
+            if (Estados.esActivo(p.getEstado()) != inactivos) {
+                listaProveedores.add(p);
+            }
+        }
 
         tableProveedores.setItems(listaProveedores);
 
+        int total = listaProveedores.size();
         lblEstadoFooter.setText(
-                listaProveedores.size() + " proveedores registrados");
+                total + (total == 1
+                        ? (inactivos ? " proveedor inactivo" : " proveedor activo")
+                        : (inactivos ? " proveedores inactivos" : " proveedores activos")));
     }
 
     @FXML
     private void nuevoProveedor() {
+        if (chkMostrarInactivos.isSelected()) {
+            return;
+        }
+
         proveedorSeleccionado = null;
         tableProveedores.getSelectionModel().clearSelection();
 
         limpiarCamposTexto();
+        txtEstado.setText(Estados.ACTIVO);
         bloquearFormulario(false);
 
         btnEliminar.setDisable(true);
@@ -146,28 +176,33 @@ public class ProveedorController {
             return;
         }
 
-        // Comprobar RFC duplicado, excepto el proveedor que se está editando.
-        boolean rfcDuplicado = proveedorDAO.listar().stream()
-                .anyMatch(p ->
-                        p.getRfc() != null
-                        && p.getRfc().trim().equalsIgnoreCase(rfc)
-                        && (proveedorSeleccionado == null
-                            || p.getIdProveedor()
-                               != proveedorSeleccionado.getIdProveedor()));
+        // Comprobar RFC duplicado contra todos los proveedores,
+        // activos e inactivos, excepto el que se está editando.
+        int idExcluir = proveedorSeleccionado == null
+                ? 0
+                : proveedorSeleccionado.getIdProveedor();
 
-        if (rfcDuplicado) {
-            mostrarAlerta(
-                    "RFC duplicado",
-                    "Ya existe un proveedor registrado con ese RFC.");
+        if (proveedorDAO.existeRfc(rfc, idExcluir)) {
+            if (proveedorDAO.existeRfcInactivo(rfc, idExcluir)) {
+                mostrarAlerta(
+                        "Proveedor inactivo",
+                        "Ya existe un proveedor con ese RFC, pero está inactivo. "
+                        + "Puedes reactivarlo desde \"Mostrar inactivos\".");
+            } else {
+                mostrarAlerta(
+                        "RFC duplicado",
+                        "Ya existe un proveedor registrado con ese RFC.");
+            }
             txtRfc.requestFocus();
             txtRfc.selectAll();
             return;
         }
 
         if (proveedorSeleccionado == null) {
+            // Todo proveedor nuevo se registra como Activo.
             Proveedor nuevo = new Proveedor(
                     0, rfc, nombre, telefono, correo,
-                    direccion, contacto, "ACTIVO");
+                    direccion, contacto, Estados.ACTIVO);
 
             if (proveedorDAO.guardar(nuevo)) {
                 mostrarAlerta(
@@ -203,39 +238,66 @@ public class ProveedorController {
         }
     }
 
+    // Elimina (desactiva) o reactiva el proveedor, según la casilla.
     @FXML
     private void eliminarProveedor() {
         if (proveedorSeleccionado == null) {
             return;
         }
 
+        boolean reactivar = chkMostrarInactivos.isSelected();
+
         Alert confirmacion = new Alert(
                 Alert.AlertType.CONFIRMATION,
-                "¿Deseas eliminar el proveedor "
-                        + proveedorSeleccionado.getNombre() + "?",
+                reactivar
+                        ? "¿Deseas reactivar el proveedor "
+                                + proveedorSeleccionado.getNombre() + "?\n\n"
+                                + "Volverá a estar activo."
+                        : "¿Deseas eliminar el proveedor "
+                                + proveedorSeleccionado.getNombre() + "?\n\n"
+                                + "Quedará inactivo y dejará de aparecer "
+                                + "en la lista de proveedores activos.",
                 ButtonType.YES,
                 ButtonType.NO);
 
-        confirmacion.setTitle("Confirmar eliminación");
+        confirmacion.setTitle(reactivar
+                ? "Confirmar reactivación"
+                : "Confirmar eliminación");
         confirmacion.setHeaderText(null);
         confirmacion.showAndWait();
 
         if (confirmacion.getResult() == ButtonType.YES) {
-            if (proveedorDAO.eliminar(
-                    proveedorSeleccionado.getIdProveedor())) {
+            boolean exito = reactivar
+                    ? proveedorDAO.reactivar(proveedorSeleccionado.getIdProveedor())
+                    : proveedorDAO.desactivar(proveedorSeleccionado.getIdProveedor());
 
+            if (exito) {
                 limpiarFormulario();
                 cargarTabla();
 
                 mostrarAlerta(
-                        "Eliminación exitosa",
-                        "El proveedor se eliminó correctamente.");
+                        reactivar ? "Reactivación exitosa" : "Eliminación exitosa",
+                        reactivar
+                                ? "El proveedor se reactivó correctamente."
+                                : "El proveedor se marcó como inactivo.");
             } else {
                 mostrarAlerta(
-                        "No se pudo eliminar",
-                        "El proveedor podría estar relacionado con otros registros.");
+                        "No se pudo cambiar el estado",
+                        "No se pudo actualizar el estado del proveedor.");
             }
         }
+    }
+
+    // Cambia entre la lista de activos y la de inactivos.
+    @FXML
+    private void cambiarMostrarInactivos() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        btnNuevo.setDisable(inactivos);
+        btnEliminar.setText(inactivos ? "Reactivar" : "Eliminar");
+
+        limpiarFormulario();
+        cargarTabla();
     }
 
     @FXML
@@ -264,6 +326,7 @@ public class ProveedorController {
         txtCorreo.clear();
         txtDireccion.clear();
         txtTelefono.clear();
+        txtEstado.clear();
     }
 
     private void bloquearFormulario(boolean bloquear) {
@@ -302,7 +365,8 @@ public class ProveedorController {
     }
 
     private void actualizarEstadoGuardar() {
-        btnGuardar.setDisable(!formularioValido());
+        // Con el formulario bloqueado no se puede guardar.
+        btnGuardar.setDisable(txtRfc.isDisabled() || !formularioValido());
     }
 
     private void aplicarRestricciones() {
@@ -389,9 +453,7 @@ public class ProveedorController {
             Stage stage = (Stage) ((Node) event.getSource())
                     .getScene().getWindow();
 
-            stage.setScene(new Scene(root));
-            stage.setTitle("Sistema Abarrotes \"La Roca\" — Menú");
-            stage.show();
+            Navegacion.mostrar(stage, root, Navegacion.TITULO_MENU);
         } catch (IOException e) {
             e.printStackTrace();
             mostrarAlerta(

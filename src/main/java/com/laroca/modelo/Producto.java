@@ -10,6 +10,7 @@ public class Producto {
     private String codigoBarras;
     private String nombre;
     private BigDecimal precio;
+    private String estado;
 
     // Datos de las tablas relacionadas, solo para mostrar.
     private String nombreUnidad;
@@ -76,6 +77,14 @@ public class Producto {
 
     public void setPrecio(BigDecimal pre) {
         precio = pre;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String est) {
+        estado = est;
     }
 
     public String getNombreUnidad() {

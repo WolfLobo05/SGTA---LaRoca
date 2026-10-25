@@ -4,6 +4,7 @@ import com.laroca.dao.CategoriaDAO;
 import com.laroca.dao.ProductoDAO;
 import com.laroca.dao.UnidadMedidaDAO;
 import com.laroca.modelo.Categoria;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Producto;
 import com.laroca.modelo.UnidadMedida;
 
@@ -20,10 +21,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -56,6 +57,9 @@ public class ProductoController {
     private TableColumn<Producto, BigDecimal> columnaPrecio;
 
     @FXML
+    private TableColumn<Producto, String> columnaEstado;
+
+    @FXML
     private TextField txtCodigo;
 
     @FXML
@@ -71,6 +75,12 @@ public class ProductoController {
     private TextField txtPrecio;
 
     @FXML
+    private TextField txtEstado;
+
+    @FXML
+    private Button btnNuevo;
+
+    @FXML
     private Button btnEliminar;
 
     @FXML
@@ -78,6 +88,9 @@ public class ProductoController {
 
     @FXML
     private Button btnCancelar;
+
+    @FXML
+    private CheckBox chkMostrarInactivos;
 
     @FXML
     private Label lblFecha;
@@ -116,6 +129,9 @@ public class ProductoController {
 
         columnaPrecio.setCellValueFactory(
                 new PropertyValueFactory<>("precio"));
+
+        columnaEstado.setCellValueFactory(
+                new PropertyValueFactory<>("estado"));
 
         // Los ComboBox muestran el nombre de cada objeto.
         cmbCategoria.setConverter(new StringConverter<Categoria>() {
@@ -196,11 +212,19 @@ public class ProductoController {
 
                     if (actual != null) {
                         productoSeleccionado = actual;
-                        modoEdicion = true;
 
                         mostrarProducto(actual);
 
-                        bloquearFormulario(false);
+                        if (chkMostrarInactivos.isSelected()) {
+                            // Los productos inactivos solo se consultan.
+                            modoEdicion = false;
+                            bloquearFormulario(true);
+                            btnCancelar.setDisable(false);
+                        } else {
+                            modoEdicion = true;
+                            bloquearFormulario(false);
+                        }
+
                         btnEliminar.setDisable(false);
                     } else {
                         btnEliminar.setDisable(true);
@@ -213,6 +237,12 @@ public class ProductoController {
     }
 
     private void actualizarEstadoGuardar() {
+        // Con el formulario bloqueado no se puede guardar.
+        if (txtCodigo.isDisabled()) {
+            btnGuardar.setDisable(true);
+            return;
+        }
+
         String codigo = txtCodigo.getText().trim();
         String nombre = txtNombre.getText().trim();
         String textoPrecio = txtPrecio.getText().trim();
@@ -251,8 +281,17 @@ public class ProductoController {
         btnGuardar.setDisable(!formularioValido);
     }
 
+    // Muestra solo los activos o solo los inactivos, según la casilla.
     private void cargarProductos() {
-        ObservableList<Producto> lista = FXCollections.observableArrayList(dao.listar());
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        ObservableList<Producto> lista = FXCollections.observableArrayList();
+
+        for (Producto producto : dao.listar()) {
+            if (Estados.esActivo(producto.getEstado()) != inactivos) {
+                lista.add(producto);
+            }
+        }
 
         tablaProductos.setItems(lista);
 
@@ -260,8 +299,8 @@ public class ProductoController {
 
         lblRegistros.setText(
                 total + (total == 1
-                        ? " producto registrado"
-                        : " productos registrados"));
+                        ? (inactivos ? " producto inactivo" : " producto activo")
+                        : (inactivos ? " productos inactivos" : " productos activos")));
     }
 
     // Solo se ofrecen las categorías activas.
@@ -269,7 +308,7 @@ public class ProductoController {
         ObservableList<Categoria> lista = FXCollections.observableArrayList();
 
         for (Categoria categoria : categoriaDao.listar()) {
-            if ("Activo".equals(categoria.getEstado())) {
+            if (Estados.esActivo(categoria.getEstado())) {
                 lista.add(categoria);
             }
         }
@@ -282,7 +321,7 @@ public class ProductoController {
         ObservableList<UnidadMedida> lista = FXCollections.observableArrayList();
 
         for (UnidadMedida unidad : unidadDao.listar()) {
-            if ("Activo".equals(unidad.getEstado())) {
+            if (Estados.esActivo(unidad.getEstado())) {
                 lista.add(unidad);
             }
         }
@@ -294,13 +333,16 @@ public class ProductoController {
         txtCodigo.setText(Objects.toString(producto.getCodigoBarras(), ""));
         txtNombre.setText(Objects.toString(producto.getNombre(), ""));
         txtPrecio.setText(Objects.toString(producto.getPrecio(), ""));
+        txtEstado.setText(Estados.mostrar(producto.getEstado()));
 
         seleccionarCategoria(producto.getIdCategoria(), producto.getNombreCategoria());
         seleccionarUnidad(producto.getIdUnidad(), producto.getNombreUnidad());
     }
 
     // Si la categoría está inactiva no aparece en la lista,
-    // así que se muestra con un objeto temporal.
+    // así que se muestra con un objeto temporal que no se agrega
+    // a las opciones: solo existe como valor actual de este producto
+    // y, si se cambia por otra, ya no se puede volver a elegir.
     private void seleccionarCategoria(int id, String nombre) {
         for (Categoria categoria : cmbCategoria.getItems()) {
             if (categoria.getIdCategoria() == id) {
@@ -313,7 +355,7 @@ public class ProductoController {
     }
 
     // Si la unidad está inactiva no aparece en la lista,
-    // así que se muestra con un objeto temporal.
+    // así que se muestra con un objeto temporal (igual que la categoría).
     private void seleccionarUnidad(int id, String nombre) {
         for (UnidadMedida unidad : cmbUnidad.getItems()) {
             if (unidad.getIdUnidadMedida() == id) {
@@ -327,12 +369,17 @@ public class ProductoController {
 
     @FXML
     private void nuevo() {
+        if (chkMostrarInactivos.isSelected()) {
+            return;
+        }
+
         modoEdicion = false;
         productoSeleccionado = null;
 
         tablaProductos.getSelectionModel().clearSelection();
 
         limpiarFormulario();
+        txtEstado.setText(Estados.ACTIVO);
 
         bloquearFormulario(false);
 
@@ -439,11 +486,20 @@ public class ProductoController {
             idExcluir = productoSeleccionado.getIdProducto();
         }
 
+        // Se compara contra todos los productos, activos e inactivos.
         if (dao.existeCodigoBarras(codigo, idExcluir)) {
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Código duplicado",
-                    "Ya existe un producto con ese código de barras. Escribe un código diferente.");
+            if (dao.existeCodigoBarrasInactivo(codigo, idExcluir)) {
+                mostrarAlerta(
+                        Alert.AlertType.WARNING,
+                        "Producto inactivo",
+                        "Ya existe un producto con ese código de barras, pero está inactivo. "
+                                + "Puedes reactivarlo desde \"Mostrar inactivos\".");
+            } else {
+                mostrarAlerta(
+                        Alert.AlertType.WARNING,
+                        "Código duplicado",
+                        "Ya existe un producto con ese código de barras. Escribe un código diferente.");
+            }
 
             txtCodigo.requestFocus();
             return;
@@ -492,6 +548,9 @@ public class ProductoController {
             Producto producto = new Producto(id, unidad.getIdUnidadMedida(),
                     categoria.getIdCategoria(), codigo, nombre, precio);
 
+            // Todo producto nuevo se registra como Activo.
+            producto.setEstado(Estados.ACTIVO);
+
             if (dao.insertar(producto)) {
                 finalizarOperacion();
 
@@ -508,39 +567,63 @@ public class ProductoController {
         }
     }
 
+    // Elimina (desactiva) o reactiva el producto, según la casilla.
     @FXML
     private void eliminar() {
         if (productoSeleccionado == null) {
             return;
         }
 
+        boolean reactivar = chkMostrarInactivos.isSelected();
+
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
 
-        confirmacion.setTitle("Eliminar producto");
+        confirmacion.setTitle(reactivar ? "Reactivar producto" : "Eliminar producto");
         confirmacion.setHeaderText(null);
-        confirmacion.setContentText(
-                "¿Deseas eliminar el producto \""
-                        + productoSeleccionado.getNombre() + "\"?");
+        confirmacion.setContentText(reactivar
+                ? "¿Deseas reactivar el producto \""
+                        + productoSeleccionado.getNombre() + "\"?\n\n"
+                        + "Volverá a estar activo en el catálogo."
+                : "¿Deseas eliminar el producto \""
+                        + productoSeleccionado.getNombre() + "\"?\n\n"
+                        + "Quedará inactivo y dejará de aparecer en la lista de productos activos.");
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
         if (respuesta.isPresent()
                 && respuesta.get() == ButtonType.OK) {
 
-            if (dao.eliminar(productoSeleccionado.getIdProducto())) {
+            boolean exito = reactivar
+                    ? dao.reactivar(productoSeleccionado.getIdProducto())
+                    : dao.desactivar(productoSeleccionado.getIdProducto());
+
+            if (exito) {
                 finalizarOperacion();
 
                 mostrarAlerta(
                         Alert.AlertType.INFORMATION,
-                        "Eliminación exitosa",
-                        "El producto se eliminó correctamente.");
+                        reactivar ? "Reactivación exitosa" : "Eliminación exitosa",
+                        reactivar
+                                ? "El producto se reactivó correctamente."
+                                : "El producto se marcó como inactivo.");
             } else {
                 mostrarAlerta(
                         Alert.AlertType.ERROR,
-                        "No se pudo eliminar",
-                        "El producto podría estar asociado a compras, ventas o mermas.");
+                        "No se pudo cambiar el estado",
+                        "No se pudo actualizar el estado del producto.");
             }
         }
+    }
+
+    // Cambia entre la lista de activos y la de inactivos.
+    @FXML
+    private void cambiarMostrarInactivos() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        btnNuevo.setDisable(inactivos);
+        btnEliminar.setText(inactivos ? "Reactivar" : "Eliminar");
+
+        finalizarOperacion();
     }
 
     @FXML
@@ -568,6 +651,7 @@ public class ProductoController {
         txtPrecio.clear();
         cmbCategoria.setValue(null);
         cmbUnidad.setValue(null);
+        txtEstado.clear();
     }
 
     private void bloquearFormulario(boolean bloquear) {
@@ -609,8 +693,6 @@ public class ProductoController {
 
         Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();
 
-        ventanaActual.setScene(new Scene(vista));
-        ventanaActual.setTitle("Sistema Abarrotes La Roca");
-        ventanaActual.setResizable(false);
+        Navegacion.mostrar(ventanaActual, vista, Navegacion.TITULO_MENU);
     }
 }

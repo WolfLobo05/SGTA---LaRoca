@@ -1,3 +1,9 @@
+/* =====================================================================
+   Estilos comunes de las pantallas CRUD de SGTA - La Roca.
+   Todas las pantallas usan la misma estructura:
+   barra de título, barra de herramientas, tabla + panel Detalle y pie.
+   ===================================================================== */
+
 .ventana {
     -fx-background-color: #ececec;
     -fx-border-color: #8c8c8c;
@@ -5,8 +11,16 @@
     -fx-font-family: "Inter", "Arial";
 }
 
+/* ---------- Barra de título ---------- */
+
 .barra-titulo {
     -fx-background-color: linear-gradient(to bottom, #3e3e3e, #2a2a2a);
+    -fx-padding: 0 12px 0 12px;
+    -fx-spacing: 8px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-height: 31px;
+    -fx-pref-height: 31px;
+    -fx-max-height: 31px;
 }
 
 .titulo {
@@ -15,15 +29,34 @@
     -fx-font-weight: bold;
 }
 
+.botones-ventana {
+    -fx-spacing: 4px;
+    -fx-alignment: CENTER_RIGHT;
+}
+
 .boton-ventana {
     -fx-background-color: #5a5a5a;
     -fx-background-radius: 2px;
+    -fx-min-width: 10px;
+    -fx-pref-width: 10px;
+    -fx-max-width: 10px;
+    -fx-min-height: 10px;
+    -fx-pref-height: 10px;
+    -fx-max-height: 10px;
 }
+
+/* ---------- Barra de herramientas ---------- */
 
 .barra-herramientas {
     -fx-background-color: #dcdcdc;
     -fx-border-color: transparent transparent #8c8c8c transparent;
     -fx-border-width: 1px;
+    -fx-padding: 0 16px 0 16px;
+    -fx-spacing: 10px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-height: 49px;
+    -fx-pref-height: 49px;
+    -fx-max-height: 49px;
 }
 
 .fecha {
@@ -31,10 +64,24 @@
     -fx-font-size: 12px;
 }
 
+.check-inactivos {
+    -fx-text-fill: #262626;
+    -fx-font-size: 11.4px;
+    -fx-padding: 0 0 0 6px;
+}
+
+/* ---------- Botones ---------- */
+
 .button {
     -fx-font-size: 11.4px;
     -fx-cursor: hand;
     -fx-background-radius: 2px;
+    -fx-padding: 5px 12px 5px 12px;
+}
+
+.button:disabled {
+    -fx-opacity: 0.55;
+    -fx-cursor: default;
 }
 
 .boton-principal {
@@ -66,11 +113,27 @@
     -fx-min-height: 28px;
 }
 
+.boton-eliminar:hover {
+    -fx-background-color: #e7e7e7;
+}
+
+/* Botones de la barra: mismo ancho mínimo en todas las pantallas. */
+.barra-herramientas .button {
+    -fx-min-width: 72px;
+}
+
+/* ---------- Contenido: tabla + Detalle ---------- */
+
+.contenido {
+    -fx-padding: 16px;
+    -fx-spacing: 16px;
+}
+
 .tabla {
     -fx-background-color: white;
     -fx-border-color: #b5b5b5;
     -fx-border-width: 1px;
-    -fx-font-size: 11px;
+    -fx-font-size: 10.5px;
 }
 
 .tabla .column-header-background {
@@ -104,6 +167,8 @@
     -fx-background-color: #f5f5f5;
     -fx-border-color: #b5b5b5;
     -fx-border-width: 1px;
+    -fx-padding: 14px 16px 16px 16px;
+    -fx-spacing: 10px;
 }
 
 .titulo-detalle {
@@ -112,28 +177,66 @@
     -fx-font-weight: bold;
 }
 
+/* El formulario se desplaza en vertical; Guardar/Cancelar quedan fuera. */
+.scroll-detalle,
+.scroll-detalle > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: #f5f5f5;
+    -fx-padding: 0;
+}
+
+.formulario {
+    -fx-spacing: 9px;
+    -fx-padding: 0 6px 0 0;
+}
+
+.campo {
+    -fx-spacing: 4px;
+}
+
 .etiqueta {
     -fx-text-fill: #5c5c5c;
     -fx-font-size: 11.1px;
 }
 
-.text-field, .combo-box {
+.text-field,
+.combo-box {
     -fx-font-size: 11.5px;
     -fx-background-radius: 2px;
     -fx-border-radius: 2px;
 }
 
+.formulario .text-field,
+.formulario .combo-box {
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+}
+
+.acciones-detalle {
+    -fx-spacing: 8px;
+    -fx-alignment: CENTER;
+}
+
+.acciones-detalle .button {
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+}
+
+/* ---------- Pie ---------- */
+
 .pie {
     -fx-background-color: #dcdcdc;
     -fx-border-color: #b5b5b5 transparent transparent transparent;
     -fx-border-width: 1px;
+    -fx-padding: 0 12px 0 12px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 24px;
 }
 
 .texto-pie {
     -fx-text-fill: #5c5c5c;
     -fx-font-size: 10.1px;
-}
-.button:disabled {
-    -fx-opacity: 0.55;
-    -fx-cursor: default;
 }

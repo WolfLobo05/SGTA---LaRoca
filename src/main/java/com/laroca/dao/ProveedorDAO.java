@@ -9,13 +9,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.laroca.conexion.Conexion;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Proveedor;
 
 public class ProveedorDAO {
 
+    // Un registro es inactivo si su estado no es Activo (NULL cuenta como Activo).
+    private static final String ES_INACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
+
     public List<Proveedor> listar() {
         List<Proveedor> lista = new ArrayList<>();
-        String sql = "SELECT id_proveedor, rfc, nombre, telefono, correo, direccion, contacto, estado FROM Proveedores WHERE estado = 'ACTIVO' OR estado IS NULL";
+        String sql = "SELECT id_proveedor, rfc, nombre, telefono, correo, direccion, contacto, estado FROM Proveedores ORDER BY id_proveedor";
 
         try (Connection con = Conexion.conectar();
              PreparedStatement ps = con.prepareStatement(sql);
@@ -68,13 +73,45 @@ public class ProveedorDAO {
                 ps.setString(5, p.getCorreo());
                 ps.setString(6, p.getDireccion());
                 ps.setString(7, p.getContacto());
-                ps.setString(8, "ACTIVO");
+                ps.setString(8, Estados.ACTIVO);
 
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
             System.err.println("Error al guardar proveedor: " + e.getMessage());
             return false;
+        }
+    }
+
+    // Busca el RFC en todos los proveedores, activos e inactivos.
+    // Si la consulta falla devuelve true para no permitir el guardado.
+    public boolean existeRfc(String rfc, int idExcluir) {
+        return contarRfc(rfc, idExcluir, "") != 0;
+    }
+
+    // Indica si el RFC duplicado pertenece a un proveedor inactivo.
+    public boolean existeRfcInactivo(String rfc, int idExcluir) {
+        return contarRfc(rfc, idExcluir, " AND " + ES_INACTIVO) > 0;
+    }
+
+    // Devuelve -1 si falla la consulta.
+    private int contarRfc(String rfc, int idExcluir, String filtro) {
+        String sql = "SELECT COUNT(*) FROM Proveedores WHERE UPPER(TRIM(rfc)) = UPPER(TRIM(?)) AND id_proveedor <> ?" + filtro;
+
+        try (Connection con = Conexion.conectar()) {
+            if (con == null) return -1;
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, rfc);
+                ps.setInt(2, idExcluir);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : -1;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al comprobar el RFC: " + e.getMessage());
+            return -1;
         }
     }
 
@@ -99,16 +136,26 @@ public class ProveedorDAO {
         }
     }
 
-    public boolean eliminar(int idProveedor) {
-        String sql = "DELETE FROM Proveedores WHERE id_proveedor = ?";
+    // Ya no se borran proveedores: solo se cambia el estado.
+    public boolean desactivar(int idProveedor) {
+        return cambiarEstado(idProveedor, Estados.INACTIVO);
+    }
+
+    public boolean reactivar(int idProveedor) {
+        return cambiarEstado(idProveedor, Estados.ACTIVO);
+    }
+
+    private boolean cambiarEstado(int idProveedor, String estado) {
+        String sql = "UPDATE Proveedores SET estado = ? WHERE id_proveedor = ?";
 
         try (Connection con = Conexion.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, idProveedor);
+            ps.setString(1, estado);
+            ps.setInt(2, idProveedor);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error al eliminar proveedor: " + e.getMessage());
+            System.err.println("Error al cambiar el estado del proveedor: " + e.getMessage());
             return false;
         }
     }

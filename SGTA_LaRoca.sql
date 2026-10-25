@@ -4,7 +4,7 @@ USE SGTA_LaRoca;
 
 CREATE TABLE Roles (
     id_rol INTEGER UNSIGNED NOT NULL,
-    estado VARCHAR(30) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     nombre VARCHAR(100) NULL,
     descripcion VARCHAR(100) NULL,
     PRIMARY KEY (id_rol)
@@ -14,7 +14,7 @@ CREATE TABLE Roles (
 
 CREATE TABLE Unidad_Medida (
     id_unidad INTEGER UNSIGNED NOT NULL,
-    estado VARCHAR(30) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     abreviatura VARCHAR(10) NULL,
     nombre VARCHAR(50) NULL,
     PRIMARY KEY (id_unidad)
@@ -24,7 +24,7 @@ CREATE TABLE Unidad_Medida (
 
 CREATE TABLE Categoria (
     id_categoria INTEGER UNSIGNED NOT NULL,
-    estado VARCHAR(30) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     nombre VARCHAR(50) NOT NULL,
     descripcion VARCHAR(100) NULL,
     PRIMARY KEY (id_categoria)
@@ -37,8 +37,9 @@ CREATE TABLE Clientes (
     nombre VARCHAR(100) NULL,
     apellido_paterno VARCHAR(100) NULL,
     apellido_materno VARCHAR(100) NULL,
-    telefono VARCHAR(15) NULL,
-    correo VARCHAR(150) NULL,
+    telefono VARCHAR(15) NOT NULL,
+    correo VARCHAR(150) NOT NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_cliente)
 );
 
@@ -55,11 +56,11 @@ CREATE TABLE Proveedores (
     id_proveedor INTEGER UNSIGNED NOT NULL,
     rfc VARCHAR(13) NULL,
     nombre VARCHAR(100) NULL,
-    telefono VARCHAR(15) NULL,
-    correo VARCHAR(150) NULL,
+    telefono VARCHAR(15) NOT NULL,
+    correo VARCHAR(150) NOT NULL,
     direccion VARCHAR(100) NULL,
     contacto VARCHAR(15) NULL,
-    estado VARCHAR(30) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_proveedor)
 );
 
@@ -70,14 +71,14 @@ CREATE TABLE Proveedores (
 CREATE TABLE Empleados (
     id_empleado INTEGER UNSIGNED NOT NULL,
     id_rol INTEGER UNSIGNED NOT NULL,
-    estado VARCHAR(30) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     usuario VARCHAR(100) NULL,
     password_hash VARCHAR(255) NULL,
     nombre VARCHAR(100) NULL,
     apellido_paterno VARCHAR(100) NULL,
     apellido_materno VARCHAR(100) NULL,
-    telefono VARCHAR(15) NULL,
-    correo VARCHAR(150) NULL,
+    telefono VARCHAR(15) NOT NULL,
+    correo VARCHAR(150) NOT NULL,
     PRIMARY KEY (id_empleado),
     CONSTRAINT fk_empleados_roles FOREIGN KEY (id_rol) REFERENCES Roles(id_rol)
 );
@@ -93,6 +94,7 @@ CREATE TABLE Productos (
     nombre VARCHAR(50) NULL,
     precio DECIMAL(10, 2) NULL,
     punto_reorden INTEGER UNSIGNED NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_producto),
     CONSTRAINT fk_productos_unidad FOREIGN KEY (id_unidad) REFERENCES Unidad_Medida(id_unidad),
     CONSTRAINT fk_productos_categoria FOREIGN KEY (id_categoria) REFERENCES Categoria(id_categoria),

@@ -1,6 +1,7 @@
 package com.laroca.dao;
 
 import com.laroca.conexion.Conexion;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Rol;
 
 import java.sql.Connection;
@@ -11,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RolDAO {
+
+    // Un registro es inactivo si su estado no es Activo (NULL cuenta como Activo).
+    private static final String ES_INACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
 
     public List<Rol> listar() {
         List<Rol> roles = new ArrayList<>();
@@ -97,6 +102,33 @@ public class RolDAO {
         return true;
     }
 
+    // Indica si el valor duplicado pertenece a un registro inactivo.
+    public boolean existeNombreInactivo(String nombre, int idExcluir) {
+        String sql = "SELECT COUNT(*) FROM Roles "
+                   + "WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?)) "
+                   + "AND id_rol <> ? "
+                   + "AND " + ES_INACTIVO;
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                return false;
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, nombre);
+                ps.setInt(2, idExcluir);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al comprobar el estado de el rol:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean insertar(Rol rol) {
         String sql = "INSERT INTO Roles "
                    + "(id_rol, estado, nombre, descripcion) "
@@ -124,7 +156,7 @@ public class RolDAO {
 
     public boolean actualizar(Rol rol) {
         String sql = "UPDATE Roles "
-                   + "SET estado = ?, nombre = ?, descripcion = ? "
+                   + "SET nombre = ?, descripcion = ? "
                    + "WHERE id_rol = ?";
 
         try (Connection conexion = Conexion.conectar()) {
@@ -133,10 +165,9 @@ public class RolDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setString(1, rol.getEstado());
-                ps.setString(2, rol.getNombre());
-                ps.setString(3, rol.getDescripcion());
-                ps.setInt(4, rol.getIdRol());
+                ps.setString(1, rol.getNombre());
+                ps.setString(2, rol.getDescripcion());
+                ps.setInt(3, rol.getIdRol());
 
                 return ps.executeUpdate() > 0;
             }
@@ -147,8 +178,17 @@ public class RolDAO {
         }
     }
 
-    public boolean eliminar(int idRol) {
-        String sql = "DELETE FROM Roles WHERE id_rol = ?";
+    // Ya no se borran registros: solo se cambia el estado.
+    public boolean desactivar(int idRol) {
+        return cambiarEstado(idRol, Estados.INACTIVO);
+    }
+
+    public boolean reactivar(int idRol) {
+        return cambiarEstado(idRol, Estados.ACTIVO);
+    }
+
+    private boolean cambiarEstado(int idRol, String estado) {
+        String sql = "UPDATE Roles SET estado = ? WHERE id_rol = ?";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -156,11 +196,12 @@ public class RolDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, idRol);
+                ps.setString(1, estado);
+                ps.setInt(2, idRol);
                 return ps.executeUpdate() > 0;
             }
-        } catch (SQLException e) {
-            System.err.println("Error al eliminar rol:");
+        } catch (Exception e) {
+            System.err.println("Error al cambiar el estado de el rol:");
             e.printStackTrace();
             return false;
         }

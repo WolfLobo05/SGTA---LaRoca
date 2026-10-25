@@ -1,6 +1,7 @@
 package com.laroca.controlador;
 
 import com.laroca.dao.RolDAO;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Rol;
 
 import java.io.IOException;
@@ -14,11 +15,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -47,7 +47,10 @@ public class RolController {
     private TextField txtDescripcion;
 
     @FXML
-    private ComboBox<String> cmbEstado;
+    private TextField txtEstado;
+
+    @FXML
+    private Button btnNuevo;
 
     @FXML
     private Button btnEliminar;
@@ -57,6 +60,9 @@ public class RolController {
 
     @FXML
     private Button btnCancelar;
+
+    @FXML
+    private CheckBox chkMostrarInactivos;
 
     @FXML
     private Label lblFecha;
@@ -86,9 +92,6 @@ public class RolController {
         columnaEstado.setCellValueFactory(
                 new PropertyValueFactory<>("estado"));
 
-        cmbEstado.setItems(
-                FXCollections.observableArrayList("Activo", "Inactivo"));
-
         // Nombre: solo letras, espacios y acentos.
         txtNombre.textProperty().addListener(
                 (observable, anterior, actual) -> {
@@ -106,10 +109,6 @@ public class RolController {
         txtDescripcion.textProperty().addListener(
                 (observable, anterior, actual) -> actualizarEstadoGuardar());
 
-        // El estado también es obligatorio.
-        cmbEstado.valueProperty().addListener(
-                (observable, anterior, actual) -> actualizarEstadoGuardar());
-
         cargarRoles();
 
         tablaRoles.getSelectionModel()
@@ -118,13 +117,21 @@ public class RolController {
 
                     if (actual != null) {
                         rolSeleccionado = actual;
-                        modoEdicion = true;
 
                         txtNombre.setText(Objects.toString(actual.getNombre(), ""));
                         txtDescripcion.setText(Objects.toString(actual.getDescripcion(), ""));
-                        cmbEstado.setValue(actual.getEstado());
+                        txtEstado.setText(Estados.mostrar(actual.getEstado()));
 
-                        bloquearFormulario(false);
+                        if (chkMostrarInactivos.isSelected()) {
+                            // Los roles inactivos solo se consultan.
+                            modoEdicion = false;
+                            bloquearFormulario(true);
+                            btnCancelar.setDisable(false);
+                        } else {
+                            modoEdicion = true;
+                            bloquearFormulario(false);
+                        }
+
                         btnEliminar.setDisable(false);
                     } else {
                         btnEliminar.setDisable(true);
@@ -133,31 +140,41 @@ public class RolController {
 
         btnEliminar.setDisable(true);
 
-        desbloquearFormulario();
+        bloquearFormulario(true);
     }
 
     private void actualizarEstadoGuardar() {
+        // Con el formulario bloqueado no se puede guardar.
+        if (txtNombre.isDisabled()) {
+            btnGuardar.setDisable(true);
+            return;
+        }
+
         String nombre = txtNombre.getText().trim();
         String descripcion = txtDescripcion.getText().trim();
-        String estado = cmbEstado.getValue();
 
         boolean nombreValido = !nombre.isEmpty()
                 && nombre.matches("[\\p{L} ]+");
 
         boolean descripcionValida = !descripcion.isEmpty();
 
-        boolean estadoValido = estado != null
-                && !estado.isBlank();
-
         boolean formularioValido = nombreValido
-                && descripcionValida
-                && estadoValido;
+                && descripcionValida;
 
         btnGuardar.setDisable(!formularioValido);
     }
 
+    // Muestra solo los activos o solo los inactivos, según la casilla.
     private void cargarRoles() {
-        ObservableList<Rol> lista = FXCollections.observableArrayList(dao.listar());
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        ObservableList<Rol> lista = FXCollections.observableArrayList();
+
+        for (Rol rol : dao.listar()) {
+            if (Estados.esActivo(rol.getEstado()) != inactivos) {
+                lista.add(rol);
+            }
+        }
 
         tablaRoles.setItems(lista);
 
@@ -165,21 +182,25 @@ public class RolController {
 
         lblRegistros.setText(
                 total + (total == 1
-                        ? " rol registrado"
-                        : " roles registrados"));
+                        ? (inactivos ? " rol inactivo" : " rol activo")
+                        : (inactivos ? " roles inactivos" : " roles activos")));
     }
 
     @FXML
     private void nuevo() {
+        if (chkMostrarInactivos.isSelected()) {
+            return;
+        }
+
         modoEdicion = false;
         rolSeleccionado = null;
 
         tablaRoles.getSelectionModel().clearSelection();
 
         limpiarFormulario();
-        cmbEstado.setValue("Activo");
+        txtEstado.setText(Estados.ACTIVO);
 
-        desbloquearFormulario();
+        bloquearFormulario(false);
 
         btnEliminar.setDisable(true);
 
@@ -190,7 +211,6 @@ public class RolController {
     private void guardar() {
         String nombre = txtNombre.getText().trim();
         String descripcion = txtDescripcion.getText().trim();
-        String estado = cmbEstado.getValue();
 
         if (nombre.isEmpty()) {
             mostrarAlerta(
@@ -201,25 +221,26 @@ public class RolController {
             return;
         }
 
-        if (estado == null || estado.isBlank()) {
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Estado obligatorio",
-                    "Selecciona el estado del rol.");
-            return;
-        }
-
         int idExcluir = 0;
 
         if (modoEdicion && rolSeleccionado != null) {
             idExcluir = rolSeleccionado.getIdRol();
         }
 
+        // Se compara contra todos los roles, activos e inactivos.
         if (dao.existeNombre(nombre, idExcluir)) {
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Nombre duplicado",
-                    "Ya existe un rol con ese nombre. Escribe un nombre diferente.");
+            if (dao.existeNombreInactivo(nombre, idExcluir)) {
+                mostrarAlerta(
+                        Alert.AlertType.WARNING,
+                        "Rol inactivo",
+                        "Ya existe un rol con ese nombre, pero está inactivo. "
+                                + "Puedes reactivarlo desde \"Mostrar inactivos\".");
+            } else {
+                mostrarAlerta(
+                        Alert.AlertType.WARNING,
+                        "Nombre duplicado",
+                        "Ya existe un rol con ese nombre. Escribe un nombre diferente.");
+            }
 
             txtNombre.requestFocus();
             return;
@@ -234,10 +255,10 @@ public class RolController {
                 return;
             }
 
+            // El estado no se modifica al editar.
             rolSeleccionado.setNombre(nombre);
             rolSeleccionado.setDescripcion(
                     descripcion.isEmpty() ? null : descripcion);
-            rolSeleccionado.setEstado(estado);
 
             if (dao.actualizar(rolSeleccionado)) {
                 finalizarOperacion();
@@ -264,7 +285,8 @@ public class RolController {
                 return;
             }
 
-            Rol rol = new Rol(id, estado, nombre,
+            // Todo rol nuevo se registra como Activo.
+            Rol rol = new Rol(id, Estados.ACTIVO, nombre,
                     descripcion.isEmpty() ? null : descripcion);
 
             if (dao.insertar(rol)) {
@@ -283,39 +305,64 @@ public class RolController {
         }
     }
 
+    // Elimina (desactiva) o reactiva el rol, según la casilla.
     @FXML
     private void eliminar() {
         if (rolSeleccionado == null) {
             return;
         }
 
+        boolean reactivar = chkMostrarInactivos.isSelected();
+
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
 
-        confirmacion.setTitle("Eliminar rol");
+        confirmacion.setTitle(reactivar ? "Reactivar rol" : "Eliminar rol");
         confirmacion.setHeaderText(null);
-        confirmacion.setContentText(
-                "¿Deseas eliminar el rol \""
-                        + rolSeleccionado.getNombre() + "\"?");
+        confirmacion.setContentText(reactivar
+                ? "¿Deseas reactivar el rol \""
+                        + rolSeleccionado.getNombre() + "\"?\n\n"
+                        + "Volverá a estar activo y se podrá asignar a usuarios."
+                : "¿Deseas eliminar el rol \""
+                        + rolSeleccionado.getNombre() + "\"?\n\n"
+                        + "Quedará inactivo y ya no se podrá asignar a usuarios. "
+                        + "Los usuarios que ya lo tienen no cambian.");
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
         if (respuesta.isPresent()
                 && respuesta.get() == ButtonType.OK) {
 
-            if (dao.eliminar(rolSeleccionado.getIdRol())) {
+            boolean exito = reactivar
+                    ? dao.reactivar(rolSeleccionado.getIdRol())
+                    : dao.desactivar(rolSeleccionado.getIdRol());
+
+            if (exito) {
                 finalizarOperacion();
 
                 mostrarAlerta(
                         Alert.AlertType.INFORMATION,
-                        "Eliminación exitosa",
-                        "El rol se eliminó correctamente.");
+                        reactivar ? "Reactivación exitosa" : "Eliminación exitosa",
+                        reactivar
+                                ? "El rol se reactivó correctamente."
+                                : "El rol se marcó como inactivo.");
             } else {
                 mostrarAlerta(
                         Alert.AlertType.ERROR,
-                        "No se pudo eliminar",
-                        "El rol podría estar asociado a uno o más empleados.");
+                        "No se pudo cambiar el estado",
+                        "No se pudo actualizar el estado del rol.");
             }
         }
+    }
+
+    // Cambia entre la lista de activos y la de inactivos.
+    @FXML
+    private void cambiarMostrarInactivos() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        btnNuevo.setDisable(inactivos);
+        btnEliminar.setText(inactivos ? "Reactivar" : "Eliminar");
+
+        finalizarOperacion();
     }
 
     @FXML
@@ -340,26 +387,19 @@ public class RolController {
     private void limpiarFormulario() {
         txtNombre.clear();
         txtDescripcion.clear();
-        cmbEstado.getSelectionModel().clearSelection();
+        txtEstado.clear();
     }
 
     private void bloquearFormulario(boolean bloquear) {
         txtNombre.setDisable(bloquear);
         txtDescripcion.setDisable(bloquear);
-        cmbEstado.setDisable(bloquear);
 
         btnGuardar.setDisable(true);
         btnCancelar.setDisable(bloquear);
-    }
 
-    private void desbloquearFormulario() {
-        txtNombre.setDisable(false);
-        txtDescripcion.setDisable(false);
-        cmbEstado.setDisable(false);
-
-        btnCancelar.setDisable(false);
-
-        actualizarEstadoGuardar();
+        if (!bloquear) {
+            actualizarEstadoGuardar();
+        }
     }
 
     private void mostrarAlerta(
@@ -383,8 +423,6 @@ public class RolController {
 
         Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();
 
-        ventanaActual.setScene(new Scene(vista));
-        ventanaActual.setTitle("Sistema Abarrotes La Roca");
-        ventanaActual.setResizable(false);
+        Navegacion.mostrar(ventanaActual, vista, Navegacion.TITULO_MENU);
     }
 }

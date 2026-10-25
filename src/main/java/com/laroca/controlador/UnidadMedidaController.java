@@ -1,6 +1,7 @@
 package com.laroca.controlador;
 
 import com.laroca.dao.UnidadMedidaDAO;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.UnidadMedida;
 
 import java.io.IOException;
@@ -14,11 +15,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -47,7 +47,7 @@ public class UnidadMedidaController {
     private TextField txtAbreviatura;
 
     @FXML
-    private ComboBox<String> cmbEstado;
+    private TextField txtEstado;
 
     @FXML
     private Button btnNuevo;
@@ -60,6 +60,9 @@ public class UnidadMedidaController {
 
     @FXML
     private Button btnCancelar;
+
+    @FXML
+    private CheckBox chkMostrarInactivos;
 
     @FXML
     private Label lblRegistros;
@@ -83,9 +86,6 @@ public class UnidadMedidaController {
         columnaEstado.setCellValueFactory(
                 new PropertyValueFactory<>("estado"));
 
-        cmbEstado.setItems(
-                FXCollections.observableArrayList("Activo", "Inactivo"));
-
         // Validar automáticamente mientras se capturan los datos.
         txtNombre.textProperty().addListener(
                 (observable, anterior, actual) -> {
@@ -99,9 +99,6 @@ public class UnidadMedidaController {
         txtAbreviatura.textProperty().addListener(
                 (observable, anterior, actual) -> actualizarEstadoGuardar());
 
-        cmbEstado.valueProperty().addListener(
-                (observable, anterior, actual) -> actualizarEstadoGuardar());
-
         cargarUnidades();
 
         tablaUnidades.getSelectionModel()
@@ -109,12 +106,20 @@ public class UnidadMedidaController {
                 .addListener((observable, anterior, actual) -> {
                     if (actual != null) {
                         unidadSeleccionada = actual;
-                        modoEdicion = true;
                         txtNombre.setText(Objects.toString(actual.getNombre(), ""));
                         txtAbreviatura.setText(Objects.toString(actual.getAbreviatura(), ""));
-                        cmbEstado.setValue(actual.getEstado());
+                        txtEstado.setText(Estados.mostrar(actual.getEstado()));
 
-                        bloquearFormulario(false);
+                        if (chkMostrarInactivos.isSelected()) {
+                            // Las unidades inactivas solo se consultan.
+                            modoEdicion = false;
+                            bloquearFormulario(true);
+                            btnCancelar.setDisable(false);
+                        } else {
+                            modoEdicion = true;
+                            bloquearFormulario(false);
+                        }
+
                         btnEliminar.setDisable(false);
                     } else {
                         btnEliminar.setDisable(true);
@@ -126,43 +131,58 @@ public class UnidadMedidaController {
     }
 
     private void actualizarEstadoGuardar() {
+        // Con el formulario bloqueado no se puede guardar.
+        if (txtNombre.isDisabled()) {
+            btnGuardar.setDisable(true);
+            return;
+        }
+
         String nombre = txtNombre.getText().trim();
         String abreviatura = txtAbreviatura.getText().trim();
-        String estado = cmbEstado.getValue();
 
         boolean nombreValido = nombre.matches("[\\p{L} ]+");
 
         boolean abreviaturaValida = abreviatura.matches("[\\p{L}\\p{N}./²³-]+");
 
-        boolean estadoValido = estado != null && !estado.isBlank();
-
         boolean formularioValido = nombreValido
-                && abreviaturaValida
-                && estadoValido;
+                && abreviaturaValida;
 
         btnGuardar.setDisable(!formularioValido);
     }
 
+    // Muestra solo las activas o solo las inactivas, según la casilla.
     private void cargarUnidades() {
-        ObservableList<UnidadMedida> lista = FXCollections.observableArrayList(dao.listar());
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        ObservableList<UnidadMedida> lista = FXCollections.observableArrayList();
+
+        for (UnidadMedida unidad : dao.listar()) {
+            if (Estados.esActivo(unidad.getEstado()) != inactivos) {
+                lista.add(unidad);
+            }
+        }
 
         tablaUnidades.setItems(lista);
 
         int total = lista.size();
         lblRegistros.setText(
                 total + (total == 1
-                        ? " unidad registrada"
-                        : " unidades registradas"));
+                        ? (inactivos ? " unidad inactiva" : " unidad activa")
+                        : (inactivos ? " unidades inactivas" : " unidades activas")));
     }
 
     @FXML
     private void nuevo() {
+        if (chkMostrarInactivos.isSelected()) {
+            return;
+        }
+
         modoEdicion = false;
         unidadSeleccionada = null;
 
         tablaUnidades.getSelectionModel().clearSelection();
         limpiarFormulario();
-        cmbEstado.setValue("Activo");
+        txtEstado.setText(Estados.ACTIVO);
 
         bloquearFormulario(false);
         btnEliminar.setDisable(true);
@@ -173,7 +193,6 @@ public class UnidadMedidaController {
     private void guardar() {
         String nombre = txtNombre.getText().trim();
         String abreviatura = txtAbreviatura.getText().trim();
-        String estado = cmbEstado.getValue();
 
         if (nombre.isEmpty() || abreviatura.isEmpty()) {
             mostrarAlerta(
@@ -183,25 +202,26 @@ public class UnidadMedidaController {
             return;
         }
 
-        if (estado == null || estado.isBlank()) {
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Estado obligatorio",
-                    "Selecciona el estado de la unidad.");
-            return;
-        }
-
         // Evita nombres repetidos al insertar y al editar.
+        // Se compara contra todas las unidades, activas e inactivas.
         int idExcluir = modoEdicion && unidadSeleccionada != null
                 ? unidadSeleccionada.getIdUnidadMedida()
                 : 0;
 
         if (dao.existeNombre(nombre, idExcluir)) {
-            mostrarAlerta(
-                    Alert.AlertType.WARNING,
-                    "Nombre duplicado",
-                    "Ya existe una unidad de medida con ese nombre. "
-                            + "Escribe un nombre diferente.");
+            if (dao.existeNombreInactivo(nombre, idExcluir)) {
+                mostrarAlerta(
+                        Alert.AlertType.WARNING,
+                        "Unidad inactiva",
+                        "Ya existe una unidad de medida con ese nombre, pero está inactiva. "
+                                + "Puedes reactivarla desde \"Mostrar inactivos\".");
+            } else {
+                mostrarAlerta(
+                        Alert.AlertType.WARNING,
+                        "Nombre duplicado",
+                        "Ya existe una unidad de medida con ese nombre. "
+                                + "Escribe un nombre diferente.");
+            }
             txtNombre.requestFocus();
             txtNombre.selectAll();
             return;
@@ -216,9 +236,9 @@ public class UnidadMedidaController {
                 return;
             }
 
+            // El estado no se modifica al editar.
             unidadSeleccionada.setNombre(nombre);
             unidadSeleccionada.setAbreviatura(abreviatura);
-            unidadSeleccionada.setEstado(estado);
 
             if (dao.actualizar(unidadSeleccionada)) {
                 finalizarOperacion();
@@ -245,9 +265,10 @@ public class UnidadMedidaController {
                 return;
             }
 
+            // Toda unidad nueva se registra como Activo.
             UnidadMedida unidad = new UnidadMedida();
             unidad.setIdUnidadMedida(id);
-            unidad.setEstado(estado);
+            unidad.setEstado(Estados.ACTIVO);
             unidad.setNombre(nombre);
             unidad.setAbreviatura(abreviatura);
 
@@ -268,6 +289,7 @@ public class UnidadMedidaController {
         }
     }
 
+    // Elimina (desactiva) o reactiva la unidad, según la casilla.
     @FXML
     private void eliminar() {
         if (unidadSeleccionada == null) {
@@ -278,31 +300,55 @@ public class UnidadMedidaController {
             return;
         }
 
+        boolean reactivar = chkMostrarInactivos.isSelected();
+
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmacion.setTitle("Eliminar unidad");
+        confirmacion.setTitle(reactivar ? "Reactivar unidad" : "Eliminar unidad");
         confirmacion.setHeaderText(null);
-        confirmacion.setContentText(
-                "¿Deseas eliminar la unidad \""
-                        + unidadSeleccionada.getNombre() + "\"?");
+        confirmacion.setContentText(reactivar
+                ? "¿Deseas reactivar la unidad \""
+                        + unidadSeleccionada.getNombre() + "\"?\n\n"
+                        + "Volverá a estar activa y disponible para los productos."
+                : "¿Deseas eliminar la unidad \""
+                        + unidadSeleccionada.getNombre() + "\"?\n\n"
+                        + "Quedará inactiva y ya no se podrá elegir en nuevos productos. "
+                        + "Los productos que ya la usan no cambian.");
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
         if (respuesta.isPresent() && respuesta.get() == ButtonType.OK) {
-            if (dao.eliminar(unidadSeleccionada.getIdUnidadMedida())) {
+            boolean exito = reactivar
+                    ? dao.reactivar(unidadSeleccionada.getIdUnidadMedida())
+                    : dao.desactivar(unidadSeleccionada.getIdUnidadMedida());
+
+            if (exito) {
                 finalizarOperacion();
 
                 mostrarAlerta(
                         Alert.AlertType.INFORMATION,
-                        "Eliminación exitosa",
-                        "La unidad se eliminó correctamente.");
+                        reactivar ? "Reactivación exitosa" : "Eliminación exitosa",
+                        reactivar
+                                ? "La unidad se reactivó correctamente."
+                                : "La unidad se marcó como inactiva.");
             } else {
                 mostrarAlerta(
                         Alert.AlertType.ERROR,
                         "Error",
-                        "No se pudo eliminar la unidad. "
-                                + "Puede estar relacionada con otros registros.");
+                        "No se pudo actualizar el estado de la unidad. "
+                                + "Verifica la conexión.");
             }
         }
+    }
+
+    // Cambia entre la lista de activas y la de inactivas.
+    @FXML
+    private void cambiarMostrarInactivos() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        btnNuevo.setDisable(inactivos);
+        btnEliminar.setText(inactivos ? "Reactivar" : "Eliminar");
+
+        finalizarOperacion();
     }
 
     @FXML
@@ -325,13 +371,12 @@ public class UnidadMedidaController {
     private void limpiarFormulario() {
         txtNombre.clear();
         txtAbreviatura.clear();
-        cmbEstado.getSelectionModel().clearSelection();
+        txtEstado.clear();
     }
 
     private void bloquearFormulario(boolean bloquear) {
         txtNombre.setDisable(bloquear);
         txtAbreviatura.setDisable(bloquear);
-        cmbEstado.setDisable(bloquear);
 
         // Guardar solo se habilita si los datos son válidos.
         btnGuardar.setDisable(true);
@@ -364,8 +409,6 @@ public class UnidadMedidaController {
         Parent vista = loader.load();
         Stage ventanaActual = (Stage) txtNombre.getScene().getWindow();
 
-        ventanaActual.setScene(new Scene(vista));
-        ventanaActual.setTitle("Sistema Abarrotes La Roca");
-        ventanaActual.setResizable(false);
+        Navegacion.mostrar(ventanaActual, vista, Navegacion.TITULO_MENU);
     }
 }

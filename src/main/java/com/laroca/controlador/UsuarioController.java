@@ -3,6 +3,7 @@ package com.laroca.controlador;
 
 import com.laroca.dao.RolDAO;
 import com.laroca.dao.UsuarioDAO;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Rol;
 import com.laroca.modelo.Usuario;
 
@@ -17,10 +18,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -40,10 +41,13 @@ public class UsuarioController {
 
     @FXML private TableView<Usuario> tablaUsuarios;
     @FXML private TableColumn<Usuario, String> columnaUsuario;
-    @FXML private TableColumn<Usuario, String> columnaNombreCompleto;
-    @FXML private TableColumn<Usuario, String> columnaRol;
+    @FXML private TableColumn<Usuario, String> columnaNombre;
+    @FXML private TableColumn<Usuario, String> columnaApellidoPaterno;
+    @FXML private TableColumn<Usuario, String> columnaApellidoMaterno;
     @FXML private TableColumn<Usuario, String> columnaTelefono;
     @FXML private TableColumn<Usuario, String> columnaCorreo;
+    @FXML private TableColumn<Usuario, String> columnaRol;
+    @FXML private TableColumn<Usuario, String> columnaEstado;
 
     @FXML private TextField txtUsuario;
     @FXML private PasswordField txtPassword;
@@ -52,11 +56,14 @@ public class UsuarioController {
     @FXML private TextField txtApellidoMaterno;
     @FXML private TextField txtTelefono;
     @FXML private TextField txtCorreo;
+    @FXML private TextField txtEstado;
 
     @FXML private ComboBox<Rol> cmbRol;
+    @FXML private Button btnNuevo;
     @FXML private Button btnEliminar;
     @FXML private Button btnGuardar;
     @FXML private Button btnCancelar;
+    @FXML private CheckBox chkMostrarInactivos;
     @FXML private Label lblFecha;
     @FXML private Label lblRegistros;
 
@@ -74,14 +81,20 @@ public class UsuarioController {
 
         columnaUsuario.setCellValueFactory(
                 new PropertyValueFactory<>("usuario"));
-        columnaNombreCompleto.setCellValueFactory(
-                new PropertyValueFactory<>("nombreCompleto"));
-        columnaRol.setCellValueFactory(
-                new PropertyValueFactory<>("nombreRol"));
+        columnaNombre.setCellValueFactory(
+                new PropertyValueFactory<>("nombre"));
+        columnaApellidoPaterno.setCellValueFactory(
+                new PropertyValueFactory<>("apellidoPaterno"));
+        columnaApellidoMaterno.setCellValueFactory(
+                new PropertyValueFactory<>("apellidoMaterno"));
         columnaTelefono.setCellValueFactory(
                 new PropertyValueFactory<>("telefono"));
         columnaCorreo.setCellValueFactory(
                 new PropertyValueFactory<>("correo"));
+        columnaRol.setCellValueFactory(
+                new PropertyValueFactory<>("nombreRol"));
+        columnaEstado.setCellValueFactory(
+                new PropertyValueFactory<>("estado"));
 
         cmbRol.setConverter(new StringConverter<Rol>() {
             @Override
@@ -106,13 +119,21 @@ public class UsuarioController {
                 .addListener((obs, anterior, actual) -> {
                     if (actual != null) {
                         usuarioSeleccionado = actual;
-                        modoEdicion = true;
 
                         mostrarUsuario(actual);
                         txtPassword.setPromptText(
                                 PROMPT_PASSWORD_EDITAR);
 
-                        bloquearFormulario(false);
+                        if (chkMostrarInactivos.isSelected()) {
+                            // Los usuarios inactivos solo se consultan.
+                            modoEdicion = false;
+                            bloquearFormulario(true);
+                            btnCancelar.setDisable(false);
+                        } else {
+                            modoEdicion = true;
+                            bloquearFormulario(false);
+                        }
+
                         btnEliminar.setDisable(false);
                         actualizarEstadoGuardar();
                     } else {
@@ -204,25 +225,35 @@ public class UsuarioController {
                 (obs, anterior, actual) -> actualizarEstadoGuardar());
     }
 
+    // Muestra solo los activos o solo los inactivos, según la casilla.
     private void cargarUsuarios() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
         ObservableList<Usuario> lista =
-                FXCollections.observableArrayList(dao.listar());
+                FXCollections.observableArrayList();
+
+        for (Usuario usuario : dao.listar()) {
+            if (Estados.esActivo(usuario.getEstado()) != inactivos) {
+                lista.add(usuario);
+            }
+        }
 
         tablaUsuarios.setItems(lista);
 
         lblRegistros.setText(
                 lista.size()
                 + (lista.size() == 1
-                    ? " usuario registrado"
-                    : " usuarios registrados"));
+                    ? (inactivos ? " usuario inactivo" : " usuario activo")
+                    : (inactivos ? " usuarios inactivos" : " usuarios activos")));
     }
 
     private void cargarRoles() {
         ObservableList<Rol> lista =
                 FXCollections.observableArrayList();
 
+        // Solo se ofrecen los roles activos.
         for (Rol rol : rolDao.listar()) {
-            if ("Activo".equalsIgnoreCase(rol.getEstado())) {
+            if (Estados.esActivo(rol.getEstado())) {
                 lista.add(rol);
             }
         }
@@ -245,6 +276,7 @@ public class UsuarioController {
                 Objects.toString(usuario.getTelefono(), ""));
         txtCorreo.setText(
                 Objects.toString(usuario.getCorreo(), ""));
+        txtEstado.setText(Estados.mostrar(usuario.getEstado()));
 
         seleccionarRol(usuario.getIdRol(), usuario.getNombreRol());
     }
@@ -257,18 +289,26 @@ public class UsuarioController {
             }
         }
 
-        // No seleccionar roles inactivos que no estén disponibles.
-        cmbRol.setValue(null);
+        // Si el rol está inactivo no aparece en la lista, así que se
+        // muestra con un objeto temporal que no se agrega a las opciones.
+        // Así el usuario se puede guardar sin cambiar su rol, y si se
+        // cambia por otro, el rol inactivo ya no se puede volver a elegir.
+        cmbRol.setValue(new Rol(id, null, nombre, null));
     }
 
     @FXML
     private void nuevo() {
+        if (chkMostrarInactivos.isSelected()) {
+            return;
+        }
+
         modoEdicion = false;
         usuarioSeleccionado = null;
 
         tablaUsuarios.getSelectionModel().clearSelection();
 
         limpiarFormulario();
+        txtEstado.setText(Estados.ACTIVO);
         txtPassword.setPromptText(PROMPT_PASSWORD_NUEVO);
 
         bloquearFormulario(false);
@@ -309,14 +349,13 @@ public class UsuarioController {
                 || (materno.length() <= 100
                     && materno.matches("[\\p{L} ]+"));
 
-        boolean telefonoValido =
-                telefono.isEmpty() || telefono.matches("\\d{10}");
+        // Teléfono y correo son obligatorios.
+        boolean telefonoValido = telefono.matches("\\d{10}");
 
         boolean correoValido =
-                correo.isEmpty()
-                || (correo.length() <= 150
-                    && correo.matches(
-                        "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$"));
+                correo.length() <= 150
+                && correo.matches(
+                    "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$");
 
         Rol rol = cmbRol.getValue();
 
@@ -378,11 +417,19 @@ public class UsuarioController {
                 : 0;
 
         // Comprobar duplicados antes de insertar o actualizar.
+        // Se compara contra todos los usuarios, activos e inactivos.
         if (dao.existeUsuario(usuario, idExcluir)) {
-            mostrarAlerta(Alert.AlertType.WARNING,
-                    "Usuario duplicado",
-                    "Ya existe un usuario con ese nombre. "
-                    + "Escribe uno diferente.");
+            if (dao.existeUsuarioInactivo(usuario, idExcluir)) {
+                mostrarAlerta(Alert.AlertType.WARNING,
+                        "Usuario inactivo",
+                        "Ya existe un usuario con ese nombre, pero está inactivo. "
+                        + "Puedes reactivarlo desde \"Mostrar inactivos\".");
+            } else {
+                mostrarAlerta(Alert.AlertType.WARNING,
+                        "Usuario duplicado",
+                        "Ya existe un usuario con ese nombre. "
+                        + "Escribe uno diferente.");
+            }
             txtUsuario.requestFocus();
             return;
         }
@@ -399,10 +446,8 @@ public class UsuarioController {
             usuarioSeleccionado.setApellidoPaterno(paterno);
             usuarioSeleccionado.setApellidoMaterno(
                     materno.isEmpty() ? null : materno);
-            usuarioSeleccionado.setTelefono(
-                    telefono.isEmpty() ? null : telefono);
-            usuarioSeleccionado.setCorreo(
-                    correo.isEmpty() ? null : correo);
+            usuarioSeleccionado.setTelefono(telefono);
+            usuarioSeleccionado.setCorreo(correo);
             usuarioSeleccionado.setIdRol(rol.getIdRol());
 
             if (dao.actualizar(usuarioSeleccionado)) {
@@ -429,14 +474,14 @@ public class UsuarioController {
             Usuario nuevoUsuario = new Usuario(
                     id,
                     rol.getIdRol(),
-                    "Activo",
+                    Estados.ACTIVO,
                     usuario,
                     UsuarioDAO.hashPassword(password),
                     nombre,
                     paterno,
                     materno.isEmpty() ? null : materno,
-                    telefono.isEmpty() ? null : telefono,
-                    correo.isEmpty() ? null : correo
+                    telefono,
+                    correo
             );
 
             if (dao.insertar(nuevoUsuario)) {
@@ -452,38 +497,61 @@ public class UsuarioController {
         }
     }
 
+    // Elimina (desactiva) o reactiva el usuario, según la casilla.
     @FXML
     private void eliminar() {
         if (usuarioSeleccionado == null) {
             return;
         }
 
+        boolean reactivar = chkMostrarInactivos.isSelected();
+
         Alert confirmacion =
                 new Alert(Alert.AlertType.CONFIRMATION);
 
-        confirmacion.setTitle("Eliminar usuario");
+        confirmacion.setTitle(reactivar ? "Reactivar usuario" : "Eliminar usuario");
         confirmacion.setHeaderText(null);
-        confirmacion.setContentText(
-                "¿Deseas eliminar el usuario \""
-                + usuarioSeleccionado.getUsuario() + "\"?");
+        confirmacion.setContentText(reactivar
+                ? "¿Deseas reactivar el usuario \""
+                  + usuarioSeleccionado.getUsuario() + "\"?\n\n"
+                  + "Volverá a estar activo y podrá iniciar sesión."
+                : "¿Deseas eliminar el usuario \""
+                  + usuarioSeleccionado.getUsuario() + "\"?\n\n"
+                  + "Quedará inactivo y ya no podrá iniciar sesión.");
 
         Optional<ButtonType> respuesta = confirmacion.showAndWait();
 
         if (respuesta.isPresent()
                 && respuesta.get() == ButtonType.OK) {
 
-            if (dao.eliminar(usuarioSeleccionado.getIdUsuario())) {
+            boolean exito = reactivar
+                    ? dao.reactivar(usuarioSeleccionado.getIdUsuario())
+                    : dao.desactivar(usuarioSeleccionado.getIdUsuario());
+
+            if (exito) {
                 finalizarOperacion();
                 mostrarAlerta(Alert.AlertType.INFORMATION,
-                        "Eliminación exitosa",
-                        "El usuario se eliminó correctamente.");
+                        reactivar ? "Reactivación exitosa" : "Eliminación exitosa",
+                        reactivar
+                        ? "El usuario se reactivó correctamente."
+                        : "El usuario se marcó como inactivo.");
             } else {
                 mostrarAlerta(Alert.AlertType.ERROR,
-                        "No se pudo eliminar",
-                        "El usuario podría estar asociado a ventas, "
-                        + "compras o mermas.");
+                        "No se pudo cambiar el estado",
+                        "No se pudo actualizar el estado del usuario.");
             }
         }
+    }
+
+    // Cambia entre la lista de activos y la de inactivos.
+    @FXML
+    private void cambiarMostrarInactivos() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        btnNuevo.setDisable(inactivos);
+        btnEliminar.setText(inactivos ? "Reactivar" : "Eliminar");
+
+        finalizarOperacion();
     }
 
     @FXML
@@ -513,6 +581,7 @@ public class UsuarioController {
         txtApellidoMaterno.clear();
         txtTelefono.clear();
         txtCorreo.clear();
+        txtEstado.clear();
         cmbRol.setValue(null);
     }
 
@@ -557,9 +626,6 @@ public class UsuarioController {
         Stage ventanaActual =
                 (Stage) txtNombre.getScene().getWindow();
 
-        ventanaActual.setScene(new Scene(vista));
-        ventanaActual.setTitle(
-                "Sistema Abarrotes La Roca");
-        ventanaActual.setResizable(false);
+        Navegacion.mostrar(ventanaActual, vista, Navegacion.TITULO_MENU);
     }
 }

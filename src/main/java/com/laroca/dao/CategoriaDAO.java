@@ -1,6 +1,7 @@
 package com.laroca.dao;
 
 import com.laroca.conexion.Conexion;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Categoria;
 
 import java.sql.Connection;
@@ -11,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CategoriaDAO {
+
+    // Un registro es inactivo si su estado no es Activo (NULL cuenta como Activo).
+    private static final String ES_INACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
 
     public List<Categoria> listar() {
         List<Categoria> categorias = new ArrayList<>();
@@ -96,6 +101,33 @@ public class CategoriaDAO {
         }
     }
 
+    // Indica si el valor duplicado pertenece a un registro inactivo.
+    public boolean existeNombreInactivo(String nombre, int idExcluir) {
+        String sql = "SELECT COUNT(*) FROM Categoria "
+                   + "WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?)) "
+                   + "AND id_categoria <> ? "
+                   + "AND " + ES_INACTIVO;
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                return false;
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, nombre);
+                ps.setInt(2, idExcluir);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al comprobar el estado de la categoría:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean insertar(Categoria categoria) {
         if (existeNombre(categoria.getNombre(), 0)) {
             return false;
@@ -132,7 +164,7 @@ public class CategoriaDAO {
         }
 
         String sql = "UPDATE Categoria "
-                   + "SET estado = ?, nombre = ?, descripcion = ? "
+                   + "SET nombre = ?, descripcion = ? "
                    + "WHERE id_categoria = ?";
 
         try (Connection conexion = Conexion.conectar()) {
@@ -141,10 +173,9 @@ public class CategoriaDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setString(1, categoria.getEstado());
-                ps.setString(2, categoria.getNombre());
-                ps.setString(3, categoria.getDescripcion());
-                ps.setInt(4, categoria.getIdCategoria());
+                ps.setString(1, categoria.getNombre());
+                ps.setString(2, categoria.getDescripcion());
+                ps.setInt(3, categoria.getIdCategoria());
 
                 return ps.executeUpdate() > 0;
             }
@@ -155,8 +186,17 @@ public class CategoriaDAO {
         }
     }
 
-    public boolean eliminar(int idCategoria) {
-        String sql = "DELETE FROM Categoria WHERE id_categoria = ?";
+    // Ya no se borran registros: solo se cambia el estado.
+    public boolean desactivar(int idCategoria) {
+        return cambiarEstado(idCategoria, Estados.INACTIVO);
+    }
+
+    public boolean reactivar(int idCategoria) {
+        return cambiarEstado(idCategoria, Estados.ACTIVO);
+    }
+
+    private boolean cambiarEstado(int idCategoria, String estado) {
+        String sql = "UPDATE Categoria SET estado = ? WHERE id_categoria = ?";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -164,11 +204,12 @@ public class CategoriaDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, idCategoria);
+                ps.setString(1, estado);
+                ps.setInt(2, idCategoria);
                 return ps.executeUpdate() > 0;
             }
-        } catch (SQLException e) {
-            System.err.println("Error al eliminar categoría:");
+        } catch (Exception e) {
+            System.err.println("Error al cambiar el estado de la categoría:");
             e.printStackTrace();
             return false;
         }

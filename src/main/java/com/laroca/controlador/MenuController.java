@@ -5,7 +5,6 @@ import java.io.IOException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 
@@ -74,14 +73,9 @@ public class MenuController {
 
         Parent vista = loader.load();
 
-        Stage ventana = new Stage();
-        ventana.setTitle(titulo);
-        ventana.setScene(new Scene(vista));
-        ventana.setResizable(false);
-        ventana.show();
-
-        // Cerrar el menú actual.
-        Stage menu = (Stage) btnUnidades.getScene().getWindow();
-        menu.close();
+        // Se usa la misma ventana del menú, con el tamaño estándar,
+        // para que no cambie de tamaño ni de posición al navegar.
+        Stage ventana = (Stage) btnUnidades.getScene().getWindow();
+        Navegacion.mostrar(ventana, vista, titulo);
     }
 }

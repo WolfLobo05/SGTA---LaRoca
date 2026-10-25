@@ -7,7 +7,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
@@ -46,8 +45,7 @@ public class LoginController {
                 Parent root = loader.load();
 
                 Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-                stage.setScene(new Scene(root));
-                stage.setTitle("Sistema Abarrotes \"La Roca\" — Menú Principal");
+                Navegacion.mostrar(stage, root, Navegacion.TITULO_MENU);
                 stage.centerOnScreen();
                 stage.show();
             } catch (IOException e) {

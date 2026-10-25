@@ -1,6 +1,7 @@
 package com.laroca.dao;
 
 import com.laroca.conexion.Conexion;
+import com.laroca.modelo.Estados;
 import com.laroca.modelo.Usuario;
 
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,10 @@ import java.util.List;
 
 // Opera sobre la tabla Empleados.
 public class UsuarioDAO {
+
+    // Un registro es inactivo si su estado no es Activo (NULL cuenta como Activo).
+    private static final String ES_INACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
 
     // No se carga password_hash para no exponerlo en la pantalla.
     public List<Usuario> listar() {
@@ -113,6 +118,33 @@ public class UsuarioDAO {
         return true;
     }
 
+    // Indica si el valor duplicado pertenece a un registro inactivo.
+    public boolean existeUsuarioInactivo(String usuario, int idExcluir) {
+        String sql = "SELECT COUNT(*) FROM Empleados "
+                   + "WHERE LOWER(TRIM(usuario)) = LOWER(TRIM(?)) "
+                   + "AND id_empleado <> ? "
+                   + "AND " + ES_INACTIVO;
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                return false;
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, usuario);
+                ps.setInt(2, idExcluir);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al comprobar el estado de el usuario:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean insertar(Usuario usuario) {
         String sql = "INSERT INTO Empleados "
                    + "(id_empleado, id_rol, estado, usuario, password_hash, nombre, "
@@ -146,11 +178,12 @@ public class UsuarioDAO {
     }
 
     // Si passwordHash es null se conserva la contraseña actual.
+    // El estado no se modifica aquí.
     public boolean actualizar(Usuario usuario) {
         boolean cambiarPassword = usuario.getPasswordHash() != null;
 
         String sql = "UPDATE Empleados "
-                   + "SET id_rol = ?, estado = ?, usuario = ?, nombre = ?, "
+                   + "SET id_rol = ?, usuario = ?, nombre = ?, "
                    + "apellido_paterno = ?, apellido_materno = ?, "
                    + "telefono = ?, correo = ? "
                    + (cambiarPassword ? ", password_hash = ? " : "")
@@ -163,19 +196,18 @@ public class UsuarioDAO {
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
                 ps.setInt(1, usuario.getIdRol());
-                ps.setString(2, usuario.getEstado());
-                ps.setString(3, usuario.getUsuario());
-                ps.setString(4, usuario.getNombre());
-                ps.setString(5, usuario.getApellidoPaterno());
-                ps.setString(6, usuario.getApellidoMaterno());
-                ps.setString(7, usuario.getTelefono());
-                ps.setString(8, usuario.getCorreo());
+                ps.setString(2, usuario.getUsuario());
+                ps.setString(3, usuario.getNombre());
+                ps.setString(4, usuario.getApellidoPaterno());
+                ps.setString(5, usuario.getApellidoMaterno());
+                ps.setString(6, usuario.getTelefono());
+                ps.setString(7, usuario.getCorreo());
 
                 if (cambiarPassword) {
-                    ps.setString(9, usuario.getPasswordHash());
-                    ps.setInt(10, usuario.getIdUsuario());
-                } else {
+                    ps.setString(8, usuario.getPasswordHash());
                     ps.setInt(9, usuario.getIdUsuario());
+                } else {
+                    ps.setInt(8, usuario.getIdUsuario());
                 }
 
                 return ps.executeUpdate() > 0;
@@ -187,8 +219,17 @@ public class UsuarioDAO {
         }
     }
 
-    public boolean eliminar(int idUsuario) {
-        String sql = "DELETE FROM Empleados WHERE id_empleado = ?";
+    // Ya no se borran registros: solo se cambia el estado.
+    public boolean desactivar(int idUsuario) {
+        return cambiarEstado(idUsuario, Estados.INACTIVO);
+    }
+
+    public boolean reactivar(int idUsuario) {
+        return cambiarEstado(idUsuario, Estados.ACTIVO);
+    }
+
+    private boolean cambiarEstado(int idUsuario, String estado) {
+        String sql = "UPDATE Empleados SET estado = ? WHERE id_empleado = ?";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -196,11 +237,12 @@ public class UsuarioDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, idUsuario);
+                ps.setString(1, estado);
+                ps.setInt(2, idUsuario);
                 return ps.executeUpdate() > 0;
             }
-        } catch (SQLException e) {
-            System.err.println("Error al eliminar usuario:");
+        } catch (Exception e) {
+            System.err.println("Error al cambiar el estado de el usuario:");
             e.printStackTrace();
             return false;
         }

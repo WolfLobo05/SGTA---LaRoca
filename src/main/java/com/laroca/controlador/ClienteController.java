@@ -3,9 +3,11 @@ package com.laroca.controlador;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 import com.laroca.dao.ClienteDAO;
 import com.laroca.modelo.Cliente;
+import com.laroca.modelo.Estados;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,10 +16,10 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -40,6 +42,9 @@ public class ClienteController {
     private Button btnCancelar;
 
     @FXML
+    private CheckBox chkMostrarInactivos;
+
+    @FXML
     private TextField txtNombre;
     @FXML
     private TextField txtApellidoPaterno;
@@ -49,19 +54,23 @@ public class ClienteController {
     private TextField txtTelefono;
     @FXML
     private TextField txtCorreo;
+    @FXML
+    private TextField txtEstado;
 
     @FXML
     private TableView<Cliente> tableClientes;
-    @FXML
-    private TableColumn<Cliente, Integer> colId;
     @FXML
     private TableColumn<Cliente, String> colNombre;
     @FXML
     private TableColumn<Cliente, String> colApellidoPaterno;
     @FXML
+    private TableColumn<Cliente, String> colApellidoMaterno;
+    @FXML
     private TableColumn<Cliente, String> colTelefono;
     @FXML
     private TableColumn<Cliente, String> colCorreo;
+    @FXML
+    private TableColumn<Cliente, String> colEstado;
 
     @FXML
     private Label lblFechaActual;
@@ -82,19 +91,18 @@ public class ClienteController {
                 LocalDate.now().format(
                         DateTimeFormatter.ofPattern("dd/MM/yyyy")));
 
-        // El ID se utiliza internamente, pero no se muestra.
-        colId.setCellValueFactory(
-                new PropertyValueFactory<>("idCliente"));
-        colId.setVisible(false);
-
         colNombre.setCellValueFactory(
                 new PropertyValueFactory<>("nombre"));
         colApellidoPaterno.setCellValueFactory(
                 new PropertyValueFactory<>("apellidoPaterno"));
+        colApellidoMaterno.setCellValueFactory(
+                new PropertyValueFactory<>("apellidoMaterno"));
         colTelefono.setCellValueFactory(
                 new PropertyValueFactory<>("telefono"));
         colCorreo.setCellValueFactory(
                 new PropertyValueFactory<>("correo"));
+        colEstado.setCellValueFactory(
+                new PropertyValueFactory<>("estado"));
 
         aplicarRestricciones();
         configurarListeners();
@@ -112,55 +120,85 @@ public class ClienteController {
 
                     if (seleccionado != null) {
                         clienteSeleccionado = seleccionado;
-                        formularioActivo = true;
 
                         mostrarCliente(seleccionado);
-                        bloquearFormulario(false);
-
                         btnEliminar.setDisable(false);
-                        btnCancelar.setDisable(false);
 
-                        actualizarEstadoGuardar();
+                        if (chkMostrarInactivos.isSelected()) {
+                            // Los clientes inactivos solo se consultan.
+                            formularioActivo = false;
+                            bloquearFormulario(true);
+                            btnCancelar.setDisable(false);
 
-                        lblEstadoFooter.setText(
-                                "Modo: Editando cliente");
+                            lblEstadoFooter.setText(
+                                    "Modo: Consultando cliente inactivo");
+                        } else {
+                            formularioActivo = true;
+                            bloquearFormulario(false);
+                            btnCancelar.setDisable(false);
+
+                            actualizarEstadoGuardar();
+
+                            lblEstadoFooter.setText(
+                                    "Modo: Editando cliente");
+                        }
                     } else {
                         btnEliminar.setDisable(true);
                     }
                 });
     }
 
+    // Muestra solo los activos o solo los inactivos, según la casilla.
     private void cargarTabla() {
-        listaClientes = FXCollections.observableArrayList(
-                clienteDAO.listar());
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        listaClientes = FXCollections.observableArrayList();
+
+        for (Cliente cliente : clienteDAO.listar()) {
+            if (Estados.esActivo(cliente.getEstado()) != inactivos) {
+                listaClientes.add(cliente);
+            }
+        }
 
         tableClientes.setItems(listaClientes);
 
+        actualizarPie();
+    }
+
+    private void actualizarPie() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+        int total = listaClientes.size();
+
         lblEstadoFooter.setText(
-                listaClientes.size()
-                        + (listaClientes.size() == 1
-                                ? " cliente registrado"
-                                : " clientes registrados"));
+                total + (total == 1
+                        ? (inactivos ? " cliente inactivo" : " cliente activo")
+                        : (inactivos ? " clientes inactivos" : " clientes activos")));
     }
 
     private void mostrarCliente(Cliente cliente) {
-        txtNombre.setText(cliente.getNombre());
+        txtNombre.setText(Objects.toString(cliente.getNombre(), ""));
         txtApellidoPaterno.setText(
-                cliente.getApellidoPaterno());
+                Objects.toString(cliente.getApellidoPaterno(), ""));
         txtApellidoMaterno.setText(
-                cliente.getApellidoMaterno());
-        txtTelefono.setText(cliente.getTelefono());
-        txtCorreo.setText(cliente.getCorreo());
+                Objects.toString(cliente.getApellidoMaterno(), ""));
+        txtTelefono.setText(Objects.toString(cliente.getTelefono(), ""));
+        txtCorreo.setText(Objects.toString(cliente.getCorreo(), ""));
+        txtEstado.setText(Estados.mostrar(cliente.getEstado()));
     }
 
     @FXML
     private void nuevoCliente() {
+        if (chkMostrarInactivos.isSelected()) {
+            return;
+        }
+
         clienteSeleccionado = null;
         formularioActivo = true;
 
         tableClientes.getSelectionModel().clearSelection();
 
         limpiarCamposTexto();
+        txtEstado.setText(Estados.ACTIVO);
         bloquearFormulario(false);
 
         btnEliminar.setDisable(true);
@@ -194,13 +232,21 @@ public class ClienteController {
                 ? 0
                 : clienteSeleccionado.getIdCliente();
 
+        // Se compara contra todos los clientes, activos e inactivos.
         if (clienteDAO.existeCliente(
                 nombre, paterno, materno,
                 telefono, correo, idExcluir)) {
 
-            mostrarAlerta(
-                    "Teléfono duplicado",
-                    "Ya existe otro cliente registrado con ese teléfono.");
+            if (clienteDAO.existeTelefonoInactivo(telefono, idExcluir)) {
+                mostrarAlerta(
+                        "Cliente inactivo",
+                        "Ya existe un cliente con ese teléfono, pero está inactivo. "
+                                + "Puedes reactivarlo desde \"Mostrar inactivos\".");
+            } else {
+                mostrarAlerta(
+                        "Teléfono duplicado",
+                        "Ya existe otro cliente registrado con ese teléfono.");
+            }
             return;
         }
 
@@ -220,8 +266,11 @@ public class ClienteController {
                     nombre,
                     paterno,
                     materno.isEmpty() ? null : materno,
-                    telefono.isEmpty() ? null : telefono,
-                    correo.isEmpty() ? null : correo);
+                    telefono,
+                    correo);
+
+            // Todo cliente nuevo se registra como Activo.
+            nuevo.setEstado(Estados.ACTIVO);
 
             if (clienteDAO.insertar(nuevo)) {
                 finalizarOperacion();
@@ -241,10 +290,8 @@ public class ClienteController {
             clienteSeleccionado.setApellidoPaterno(paterno);
             clienteSeleccionado.setApellidoMaterno(
                     materno.isEmpty() ? null : materno);
-            clienteSeleccionado.setTelefono(
-                    telefono.isEmpty() ? null : telefono);
-            clienteSeleccionado.setCorreo(
-                    correo.isEmpty() ? null : correo);
+            clienteSeleccionado.setTelefono(telefono);
+            clienteSeleccionado.setCorreo(correo);
 
             if (clienteDAO.actualizar(clienteSeleccionado)) {
                 finalizarOperacion();
@@ -260,51 +307,71 @@ public class ClienteController {
         }
     }
 
+    // Elimina (desactiva) o reactiva el cliente, según la casilla.
     @FXML
     private void eliminarCliente() {
         if (clienteSeleccionado == null) {
             return;
         }
 
+        boolean reactivar = chkMostrarInactivos.isSelected();
+        String nombre = clienteSeleccionado.getNombre() + " "
+                + Objects.toString(clienteSeleccionado.getApellidoPaterno(), "");
+
         Alert confirmacion = new Alert(
                 Alert.AlertType.CONFIRMATION,
-                "¿Deseas eliminar al cliente "
-                        + clienteSeleccionado.getNombre() + "?",
+                reactivar
+                        ? "¿Deseas reactivar al cliente " + nombre.trim() + "?\n\n"
+                                + "Volverá a estar activo."
+                        : "¿Deseas eliminar al cliente " + nombre.trim() + "?\n\n"
+                                + "Quedará inactivo y dejará de aparecer "
+                                + "en la lista de clientes activos.",
                 ButtonType.YES,
                 ButtonType.NO);
 
-        confirmacion.setTitle("Confirmar eliminación");
+        confirmacion.setTitle(reactivar
+                ? "Confirmar reactivación"
+                : "Confirmar eliminación");
         confirmacion.setHeaderText(null);
         confirmacion.showAndWait();
 
         if (confirmacion.getResult() == ButtonType.YES) {
 
-            if (clienteDAO.eliminar(
-                    clienteSeleccionado.getIdCliente())) {
+            boolean exito = reactivar
+                    ? clienteDAO.reactivar(clienteSeleccionado.getIdCliente())
+                    : clienteDAO.desactivar(clienteSeleccionado.getIdCliente());
+
+            if (exito) {
 
                 finalizarOperacion();
 
                 mostrarAlerta(
-                        "Eliminación exitosa",
-                        "El cliente se eliminó correctamente.");
+                        reactivar ? "Reactivación exitosa" : "Eliminación exitosa",
+                        reactivar
+                                ? "El cliente se reactivó correctamente."
+                                : "El cliente se marcó como inactivo.");
             } else {
                 mostrarAlerta(
-                        "No se pudo eliminar",
-                        "El cliente podría estar relacionado "
-                                + "con otros registros.");
+                        "No se pudo cambiar el estado",
+                        "No se pudo actualizar el estado del cliente.");
             }
         }
+    }
+
+    // Cambia entre la lista de activos y la de inactivos.
+    @FXML
+    private void cambiarMostrarInactivos() {
+        boolean inactivos = chkMostrarInactivos.isSelected();
+
+        btnNuevo.setDisable(inactivos);
+        btnEliminar.setText(inactivos ? "Reactivar" : "Eliminar");
+
+        finalizarOperacion();
     }
 
     @FXML
     private void cancelarAccion() {
         finalizarOperacion();
-
-        lblEstadoFooter.setText(
-                listaClientes.size()
-                        + (listaClientes.size() == 1
-                                ? " cliente registrado"
-                                : " clientes registrados"));
     }
 
     private void finalizarOperacion() {
@@ -329,6 +396,7 @@ public class ClienteController {
         txtApellidoMaterno.clear();
         txtTelefono.clear();
         txtCorreo.clear();
+        txtEstado.clear();
     }
 
     private void bloquearFormulario(boolean bloquear) {
@@ -361,13 +429,12 @@ public class ClienteController {
                 || (materno.length() <= 100
                         && materno.matches("[\\p{L} ]+"));
 
-        boolean telefonoValido = telefono.isEmpty()
-                || telefono.matches("\\d{10}");
+        // Teléfono y correo son obligatorios.
+        boolean telefonoValido = telefono.matches("\\d{10}");
 
-        boolean correoValido = correo.isEmpty()
-                || (correo.length() <= 150
-                        && correo.matches(
-                                "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"));
+        boolean correoValido = correo.length() <= 150
+                && correo.matches(
+                        "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
         return nombreValido
                 && paternoValido
@@ -377,7 +444,9 @@ public class ClienteController {
     }
 
     private void actualizarEstadoGuardar() {
-        boolean valido = formularioActivo && formularioValido();
+        boolean valido = formularioActivo
+                && !txtNombre.isDisabled()
+                && formularioValido();
         btnGuardar.setDisable(!valido);
     }
 
@@ -446,10 +515,7 @@ public class ClienteController {
             Stage stage = (Stage) ((Node) event.getSource())
                     .getScene().getWindow();
 
-            stage.setScene(new Scene(root));
-            stage.setTitle(
-                    "Sistema Abarrotes \"La Roca\" — Menú");
-            stage.show();
+            Navegacion.mostrar(stage, root, Navegacion.TITULO_MENU);
 
         } catch (IOException e) {
             e.printStackTrace();

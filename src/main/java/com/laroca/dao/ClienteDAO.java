@@ -2,6 +2,7 @@ package com.laroca.dao;
 
 import com.laroca.conexion.Conexion;
 import com.laroca.modelo.Cliente;
+import com.laroca.modelo.Estados;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,11 +13,15 @@ import java.util.List;
 
 public class ClienteDAO {
 
+    // Un registro es inactivo si su estado no es Activo (NULL cuenta como Activo).
+    private static final String ES_INACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
+
     public List<Cliente> listar() {
         List<Cliente> lista = new ArrayList<>();
 
         String sql = "SELECT id_cliente, nombre, apellido_paterno, "
-                + "apellido_materno, telefono, correo "
+                + "apellido_materno, telefono, correo, estado "
                 + "FROM Clientes ORDER BY id_cliente";
 
         try (Connection con = Conexion.conectar();
@@ -31,6 +36,8 @@ public class ClienteDAO {
                         rs.getString("apellido_materno"),
                         rs.getString("telefono"),
                         rs.getString("correo"));
+
+                cliente.setEstado(rs.getString("estado"));
 
                 lista.add(cliente);
             }
@@ -98,11 +105,36 @@ public class ClienteDAO {
         }
     }
 
+    // Indica si el teléfono duplicado pertenece a un cliente inactivo.
+    public boolean existeTelefonoInactivo(String telefono, int idExcluir) {
+        String sql = "SELECT COUNT(*) FROM Clientes "
+                + "WHERE id_cliente <> ? "
+                + "AND telefono = ? "
+                + "AND " + ES_INACTIVO;
+
+        try (Connection con = Conexion.conectar();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idExcluir);
+            ps.setString(2, telefono.trim());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            System.err.println(
+                    "Error al comprobar el estado del cliente: "
+                            + e.getMessage());
+            return false;
+        }
+    }
+
     public boolean insertar(Cliente cliente) {
         String sql = "INSERT INTO Clientes "
                 + "(id_cliente, nombre, apellido_paterno, "
-                + "apellido_materno, telefono, correo) "
-                + "VALUES (?, ?, ?, ?, ?, ?)";
+                + "apellido_materno, telefono, correo, estado) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection con = Conexion.conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
@@ -113,6 +145,7 @@ public class ClienteDAO {
             ps.setString(4, cliente.getApellidoMaterno());
             ps.setString(5, cliente.getTelefono());
             ps.setString(6, cliente.getCorreo());
+            ps.setString(7, cliente.getEstado());
 
             return ps.executeUpdate() > 0;
 
@@ -151,18 +184,28 @@ public class ClienteDAO {
         }
     }
 
-    public boolean eliminar(int idCliente) {
-        String sql = "DELETE FROM Clientes WHERE id_cliente = ?";
+    // Ya no se borran clientes: solo se cambia el estado.
+    public boolean desactivar(int idCliente) {
+        return cambiarEstado(idCliente, Estados.INACTIVO);
+    }
+
+    public boolean reactivar(int idCliente) {
+        return cambiarEstado(idCliente, Estados.ACTIVO);
+    }
+
+    private boolean cambiarEstado(int idCliente, String estado) {
+        String sql = "UPDATE Clientes SET estado = ? WHERE id_cliente = ?";
 
         try (Connection con = Conexion.conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, idCliente);
+            ps.setString(1, estado);
+            ps.setInt(2, idCliente);
 
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al eliminar cliente: "
+            System.err.println("Error al cambiar el estado del cliente: "
                     + e.getMessage());
             return false;
         }

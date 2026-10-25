@@ -9,6 +9,7 @@ public class Cliente {
     private String apellidoMaterno;
     private String telefono;
     private String correo;
+    private String estado;
 
     public Cliente()
     {
@@ -72,5 +73,13 @@ public class Cliente {
 
     public void setCorreo(String corr) {
         correo = corr;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String est) {
+        estado = est;
     }
 }
