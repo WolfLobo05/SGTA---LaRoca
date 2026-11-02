@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Nueva Venta: mismo tamaño y estilo que las demás pantallas (900x600). -->
+<BorderPane prefWidth="900.0" prefHeight="600.0"
+            minWidth="900.0" minHeight="600.0"
+            maxWidth="900.0" maxHeight="600.0"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.laroca.controlador.NuevaVentaController">
+
+    <top>
+        <VBox>
+            <!-- BARRA DE TÍTULO -->
+            <HBox styleClass="barra-titulo">
+                <Label text='Sistema abarrotes "La Roca" — Nueva Venta'
+                       styleClass="titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="botones-ventana">
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                </HBox>
+            </HBox>
+
+            <!-- BARRA DE HERRAMIENTAS -->
+            <HBox styleClass="barra-herramientas">
+                <!-- Inactivo: la pantalla ya es una venta nueva y se
+                     reinicia sola después de cobrar. -->
+                <Button fx:id="btnNuevaVenta" text="Nueva venta"
+                        styleClass="boton-principal"
+                        disable="true"/>
+
+                <Button fx:id="btnCancelarVenta" text="Cancelar venta"
+                        onAction="#cancelarVenta"
+                        styleClass="boton-eliminar"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label text="Folio:" styleClass="fecha"/>
+                <Label fx:id="lblFolio" styleClass="fecha, folio"/>
+                <Label fx:id="lblFechaVenta" styleClass="fecha"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <HBox styleClass="contenido">
+
+            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+
+                <!-- AGREGAR PRODUCTO -->
+                <VBox styleClass="panel-detalle">
+                    <Label text="Agregar producto" styleClass="titulo-detalle"/>
+
+                    <HBox spacing="8.0" alignment="BOTTOM_LEFT"
+                          styleClass="formulario-compacto">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                            <Label text="Código de barras / Producto" styleClass="etiqueta"/>
+                            <TextField fx:id="txtCodigo"
+                                       promptText="Escanea o escribe el código"
+                                       onAction="#agregarProducto"/>
+                        </VBox>
+
+                        <VBox styleClass="campo" minWidth="64.0" prefWidth="64.0" maxWidth="64.0">
+                            <Label text="Cantidad" styleClass="etiqueta"/>
+                            <TextField fx:id="txtCantidad" text="1"
+                                       onAction="#agregarProducto"/>
+                        </VBox>
+
+                        <Button fx:id="btnBuscar" text="Buscar"
+                                onAction="#buscarProducto"
+                                prefHeight="30.0"
+                                styleClass="boton-secundario"/>
+
+                        <Button fx:id="btnAgregar" text="Agregar"
+                                onAction="#agregarProducto"
+                                prefHeight="30.0"
+                                styleClass="boton-principal"/>
+                    </HBox>
+                </VBox>
+
+                <!-- PRODUCTOS DE LA VENTA -->
+                <TableView fx:id="tableCarrito"
+                           VBox.vgrow="ALWAYS"
+                           styleClass="tabla">
+                    <columns>
+                        <TableColumn fx:id="colNumero" text="#"
+                                     minWidth="32.0" prefWidth="32.0" sortable="false"/>
+                        <TableColumn fx:id="colProducto" text="Producto"
+                                     minWidth="120.0" prefWidth="186.0" sortable="false"/>
+                        <TableColumn fx:id="colCantidad" text="Cantidad"
+                                     minWidth="65.0" prefWidth="70.0" sortable="false"
+                                     styleClass="columna-numero"/>
+                        <TableColumn fx:id="colPrecio" text="Precio unit."
+                                     minWidth="80.0" prefWidth="85.0" sortable="false"
+                                     styleClass="columna-numero"/>
+                        <TableColumn fx:id="colSubtotal" text="Subtotal"
+                                     minWidth="80.0" prefWidth="85.0" sortable="false"
+                                     styleClass="columna-numero"/>
+                        <TableColumn fx:id="colQuitar" text=""
+                                     minWidth="34.0" prefWidth="34.0" sortable="false"
+                                     resizable="false"/>
+                    </columns>
+                </TableView>
+
+                <HBox alignment="CENTER_RIGHT">
+                    <Label fx:id="lblStock" styleClass="texto-stock"/>
+                </HBox>
+            </VBox>
+
+            <!-- DATOS DE LA VENTA -->
+            <VBox styleClass="panel-detalle"
+                  minWidth="320.0" prefWidth="320.0" maxWidth="320.0">
+
+                <Label text="Datos de la venta" styleClass="titulo-detalle"/>
+
+                <VBox styleClass="formulario-compacto" VBox.vgrow="ALWAYS">
+                    <VBox styleClass="campo">
+                        <Label text="Empleado" styleClass="etiqueta"/>
+                        <TextField fx:id="txtEmpleado" editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Cliente" styleClass="etiqueta"/>
+                        <HBox spacing="6.0">
+                            <TextField fx:id="txtCliente" editable="false"
+                                       focusTraversable="false"
+                                       HBox.hgrow="ALWAYS"
+                                       promptText="Selecciona un cliente"
+                                       styleClass="campo-lectura"/>
+                            <Button fx:id="btnElegirCliente" text="..."
+                                    onAction="#elegirCliente"
+                                    minWidth="38.0" prefHeight="30.0"
+                                    styleClass="boton-secundario"/>
+                        </HBox>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Fecha" styleClass="etiqueta"/>
+                        <TextField fx:id="txtFecha" editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Método de pago" styleClass="etiqueta"/>
+                        <ComboBox fx:id="cmbMetodo" maxWidth="Infinity"
+                                  promptText="Selecciona un método"/>
+                    </VBox>
+
+                    <HBox>
+                        <Label text="Productos" styleClass="etiqueta"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblNumProductos" text="0" styleClass="resumen-valor"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="Artículos" styleClass="etiqueta"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblArticulos" text="0" styleClass="resumen-valor"/>
+                    </HBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Total" styleClass="etiqueta"/>
+                        <Label fx:id="lblTotal" maxWidth="Infinity"
+                               styleClass="total-grande"/>
+                    </VBox>
+                </VBox>
+
+                <HBox styleClass="acciones-detalle">
+                    <Button fx:id="btnCobrar" text="Cobrar"
+                            onAction="#cobrar"
+                            HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                            styleClass="boton-principal"
+                            disable="true"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </center>
+
+    <bottom>
+        <!-- BARRA INFERIOR -->
+        <HBox styleClass="pie">
+            <Label fx:id="lblEstadoFooter" text="0 productos en la venta" styleClass="texto-pie"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

@@ -30,6 +30,9 @@ import javafx.stage.Stage;
 
 public class ClienteController {
 
+    // Cliente de las ventas de mostrador; no se edita ni se elimina.
+    private static final String CLIENTE_GENERAL = "Público en general";
+
     @FXML
     private Button btnNuevo;
     @FXML
@@ -132,6 +135,15 @@ public class ClienteController {
 
                             lblEstadoFooter.setText(
                                     "Modo: Consultando cliente inactivo");
+                        } else if (esPublicoGeneral(seleccionado)) {
+                            // Cliente del sistema: solo se consulta.
+                            formularioActivo = false;
+                            bloquearFormulario(true);
+                            btnCancelar.setDisable(false);
+
+                            lblEstadoFooter.setText(
+                                    "Modo: \"" + CLIENTE_GENERAL
+                                    + "\" es un cliente del sistema y no se puede editar");
                         } else {
                             formularioActivo = true;
                             bloquearFormulario(false);
@@ -213,6 +225,11 @@ public class ClienteController {
 
     @FXML
     private void guardarCliente() {
+
+        if (esPublicoGeneral(clienteSeleccionado)) {
+            avisarClienteProtegido();
+            return;
+        }
 
         String nombre = txtNombre.getText().trim();
         String paterno = txtApellidoPaterno.getText().trim();
@@ -315,6 +332,12 @@ public class ClienteController {
         }
 
         boolean reactivar = chkMostrarInactivos.isSelected();
+
+        if (!reactivar && esPublicoGeneral(clienteSeleccionado)) {
+            avisarClienteProtegido();
+            return;
+        }
+
         String nombre = clienteSeleccionado.getNombre() + " "
                 + Objects.toString(clienteSeleccionado.getApellidoPaterno(), "");
 
@@ -493,6 +516,20 @@ public class ClienteController {
 
         txtTelefono.textProperty().addListener(
                 (obs, anterior, actual) -> actualizarEstadoGuardar());
+    }
+
+    // "Público en general" se reconoce por su nombre, no por su id.
+    private boolean esPublicoGeneral(Cliente cliente) {
+        return cliente != null
+                && CLIENTE_GENERAL.equalsIgnoreCase(
+                        Objects.toString(cliente.getNombre(), "").trim());
+    }
+
+    private void avisarClienteProtegido() {
+        mostrarAlerta(
+                "Cliente del sistema",
+                "\"" + CLIENTE_GENERAL + "\" es el cliente que se usa en las "
+                        + "ventas de mostrador. No se puede editar ni eliminar.");
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {

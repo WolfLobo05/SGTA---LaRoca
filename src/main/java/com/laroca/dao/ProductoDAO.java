@@ -17,11 +17,14 @@ public class ProductoDAO {
     private static final String ES_INACTIVO =
             "UPPER(COALESCE(TRIM(estado), '')) NOT IN ('', 'ACTIVO')";
 
+    private static final String ES_ACTIVO =
+            "UPPER(COALESCE(TRIM(estado), '')) IN ('', 'ACTIVO')";
+
     public List<Producto> listar() {
         List<Producto> productos = new ArrayList<>();
 
         String sql = "SELECT p.id_producto, p.id_unidad, p.id_categoria, "
-                   + "p.codigo_barras, p.nombre, p.precio, p.estado, "
+                   + "p.codigo_barras, p.nombre, p.precio, p.estado, p.existencia, "
                    + "u.nombre AS nombre_unidad, c.nombre AS nombre_categoria "
                    + "FROM Productos p "
                    + "INNER JOIN Unidad_Medida u ON p.id_unidad = u.id_unidad "
@@ -45,6 +48,7 @@ public class ProductoDAO {
                     producto.setNombre(rs.getString("nombre"));
                     producto.setPrecio(rs.getBigDecimal("precio"));
                     producto.setEstado(rs.getString("estado"));
+                    producto.setExistencia(rs.getInt("existencia"));
                     producto.setNombreUnidad(rs.getString("nombre_unidad"));
                     producto.setNombreCategoria(rs.getString("nombre_categoria"));
                     productos.add(producto);
@@ -137,6 +141,81 @@ public class ProductoDAO {
             e.printStackTrace();
             return false;
         }
+    }
+
+    // Producto activo con ese código de barras exacto, o null si no existe.
+    public Producto buscarActivoPorCodigo(String codigo) {
+        String sql = "SELECT id_producto, codigo_barras, nombre, precio, existencia "
+                   + "FROM Productos "
+                   + "WHERE TRIM(codigo_barras) = TRIM(?) "
+                   + "AND " + ES_ACTIVO;
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                return null;
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, codigo);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return leerParaVenta(rs);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar el producto por código:");
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    // Productos activos cuyo nombre o código contiene el texto.
+    // Con el texto vacío devuelve todos los activos.
+    public List<Producto> buscarActivos(String texto) {
+        List<Producto> productos = new ArrayList<>();
+
+        String sql = "SELECT id_producto, codigo_barras, nombre, precio, existencia "
+                   + "FROM Productos "
+                   + "WHERE " + ES_ACTIVO + " "
+                   + "AND (nombre LIKE ? OR codigo_barras LIKE ?) "
+                   + "ORDER BY nombre";
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                return productos;
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                String patron = "%" + (texto == null ? "" : texto.trim()) + "%";
+                ps.setString(1, patron);
+                ps.setString(2, patron);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        productos.add(leerParaVenta(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar productos:");
+            e.printStackTrace();
+        }
+
+        return productos;
+    }
+
+    private Producto leerParaVenta(ResultSet rs) throws SQLException {
+        Producto producto = new Producto();
+        producto.setIdProducto(rs.getInt("id_producto"));
+        producto.setCodigoBarras(rs.getString("codigo_barras"));
+        producto.setNombre(rs.getString("nombre"));
+        producto.setPrecio(rs.getBigDecimal("precio"));
+        producto.setExistencia(rs.getInt("existencia"));
+        producto.setEstado(Estados.ACTIVO);
+        return producto;
     }
 
     // punto_reorden no se maneja en esta pantalla; queda en NULL.

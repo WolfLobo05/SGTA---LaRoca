@@ -11,6 +11,7 @@ public class Producto {
     private String nombre;
     private BigDecimal precio;
     private String estado;
+    private int existencia;
 
     // Datos de las tablas relacionadas, solo para mostrar.
     private String nombreUnidad;
@@ -85,6 +86,14 @@ public class Producto {
 
     public void setEstado(String est) {
         estado = est;
+    }
+
+    public int getExistencia() {
+        return existencia;
+    }
+
+    public void setExistencia(int exis) {
+        existencia = exis;
     }
 
     public String getNombreUnidad() {

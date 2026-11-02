@@ -240,3 +240,146 @@
     -fx-text-fill: #5c5c5c;
     -fx-font-size: 10.1px;
 }
+
+
+/* =====================================================================
+   Ventas: Gestión de Ventas, Nueva Venta y Ticket
+   ===================================================================== */
+
+/* Formulario con campos de 30px para los paneles de ventas. */
+.formulario-compacto {
+    -fx-spacing: 7px;
+}
+
+.formulario-compacto .text-field,
+.formulario-compacto .combo-box {
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-max-height: 30px;
+}
+
+/* Campo de solo lectura: se ve normal (no atenuado como un campo deshabilitado). */
+.campo-lectura,
+.campo-lectura:focused {
+    -fx-background-color: #e9e9e9;
+    -fx-border-color: #c4c4c4;
+    -fx-text-fill: #262626;
+}
+
+.folio {
+    -fx-font-weight: bold;
+}
+
+.total-grande {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-border-width: 1px;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222222;
+    -fx-alignment: CENTER_RIGHT;
+    -fx-padding: 0 10px 0 10px;
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+}
+
+.resumen-valor {
+    -fx-text-fill: #262626;
+    -fx-font-size: 11.1px;
+}
+
+.texto-stock {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 11px;
+}
+
+.tabla-chica {
+    -fx-font-size: 10px;
+}
+
+.tabla-chica .table-row-cell {
+    -fx-cell-size: 22px;
+}
+
+/* Columnas de cantidades y dinero alineadas a la derecha. */
+.columna-numero {
+    -fx-alignment: CENTER_RIGHT;
+}
+
+.boton-quitar {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #c0392b;
+    -fx-font-size: 12px;
+    -fx-padding: 0 4px 0 4px;
+    -fx-min-height: 0;
+}
+
+/* La ✕ es una figura (CeldaQuitar), así la selección no cambia su color. */
+.icono-quitar {
+    -fx-fill: transparent;
+    -fx-stroke: #c0392b;
+    -fx-stroke-width: 1.6px;
+}
+
+.boton-quitar:hover .icono-quitar {
+    -fx-stroke: #8e2318;
+}
+
+/* ---------- Ticket ---------- */
+
+.ticket-fondo {
+    -fx-background-color: #ececec;
+    -fx-background: #ececec;
+    -fx-padding: 16px;
+}
+
+.ticket-papel {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-border-width: 1px;
+    -fx-padding: 18px 22px 22px 22px;
+    -fx-spacing: 4px;
+}
+
+.ticket-papel .label {
+    -fx-text-fill: #1a1a1a;
+    -fx-font-size: 11px;
+}
+
+.ticket-papel .ticket-negocio {
+    -fx-font-size: 13px;
+}
+
+.ticket-papel .ticket-nombre {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.ticket-papel .ticket-subtitulo {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.ticket-papel .ticket-encabezado {
+    -fx-font-weight: bold;
+}
+
+.ticket-papel .ticket-gracias {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.ticket-linea {
+    -fx-background-color: #1a1a1a;
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+
+.ticket-linea-suave {
+    -fx-background-color: #c8c8c8;
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}

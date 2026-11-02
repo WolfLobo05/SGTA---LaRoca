@@ -82,6 +82,10 @@
                                  minWidth="80.0" prefWidth="90.0"/>
                     <TableColumn fx:id="columnaPrecio" text="Precio"
                                  minWidth="70.0" prefWidth="80.0"/>
+                    <!-- Solo lectura: la existencia cambia con ventas y compras -->
+                    <TableColumn fx:id="columnaExistencia" text="Existencia"
+                                 minWidth="75.0" prefWidth="80.0"
+                                 styleClass="columna-numero"/>
                     <TableColumn fx:id="columnaEstado" text="Estado"
                                  minWidth="70.0" prefWidth="80.0"/>
                 </columns>

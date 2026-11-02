@@ -1,6 +1,8 @@
 package com.laroca.controlador;
 
 import com.laroca.dao.EmpleadoDAO;
+import com.laroca.modelo.Sesion;
+import com.laroca.modelo.Usuario;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -38,7 +40,12 @@ public class LoginController {
             return;
         }
 
-        if (empleadoDAO.validarUsuario(usuario, password)) {
+        Usuario empleado = empleadoDAO.iniciarSesion(usuario, password);
+
+        if (empleado != null) {
+            // Guardar quién inició sesión para registrar ventas y compras.
+            Sesion.establecer(empleado.getIdUsuario(), empleado.getUsuario());
+
             try {
                 // Cargar el Menú Principal
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/laroca/vista/menu.fxml"));

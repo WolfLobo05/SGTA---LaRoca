@@ -4,6 +4,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
@@ -39,42 +41,79 @@
                 </VBox.margin>
             </Label>
 
-            <Button fx:id="btnUnidades"
-                    text="Unidades de Medida"
-                    onAction="#abrirUnidades"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+            <!-- Dos columnas: catálogos a la izquierda, operaciones a la derecha -->
+            <GridPane hgap="40.0" vgap="10.0" alignment="TOP_CENTER">
+                <columnConstraints>
+                    <ColumnConstraints prefWidth="300.0"/>
+                    <ColumnConstraints prefWidth="300.0"/>
+                </columnConstraints>
 
-            <Button fx:id="btnCategorias"
-                    text="Categorías de Productos"
-                    onAction="#abrirCategorias"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                <!-- CATÁLOGOS -->
+                <Label text="Catálogos"
+                       GridPane.columnIndex="0" GridPane.rowIndex="0"
+                       style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
 
-            <Button text="Roles"
-                    onAction="#abrirRoles"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                <Button fx:id="btnUnidades"
+                        text="Unidades de Medida"
+                        onAction="#abrirUnidades"
+                        GridPane.columnIndex="0" GridPane.rowIndex="1"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
-            <Button text="Proveedores"
-                    onAction="#abrirProveedores"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                <Button fx:id="btnCategorias"
+                        text="Categorías de Productos"
+                        onAction="#abrirCategorias"
+                        GridPane.columnIndex="0" GridPane.rowIndex="2"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
-            <Button text="Productos"
-                    onAction="#abrirProductos"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                <Button text="Roles"
+                        onAction="#abrirRoles"
+                        GridPane.columnIndex="0" GridPane.rowIndex="3"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
-            <Button text="Usuarios"
-                    onAction="#abrirUsuarios"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                <Button text="Proveedores"
+                        onAction="#abrirProveedores"
+                        GridPane.columnIndex="0" GridPane.rowIndex="4"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
 
-            <Button text="Clientes"
-                    onAction="#abrirClientes"
-                    prefWidth="300.0" prefHeight="36.0"
-                    style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                <Button text="Productos"
+                        onAction="#abrirProductos"
+                        GridPane.columnIndex="0" GridPane.rowIndex="5"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <Button text="Usuarios"
+                        onAction="#abrirUsuarios"
+                        GridPane.columnIndex="0" GridPane.rowIndex="6"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <Button text="Clientes"
+                        onAction="#abrirClientes"
+                        GridPane.columnIndex="0" GridPane.rowIndex="7"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <!-- OPERACIONES -->
+                <Label text="Operaciones"
+                       GridPane.columnIndex="1" GridPane.rowIndex="0"
+                       style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
+
+                <Button text="Ventas"
+                        onAction="#abrirVentas"
+                        GridPane.columnIndex="1" GridPane.rowIndex="1"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <Button text="Compras"
+                        onAction="#abrirCompras"
+                        GridPane.columnIndex="1" GridPane.rowIndex="2"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+            </GridPane>
 
         </VBox>
     </center>

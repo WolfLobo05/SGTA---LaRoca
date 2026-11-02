@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Ticket de compra. Se abre como ventana modal de 520x600 (no usa Navegacion). -->
+<BorderPane prefWidth="520.0" prefHeight="600.0"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.laroca.controlador.TicketController">
+
+    <top>
+        <VBox>
+            <!-- BARRA DE TÍTULO -->
+            <HBox styleClass="barra-titulo">
+                <Label text='Sistema abarrotes "La Roca" — Generar Ticket'
+                       styleClass="titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="botones-ventana">
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                </HBox>
+            </HBox>
+
+            <!-- BARRA DE HERRAMIENTAS -->
+            <HBox styleClass="barra-herramientas">
+                <Button fx:id="btnImprimir" text="Imprimir"
+                        onAction="#imprimir"
+                        styleClass="boton-principal"/>
+
+                <Button fx:id="btnCerrar" text="Cerrar"
+                        onAction="#cerrar"
+                        styleClass="boton-secundario"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="ticket-fondo">
+            <StackPane alignment="TOP_CENTER" styleClass="ticket-fondo">
+
+                <!-- PAPEL DEL TICKET: esto es lo que se imprime -->
+                <VBox fx:id="papel" styleClass="ticket-papel" alignment="TOP_CENTER"
+                      minWidth="380.0" prefWidth="380.0" maxWidth="380.0"
+                      maxHeight="-Infinity">
+
+                    <Label text="Abarrotes" styleClass="ticket-negocio"/>
+                    <Label text="“LA ROCA”" styleClass="ticket-nombre"/>
+                    <Label text="TICKET DE COMPRA" styleClass="ticket-subtitulo"/>
+
+                    <HBox alignment="BOTTOM_LEFT" maxWidth="Infinity">
+                        <VBox.margin>
+                            <Insets top="6.0" bottom="4.0"/>
+                        </VBox.margin>
+                        <Label fx:id="lblFolio"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <VBox>
+                            <Label fx:id="lblFecha"/>
+                            <Label fx:id="lblHora"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- PRODUCTOS: el encabezado está aquí y los renglones
+                         los agrega el controlador desde la fila 2. -->
+                    <GridPane fx:id="gridProductos" hgap="8.0" vgap="6.0" maxWidth="Infinity">
+                        <columnConstraints>
+                            <ColumnConstraints hgrow="ALWAYS" minWidth="110.0"/>
+                            <ColumnConstraints halignment="CENTER" minWidth="58.0" prefWidth="58.0"/>
+                            <ColumnConstraints halignment="RIGHT" minWidth="66.0" prefWidth="66.0"/>
+                            <ColumnConstraints halignment="RIGHT" minWidth="72.0" prefWidth="72.0"/>
+                        </columnConstraints>
+
+                        <Label text="Producto" styleClass="ticket-encabezado"
+                               GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <Label text="Cantidad" styleClass="ticket-encabezado"
+                               GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                        <Label text="Precio" styleClass="ticket-encabezado"
+                               GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+                        <Label text="Subtotal" styleClass="ticket-encabezado"
+                               GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+
+                        <Region styleClass="ticket-linea-suave"
+                                GridPane.columnIndex="0" GridPane.rowIndex="1"
+                                GridPane.columnSpan="4"/>
+                    </GridPane>
+
+                    <Region styleClass="ticket-linea" maxWidth="Infinity">
+                        <VBox.margin>
+                            <Insets top="10.0" bottom="4.0"/>
+                        </VBox.margin>
+                    </Region>
+
+                    <HBox maxWidth="Infinity">
+                        <Label fx:id="lblVendedor"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <GridPane hgap="12.0" vgap="3.0">
+                            <columnConstraints>
+                                <ColumnConstraints halignment="RIGHT"/>
+                                <ColumnConstraints halignment="RIGHT" minWidth="72.0"/>
+                            </columnConstraints>
+
+                            <Label text="subtotal:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <Label fx:id="lblSubtotal" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                            <Label text="monto pagado:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                            <Label fx:id="lblMontoPagado" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                            <Label text="cambio:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                            <Label fx:id="lblCambio" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                        </GridPane>
+                    </HBox>
+
+                    <Label text="¡Gracias por su compra!" styleClass="ticket-gracias">
+                        <VBox.margin>
+                            <Insets top="22.0"/>
+                        </VBox.margin>
+                    </Label>
+                </VBox>
+            </StackPane>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

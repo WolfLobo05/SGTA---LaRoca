@@ -94,6 +94,7 @@ CREATE TABLE Productos (
     nombre VARCHAR(50) NULL,
     precio DECIMAL(10, 2) NULL,
     punto_reorden INTEGER UNSIGNED NULL,
+    existencia INT NOT NULL DEFAULT 0,
     estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_producto),
     CONSTRAINT fk_productos_unidad FOREIGN KEY (id_unidad) REFERENCES Unidad_Medida(id_unidad),
@@ -110,6 +111,7 @@ CREATE TABLE Compras (
     id_empleado INTEGER UNSIGNED NOT NULL,
     fecha DATE NULL,
     total DECIMAL(10, 2) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_compras),
     CONSTRAINT fk_compras_proveedor FOREIGN KEY (id_proveedor) REFERENCES Proveedores(id_proveedor),
     CONSTRAINT fk_compras_empleado FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
@@ -123,8 +125,11 @@ CREATE TABLE Ventas (
     id_empleado INTEGER UNSIGNED NOT NULL,
     id_cliente INTEGER UNSIGNED NOT NULL,
     id_metodo INTEGER UNSIGNED NOT NULL,
-    fecha DATE NULL,
+    fecha DATETIME NULL,
     total DECIMAL(10, 2) NULL,
+    monto_pagado DECIMAL(10, 2) NULL,
+    cambio DECIMAL(10, 2) NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_venta),
     CONSTRAINT fk_ventas_empleado FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado),
     CONSTRAINT fk_ventas_cliente FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente),
@@ -244,3 +249,16 @@ CREATE TABLE detalle_devolucion_proveedores (
     CONSTRAINT chk_detalle_devolucion_proveedores_cantidad CHECK (cantidad IS NULL OR cantidad > 0),
     CONSTRAINT chk_detalle_devolucion_proveedores_precio CHECK (precio IS NULL OR precio >= 0)
 );
+
+
+
+-- Datos iniciales para el módulo de ventas.
+INSERT INTO Metodos_Pago (id_metodo, nombre) VALUES
+    (1, 'Efectivo'),
+    (2, 'Tarjeta'),
+    (3, 'Transferencia');
+
+INSERT INTO Clientes
+    (id_cliente, nombre, apellido_paterno, apellido_materno, telefono, correo, estado)
+VALUES
+    (1, 'Público en general', NULL, NULL, '0000000000', 'publico@laroca.mx', 'Activo');

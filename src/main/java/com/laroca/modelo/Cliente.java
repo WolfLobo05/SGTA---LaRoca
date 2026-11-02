@@ -82,4 +82,20 @@ public class Cliente {
     public void setEstado(String est) {
         estado = est;
     }
+
+    // Une nombre y apellidos, omitiendo los que estén vacíos.
+    public String getNombreCompleto() {
+        StringBuilder completo = new StringBuilder();
+
+        for (String parte : new String[] {nombre, apellidoPaterno, apellidoMaterno}) {
+            if (parte != null && !parte.isBlank()) {
+                if (completo.length() > 0) {
+                    completo.append(" ");
+                }
+                completo.append(parte.trim());
+            }
+        }
+
+        return completo.toString();
+    }
 }

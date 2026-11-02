@@ -57,6 +57,9 @@ public class ProductoController {
     private TableColumn<Producto, BigDecimal> columnaPrecio;
 
     @FXML
+    private TableColumn<Producto, Integer> columnaExistencia;
+
+    @FXML
     private TableColumn<Producto, String> columnaEstado;
 
     @FXML
@@ -129,6 +132,9 @@ public class ProductoController {
 
         columnaPrecio.setCellValueFactory(
                 new PropertyValueFactory<>("precio"));
+
+        columnaExistencia.setCellValueFactory(
+                new PropertyValueFactory<>("existencia"));
 
         columnaEstado.setCellValueFactory(
                 new PropertyValueFactory<>("estado"));

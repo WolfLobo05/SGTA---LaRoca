@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Registrar Compra: misma estructura que Nueva Venta (900x600). -->
+<BorderPane prefWidth="900.0" prefHeight="600.0"
+            minWidth="900.0" minHeight="600.0"
+            maxWidth="900.0" maxHeight="600.0"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.laroca.controlador.RegistrarCompraController">
+
+    <top>
+        <VBox>
+            <!-- BARRA DE TÍTULO -->
+            <HBox styleClass="barra-titulo">
+                <Label text='Sistema abarrotes "La Roca" — Registrar Compra'
+                       styleClass="titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="botones-ventana">
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                </HBox>
+            </HBox>
+
+            <!-- BARRA DE HERRAMIENTAS -->
+            <HBox styleClass="barra-herramientas">
+                <!-- Inactivo: la pantalla ya es una compra nueva y se
+                     reinicia sola después de guardar. -->
+                <Button fx:id="btnNuevaCompra" text="Nueva compra"
+                        styleClass="boton-principal"
+                        disable="true"/>
+
+                <Button fx:id="btnCancelarCompra" text="Cancelar compra"
+                        onAction="#cancelarCompra"
+                        styleClass="boton-eliminar"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label text="Folio:" styleClass="fecha"/>
+                <Label fx:id="lblFolio" styleClass="fecha, folio"/>
+                <Label fx:id="lblFechaCompra" styleClass="fecha"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <HBox styleClass="contenido">
+
+            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+
+                <!-- AGREGAR PRODUCTO -->
+                <VBox styleClass="panel-detalle">
+                    <Label text="Agregar producto" styleClass="titulo-detalle"/>
+
+                    <HBox spacing="8.0" alignment="BOTTOM_LEFT"
+                          styleClass="formulario-compacto">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                            <Label text="Código de barras / Producto" styleClass="etiqueta"/>
+                            <TextField fx:id="txtCodigo"
+                                       promptText="Escanea o escribe el código"
+                                       onAction="#resolverProducto"/>
+                        </VBox>
+
+                        <VBox styleClass="campo" minWidth="60.0" prefWidth="60.0" maxWidth="60.0">
+                            <Label text="Cantidad" styleClass="etiqueta"/>
+                            <TextField fx:id="txtCantidad" text="1"
+                                       onAction="#agregarProducto"/>
+                        </VBox>
+
+                        <VBox styleClass="campo" minWidth="86.0" prefWidth="86.0" maxWidth="86.0">
+                            <Label text="Precio compra" styleClass="etiqueta"/>
+                            <TextField fx:id="txtPrecio" promptText="0.00"
+                                       onAction="#agregarProducto"/>
+                        </VBox>
+
+                        <Button fx:id="btnBuscar" text="Buscar"
+                                onAction="#buscarProducto"
+                                prefHeight="30.0"
+                                styleClass="boton-secundario"/>
+
+                        <Button fx:id="btnAgregar" text="Agregar"
+                                onAction="#agregarProducto"
+                                prefHeight="30.0"
+                                styleClass="boton-principal"/>
+                    </HBox>
+                </VBox>
+
+                <!-- PRODUCTOS DE LA COMPRA -->
+                <TableView fx:id="tableCarrito"
+                           VBox.vgrow="ALWAYS"
+                           styleClass="tabla">
+                    <columns>
+                        <TableColumn fx:id="colNumero" text="#"
+                                     minWidth="32.0" prefWidth="32.0" sortable="false"/>
+                        <TableColumn fx:id="colProducto" text="Producto"
+                                     minWidth="120.0" prefWidth="178.0" sortable="false"/>
+                        <TableColumn fx:id="colCantidad" text="Cantidad"
+                                     minWidth="65.0" prefWidth="70.0" sortable="false"
+                                     styleClass="columna-numero"/>
+                        <TableColumn fx:id="colPrecio" text="Precio compra"
+                                     minWidth="88.0" prefWidth="93.0" sortable="false"
+                                     styleClass="columna-numero"/>
+                        <TableColumn fx:id="colSubtotal" text="Subtotal"
+                                     minWidth="80.0" prefWidth="85.0" sortable="false"
+                                     styleClass="columna-numero"/>
+                        <TableColumn fx:id="colQuitar" text=""
+                                     minWidth="34.0" prefWidth="34.0" sortable="false"
+                                     resizable="false"/>
+                    </columns>
+                </TableView>
+
+                <HBox alignment="CENTER_RIGHT">
+                    <Label text="Al guardar se suma la cantidad al stock"
+                           styleClass="texto-stock"/>
+                </HBox>
+            </VBox>
+
+            <!-- DATOS DE LA COMPRA -->
+            <VBox styleClass="panel-detalle"
+                  minWidth="320.0" prefWidth="320.0" maxWidth="320.0">
+
+                <Label text="Datos de la compra" styleClass="titulo-detalle"/>
+
+                <VBox styleClass="formulario-compacto" VBox.vgrow="ALWAYS">
+                    <VBox styleClass="campo">
+                        <Label text="Proveedor" styleClass="etiqueta"/>
+                        <ComboBox fx:id="cmbProveedor" maxWidth="Infinity"
+                                  promptText="Selecciona un proveedor"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Empleado" styleClass="etiqueta"/>
+                        <TextField fx:id="txtEmpleado" editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Fecha" styleClass="etiqueta"/>
+                        <TextField fx:id="txtFecha" editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <HBox>
+                        <Label text="Productos" styleClass="etiqueta"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblNumProductos" text="0" styleClass="resumen-valor"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="Artículos" styleClass="etiqueta"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblArticulos" text="0" styleClass="resumen-valor"/>
+                    </HBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Total" styleClass="etiqueta"/>
+                        <Label fx:id="lblTotal" maxWidth="Infinity"
+                               styleClass="total-grande"/>
+                    </VBox>
+                </VBox>
+
+                <HBox styleClass="acciones-detalle">
+                    <Button fx:id="btnGuardar" text="Guardar"
+                            onAction="#guardarCompra"
+                            HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                            styleClass="boton-principal"
+                            disable="true"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </center>
+
+    <bottom>
+        <!-- BARRA INFERIOR -->
+        <HBox styleClass="pie">
+            <Label fx:id="lblEstadoFooter" text="0 productos en la compra" styleClass="texto-pie"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
