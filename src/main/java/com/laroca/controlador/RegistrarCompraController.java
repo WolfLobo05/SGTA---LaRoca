@@ -99,9 +99,10 @@ public class RegistrarCompraController {
     private final ProductoDAO productoDAO = new ProductoDAO();
     private final ProveedorDAO proveedorDAO = new ProveedorDAO();
 
-    private final ObservableList<DetalleCompra> carrito = FXCollections.observableArrayList();
+    private final ObservableList<DetalleCompra> carrito =
+            FXCollections.observableArrayList();
 
-    // Producto identificado (por código o con Buscar); su texto queda en txtCodigo.
+    // Producto identificado por código o mediante Buscar.
     private Producto productoElegido;
 
     @FXML
@@ -117,24 +118,33 @@ public class RegistrarCompraController {
 
         colProducto.setCellValueFactory(
                 new PropertyValueFactory<>("nombreProducto"));
+
         colCantidad.setCellValueFactory(
                 new PropertyValueFactory<>("cantidad"));
+
         colPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(
                 Formato.dinero(c.getValue().getPrecioCompra())));
+
         colSubtotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(
                 Formato.dinero(c.getValue().getSubtotal())));
 
-        // Botón ✕ en cada renglón para quitarlo de la compra.
-        colQuitar.setCellFactory(columna -> new CeldaQuitar<>(carrito::remove));
+        configurarEdicionCantidad();
+
+        // Botón para quitar productos del carrito.
+        colQuitar.setCellFactory(columna ->
+                new CeldaQuitar<>(carrito::remove));
 
         tableCarrito.setItems(carrito);
+
         tableCarrito.setPlaceholder(
                 new Label("Escanea o busca un producto para agregarlo a la compra"));
 
-        // Supr quita el renglón seleccionado (además de la ✕ de cada renglón).
+        // Supr quita el renglón seleccionado.
         tableCarrito.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.DELETE) {
-                DetalleCompra linea = tableCarrito.getSelectionModel().getSelectedItem();
+                DetalleCompra linea =
+                        tableCarrito.getSelectionModel().getSelectedItem();
+
                 if (linea != null) {
                     carrito.remove(linea);
                 }
@@ -163,7 +173,7 @@ public class RegistrarCompraController {
             }
         });
 
-        // Solo se ofrecen los proveedores activos.
+        // Solo proveedores activos.
         cmbProveedor.setItems(FXCollections.observableArrayList(
                 proveedorDAO.listar().stream()
                         .filter(p -> Estados.esActivo(p.getEstado()))
@@ -176,38 +186,190 @@ public class RegistrarCompraController {
                 ? Sesion.getUsuario()
                 : "Sin sesión iniciada");
 
-        carrito.addListener((ListChangeListener<DetalleCompra>) cambio -> actualizarResumen());
+        carrito.addListener(
+                (ListChangeListener<DetalleCompra>) cambio ->
+                        actualizarResumen());
 
         iniciarCompra();
 
         Navegacion.verificarSesion(tableCarrito);
     }
 
-    // Folio y fecha con los que abre la pantalla.
+    // =========================================================
+    // EDICIÓN DE CANTIDAD DIRECTAMENTE EN LA TABLA
+    // =========================================================
+
+    private void configurarEdicionCantidad() {
+
+        tableCarrito.setEditable(true);
+        colCantidad.setEditable(true);
+
+        colCantidad.setCellFactory(columna ->
+                new TableCell<DetalleCompra, Integer>() {
+
+            private final TextField txtEditar = new TextField();
+
+            {
+                // Solo permite números enteros de hasta cuatro dígitos.
+                txtEditar.setTextFormatter(new TextFormatter<String>(cambio -> {
+                    String texto = cambio.getControlNewText();
+
+                    return texto.matches("\\d{0,4}") ? cambio : null;
+                }));
+
+                // Enter confirma.
+                txtEditar.setOnAction(event -> confirmarCantidad());
+
+                // Escape cancela.
+                txtEditar.setOnKeyPressed(event -> {
+                    if (event.getCode() == KeyCode.ESCAPE) {
+                        cancelEdit();
+                    }
+                });
+
+                // Al perder el foco también intenta confirmar.
+                txtEditar.focusedProperty().addListener(
+                        (obs, anterior, enfocado) -> {
+                            if (!enfocado && isEditing()) {
+                                confirmarCantidad();
+                            }
+                        });
+            }
+
+            @Override
+            public void startEdit() {
+                if (isEmpty()) {
+                    return;
+                }
+
+                super.startEdit();
+
+                txtEditar.setText(
+                        getItem() == null ? "" : getItem().toString());
+
+                setText(null);
+                setGraphic(txtEditar);
+
+                txtEditar.selectAll();
+                txtEditar.requestFocus();
+            }
+
+            @Override
+            public void cancelEdit() {
+                super.cancelEdit();
+
+                setGraphic(null);
+                setText(getItem() == null ? "" : getItem().toString());
+            }
+
+            @Override
+            protected void updateItem(Integer cantidad, boolean vacio) {
+                super.updateItem(cantidad, vacio);
+
+                if (vacio) {
+                    setText(null);
+                    setGraphic(null);
+                } else if (isEditing()) {
+                    setText(null);
+                    setGraphic(txtEditar);
+                } else {
+                    setText(cantidad == null ? "" : cantidad.toString());
+                    setGraphic(null);
+                }
+            }
+
+            private void confirmarCantidad() {
+
+                if (!isEditing()) {
+                    return;
+                }
+
+                String texto = txtEditar.getText().trim();
+
+                if (texto.isEmpty()) {
+                    mostrarAlerta(
+                            "Cantidad inválida",
+                            "Debes ingresar una cantidad mayor que cero.");
+
+                    cancelEdit();
+                    return;
+                }
+
+                int nuevaCantidad;
+
+                try {
+                    nuevaCantidad = Integer.parseInt(texto);
+                } catch (NumberFormatException e) {
+                    mostrarAlerta(
+                            "Cantidad inválida",
+                            "Ingresa un número entero válido.");
+
+                    cancelEdit();
+                    return;
+                }
+
+                if (nuevaCantidad <= 0) {
+                    mostrarAlerta(
+                            "Cantidad inválida",
+                            "La cantidad debe ser mayor que cero.");
+
+                    cancelEdit();
+                    return;
+                }
+
+                DetalleCompra linea = getTableView()
+                        .getItems().get(getIndex());
+
+                linea.setCantidad(nuevaCantidad);
+
+                commitEdit(nuevaCantidad);
+
+                tableCarrito.refresh();
+                actualizarResumen();
+            }
+        });
+    }
+
+    // =========================================================
+    // INICIO DE COMPRA
+    // =========================================================
+
     private void iniciarCompra() {
+
         Compra siguiente = new Compra();
+
         siguiente.setIdCompra(compraDAO.obtenerSiguienteId());
-        lblFolio.setText(siguiente.getIdCompra() > 0 ? siguiente.getFolio() : "—");
+
+        lblFolio.setText(
+                siguiente.getIdCompra() > 0
+                        ? siguiente.getFolio()
+                        : "—");
 
         String hoy = Formato.fecha(LocalDate.now());
+
         lblFechaCompra.setText("·  " + hoy);
         txtFecha.setText(hoy);
 
-        // Sin proveedor por defecto: se elige en cada compra.
         actualizarResumen();
 
         Platform.runLater(() -> txtCodigo.requestFocus());
     }
 
-    // Enter en el código: busca el código exacto entre los productos
-    // activos; si no existe, abre el buscador.
+    // =========================================================
+    // IDENTIFICAR Y BUSCAR PRODUCTOS
+    // =========================================================
+
     @FXML
     private void resolverProducto() {
+
         String texto = txtCodigo.getText().trim();
 
-        if (productoElegido != null && texto.equals(textoProducto(productoElegido))) {
+        if (productoElegido != null
+                && texto.equals(textoProducto(productoElegido))) {
+
             txtCantidad.requestFocus();
             txtCantidad.selectAll();
+
             return;
         }
 
@@ -226,9 +388,12 @@ public class RegistrarCompraController {
 
     @FXML
     private void buscarProducto() {
+
         String texto = txtCodigo.getText().trim();
 
-        if (productoElegido != null && texto.equals(textoProducto(productoElegido))) {
+        if (productoElegido != null
+                && texto.equals(textoProducto(productoElegido))) {
+
             texto = "";
         }
 
@@ -239,43 +404,60 @@ public class RegistrarCompraController {
         }
     }
 
-    // Deja el producto en el campo y sugiere su último precio de compra.
     private void elegirProducto(Producto producto) {
+
         productoElegido = producto;
+
         txtCodigo.setText(textoProducto(producto));
 
-        BigDecimal ultimoPrecio = compraDAO.ultimoPrecioCompra(producto.getIdProducto());
-        txtPrecio.setText(ultimoPrecio == null
-                ? ""
-                : ultimoPrecio.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        BigDecimal ultimoPrecio =
+                compraDAO.ultimoPrecioCompra(producto.getIdProducto());
+
+        txtPrecio.setText(
+                ultimoPrecio == null
+                        ? ""
+                        : ultimoPrecio.setScale(
+                                2, RoundingMode.HALF_UP).toPlainString());
 
         txtCantidad.requestFocus();
         txtCantidad.selectAll();
     }
 
     private String textoProducto(Producto producto) {
-        return producto.getCodigoBarras() + " — " + producto.getNombre();
+
+        return producto.getCodigoBarras()
+                + " — "
+                + producto.getNombre();
     }
+
+    // =========================================================
+    // AGREGAR PRODUCTOS AL CARRITO
+    // =========================================================
 
     @FXML
     private void agregarProducto() {
+
         String texto = txtCodigo.getText().trim();
 
-        // Si el producto aún no está identificado, se identifica primero.
-        if (productoElegido == null || !texto.equals(textoProducto(productoElegido))) {
+        // Identificar el producto primero.
+        if (productoElegido == null
+                || !texto.equals(textoProducto(productoElegido))) {
+
             String precioCapturado = txtPrecio.getText();
 
             resolverProducto();
 
             if (productoElegido == null
-                    || !txtCodigo.getText().trim().equals(textoProducto(productoElegido))) {
+                    || !txtCodigo.getText().trim()
+                            .equals(textoProducto(productoElegido))) {
+
                 return;
             }
 
-            // Sin precio escrito: revisar primero el precio sugerido.
             if (precioCapturado.isEmpty()) {
                 txtPrecio.requestFocus();
                 txtPrecio.selectAll();
+
                 return;
             }
 
@@ -286,7 +468,9 @@ public class RegistrarCompraController {
             mostrarAlerta(
                     "Cantidad obligatoria",
                     "Escribe la cantidad a agregar (1 a 9999).");
+
             txtCantidad.requestFocus();
+
             return;
         }
 
@@ -296,61 +480,104 @@ public class RegistrarCompraController {
             mostrarAlerta(
                     "Precio obligatorio",
                     "Escribe el precio de compra del producto.");
+
             txtPrecio.requestFocus();
+
             return;
         }
 
-        BigDecimal precio = new BigDecimal(textoPrecio).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal precio;
+
+        try {
+            precio = new BigDecimal(textoPrecio)
+                    .setScale(2, RoundingMode.HALF_UP);
+        } catch (NumberFormatException e) {
+            mostrarAlerta(
+                    "Precio no válido",
+                    "Escribe un precio de compra válido.");
+
+            txtPrecio.requestFocus();
+
+            return;
+        }
 
         if (precio.compareTo(BigDecimal.ZERO) <= 0) {
             mostrarAlerta(
                     "Precio no válido",
                     "El precio de compra debe ser mayor a $0.00.");
+
             txtPrecio.requestFocus();
+
             return;
         }
 
-        if (agregarAlCarrito(productoElegido, Integer.parseInt(txtCantidad.getText()), precio)) {
+        int cantidad = Integer.parseInt(txtCantidad.getText());
+
+        if (agregarAlCarrito(productoElegido, cantidad, precio)) {
+
             txtCodigo.clear();
             txtCantidad.setText("1");
             txtPrecio.clear();
+
             productoElegido = null;
         }
 
         txtCodigo.requestFocus();
     }
 
-    // Agrega el producto o suma la cantidad si ya está en la compra.
-    // Las compras no tienen límite de existencia.
-    private boolean agregarAlCarrito(Producto producto, int cantidad, BigDecimal precio) {
+    private boolean agregarAlCarrito(
+            Producto producto,
+            int cantidad,
+            BigDecimal precio) {
+
+        if (cantidad <= 0 || precio == null
+                || precio.compareTo(BigDecimal.ZERO) <= 0) {
+
+            mostrarAlerta(
+                    "Datos inválidos",
+                    "Verifica la cantidad y el precio de compra.");
+
+            return false;
+        }
+
         BigDecimal precioVenta = producto.getPrecio();
 
-        if (precioVenta != null && precio.compareTo(precioVenta) >= 0
+        if (precioVenta != null
+                && precio.compareTo(precioVenta) >= 0
                 && !confirmar(
                         "Precio de compra alto",
                         "El precio de compra (" + Formato.dinero(precio)
                                 + ") es mayor o igual al precio de venta ("
                                 + Formato.dinero(precioVenta)
                                 + "). ¿Agregar de todos modos?")) {
+
             return false;
         }
 
         DetalleCompra linea = buscarLinea(producto.getIdProducto());
 
         if (linea == null) {
+
             linea = new DetalleCompra(
                     producto.getIdProducto(),
                     producto.getNombre(),
                     cantidad,
                     precio);
+
             carrito.add(linea);
+
         } else {
+
             if (linea.getPrecioCompra().compareTo(precio) != 0) {
+
                 if (!confirmar(
                         "Cambiar precio de compra",
                         "¿Reemplazar el precio de compra de "
-                                + Formato.dinero(linea.getPrecioCompra()) + " por "
-                                + Formato.dinero(precio) + "?")) {
+                                + Formato.dinero(linea.getPrecioCompra())
+                                + " por "
+                                + Formato.dinero(precio)
+                                + "?")) {
+
                     return false;
                 }
 
@@ -358,25 +585,55 @@ public class RegistrarCompraController {
             }
 
             linea.setCantidad(linea.getCantidad() + cantidad);
+
             tableCarrito.refresh();
             actualizarResumen();
         }
 
         tableCarrito.getSelectionModel().select(linea);
         tableCarrito.scrollTo(linea);
+
         return true;
     }
 
     private DetalleCompra buscarLinea(int idProducto) {
+
         for (DetalleCompra linea : carrito) {
+
             if (linea.getIdProducto() == idProducto) {
                 return linea;
             }
         }
+
         return null;
     }
 
+    // =========================================================
+    // RESUMEN Y VALIDACIONES
+    // =========================================================
+
+    private boolean datosCompraValidos() {
+
+        if (carrito.isEmpty() || cmbProveedor.getValue() == null) {
+            return false;
+        }
+
+        for (DetalleCompra linea : carrito) {
+
+            if (linea.getCantidad() <= 0
+                    || linea.getPrecioCompra() == null
+                    || linea.getPrecioCompra()
+                            .compareTo(BigDecimal.ZERO) <= 0) {
+
+                return false;
+            }
+        }
+
+        return calcularTotal().compareTo(BigDecimal.ZERO) > 0;
+    }
+
     private void actualizarResumen() {
+
         int articulos = 0;
 
         for (DetalleCompra linea : carrito) {
@@ -389,8 +646,7 @@ public class RegistrarCompraController {
         lblArticulos.setText(String.valueOf(articulos));
         lblTotal.setText(Formato.dinero(calcularTotal()));
 
-        // Guardar solo con proveedor y al menos un producto.
-        btnGuardar.setDisable(carrito.isEmpty() || cmbProveedor.getValue() == null);
+        btnGuardar.setDisable(!datosCompraValidos());
 
         lblEstadoFooter.setText(
                 productos + (productos == 1
@@ -399,6 +655,7 @@ public class RegistrarCompraController {
     }
 
     private BigDecimal calcularTotal() {
+
         BigDecimal total = BigDecimal.ZERO;
 
         for (DetalleCompra linea : carrito) {
@@ -408,11 +665,21 @@ public class RegistrarCompraController {
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
+    // =========================================================
+    // GUARDAR COMPRA
+    // =========================================================
+
     @FXML
     private void guardarCompra() {
+
         Proveedor proveedor = cmbProveedor.getValue();
 
-        if (carrito.isEmpty() || proveedor == null) {
+        if (!datosCompraValidos()) {
+            mostrarAlerta(
+                    "Compra incompleta",
+                    "Verifica que hayas seleccionado un proveedor "
+                            + "y agregado productos con cantidades y precios válidos.");
+
             return;
         }
 
@@ -420,10 +687,12 @@ public class RegistrarCompraController {
             mostrarAlerta(
                     "Sin sesión",
                     "Inicia sesión para poder registrar compras.");
+
             return;
         }
 
         int articulos = 0;
+
         for (DetalleCompra linea : carrito) {
             articulos += linea.getCantidad();
         }
@@ -438,22 +707,28 @@ public class RegistrarCompraController {
                         + "Artículos: " + articulos + "\n"
                         + "Total: " + Formato.dinero(total) + "\n\n"
                         + "La cantidad de cada producto se sumará al stock.")) {
+
             return;
         }
 
         Compra compra = new Compra();
+
         compra.setIdProveedor(proveedor.getIdProveedor());
         compra.setIdEmpleado(Sesion.getIdEmpleado());
         compra.setFecha(LocalDate.now());
         compra.setTotal(total);
         compra.setEstado(Estados.ACTIVO);
 
-        int idCompra = compraDAO.registrar(compra, new ArrayList<>(carrito));
+        int idCompra = compraDAO.registrar(
+                compra,
+                new ArrayList<>(carrito));
 
         if (idCompra <= 0) {
+
             mostrarAlerta(
                     "No se pudo registrar la compra",
                     compraDAO.getMensajeError());
+
             return;
         }
 
@@ -464,38 +739,52 @@ public class RegistrarCompraController {
         volverAGestion(idCompra);
     }
 
-    // "Cancelar compra": descarta la compra y vuelve a Gestión de Compras.
+    // =========================================================
+    // CANCELAR COMPRA Y NAVEGACIÓN
+    // =========================================================
+
     @FXML
     private void cancelarCompra() {
+
         if (!carrito.isEmpty() && !confirmar(
                 "Cancelar compra",
                 "¿Deseas cancelar la compra? "
                         + (carrito.size() == 1
                                 ? "Se descartará el producto agregado."
-                                : "Se descartarán los " + carrito.size() + " productos agregados."))) {
+                                : "Se descartarán los "
+                                        + carrito.size()
+                                        + " productos agregados."))) {
+
             return;
         }
 
         volverAGestion(0);
     }
 
-    // Vuelve a Gestión de Compras. Si idCompra > 0, deja esa compra seleccionada.
     private void volverAGestion(int idCompra) {
+
         try {
+
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource(
                             "/com/laroca/vista/compras.fxml"));
 
             Parent root = loader.load();
 
-            Navegacion.mostrar((Stage) ventana(), root, "La Roca - Compras");
+            Navegacion.mostrar(
+                    (Stage) ventana(),
+                    root,
+                    "La Roca - Compras");
 
             if (idCompra > 0) {
+
                 CompraController gestion = loader.getController();
+
                 gestion.seleccionarPorId(idCompra);
             }
 
         } catch (IOException e) {
+
             e.printStackTrace();
 
             mostrarAlerta(
@@ -505,10 +794,12 @@ public class RegistrarCompraController {
     }
 
     private Window ventana() {
+
         return tableCarrito.getScene().getWindow();
     }
 
     private boolean confirmar(String titulo, String mensaje) {
+
         Alert confirmacion = new Alert(
                 Alert.AlertType.CONFIRMATION,
                 mensaje,
@@ -523,10 +814,13 @@ public class RegistrarCompraController {
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {
+
         Alert alerta = new Alert(Alert.AlertType.WARNING);
+
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
+
         alerta.showAndWait();
     }
 }

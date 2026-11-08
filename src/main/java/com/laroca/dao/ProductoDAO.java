@@ -113,7 +113,7 @@ public class ProductoDAO {
             return true; // Por seguridad, impedir el guardado.
         }
 
-        return true;
+        return false;
     }
 
     // Indica si el valor duplicado pertenece a un registro inactivo.
