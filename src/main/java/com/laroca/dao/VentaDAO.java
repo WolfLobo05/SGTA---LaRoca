@@ -15,7 +15,6 @@ import java.util.List;
 
 public class VentaDAO {
 
-    // Venta con el usuario del empleado y los nombres de cliente y método de pago.
     private static final String CONSULTA_VENTA =
             "SELECT v.id_venta, v.id_empleado, v.id_cliente, v.id_metodo, "
           + "v.fecha, v.total, v.monto_pagado, v.cambio, v.estado, "
@@ -29,7 +28,6 @@ public class VentaDAO {
           + "INNER JOIN Clientes c ON v.id_cliente = c.id_cliente "
           + "INNER JOIN Metodos_Pago m ON v.id_metodo = m.id_metodo ";
 
-    // Motivo del último fallo de registrar() o cancelar(), para mostrarlo.
     private String mensajeError;
 
     public String getMensajeError() {
@@ -38,26 +36,51 @@ public class VentaDAO {
 
     public List<Venta> listar() {
         List<Venta> ventas = new ArrayList<>();
-
         String sql = CONSULTA_VENTA + "ORDER BY v.id_venta";
 
         try (Connection conexion = Conexion.conectar()) {
-            if (conexion == null) {
-                return ventas;
-            }
+            if (conexion == null) return ventas;
 
             try (PreparedStatement ps = conexion.prepareStatement(sql);
                  ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-                    ventas.add(leerVenta(rs));
-                }
+                while (rs.next()) ventas.add(leerVenta(rs));
             }
         } catch (SQLException e) {
             System.err.println("Error al consultar ventas:");
             e.printStackTrace();
         }
+        return ventas;
+    }
 
+    // Busca hasta 10 ventas activas por folio (V-001/001) o nombre del cliente.
+    public List<Venta> buscarVentasActivas(String texto) {
+        List<Venta> ventas = new ArrayList<>();
+        if (texto == null || texto.trim().isEmpty()) return ventas;
+
+        String sql = CONSULTA_VENTA
+                + "WHERE UPPER(COALESCE(TRIM(v.estado), '')) IN ('', 'ACTIVO') "
+                + "AND (CONCAT('V-', LPAD(v.id_venta, 3, '0')) LIKE ? "
+                + "OR CONCAT_WS(' ', NULLIF(TRIM(c.nombre), ''), "
+                + "NULLIF(TRIM(c.apellido_paterno), ''), "
+                + "NULLIF(TRIM(c.apellido_materno), '')) LIKE ?) "
+                + "ORDER BY v.id_venta DESC LIMIT 10";
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) return ventas;
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                String busqueda = "%" + texto.trim() + "%";
+                ps.setString(1, busqueda);
+                ps.setString(2, busqueda);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) ventas.add(leerVenta(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar ventas activas:");
+            e.printStackTrace();
+        }
         return ventas;
     }
 
@@ -65,44 +88,33 @@ public class VentaDAO {
         String sql = CONSULTA_VENTA + "WHERE v.id_venta = ?";
 
         try (Connection conexion = Conexion.conectar()) {
-            if (conexion == null) {
-                return null;
-            }
+            if (conexion == null) return null;
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
                 ps.setInt(1, idVenta);
-
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return leerVenta(rs);
-                    }
+                    if (rs.next()) return leerVenta(rs);
                 }
             }
         } catch (SQLException e) {
             System.err.println("Error al consultar la venta:");
             e.printStackTrace();
         }
-
         return null;
     }
 
     public List<DetalleVenta> listarDetalle(int idVenta) {
         List<DetalleVenta> detalles = new ArrayList<>();
-
         String sql = "SELECT d.id_producto, p.nombre, d.cantidad, d.precio_unitario "
                    + "FROM detalle_ventas d "
                    + "INNER JOIN Productos p ON d.id_producto = p.id_producto "
-                   + "WHERE d.id_venta = ? "
-                   + "ORDER BY d.id_detalle_venta";
+                   + "WHERE d.id_venta = ? ORDER BY d.id_detalle_venta";
 
         try (Connection conexion = Conexion.conectar()) {
-            if (conexion == null) {
-                return detalles;
-            }
+            if (conexion == null) return detalles;
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
                 ps.setInt(1, idVenta);
-
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         detalles.add(new DetalleVenta(
@@ -117,36 +129,26 @@ public class VentaDAO {
             System.err.println("Error al consultar el detalle de la venta:");
             e.printStackTrace();
         }
-
         return detalles;
     }
 
     public int obtenerSiguienteId() {
-        String sql = "SELECT COALESCE(MAX(id_venta), 0) + 1 AS siguiente "
-                   + "FROM Ventas";
+        String sql = "SELECT COALESCE(MAX(id_venta), 0) + 1 AS siguiente FROM Ventas";
 
         try (Connection conexion = Conexion.conectar()) {
-            if (conexion == null) {
-                return -1;
-            }
+            if (conexion == null) return -1;
 
             try (PreparedStatement ps = conexion.prepareStatement(sql);
                  ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("siguiente");
-                }
+                if (rs.next()) return rs.getInt("siguiente");
             }
         } catch (SQLException e) {
             System.err.println("Error al obtener el siguiente ID:");
             e.printStackTrace();
         }
-
         return -1;
     }
 
-    // Registra la venta, su detalle y descuenta la existencia en una sola
-    // transacción. Si algún producto no tiene existencia suficiente no se
-    // guarda nada. Devuelve el id de la venta, o -1 (ver getMensajeError()).
     public int registrar(Venta venta, List<DetalleVenta> detalles) {
         mensajeError = null;
 
@@ -156,17 +158,13 @@ public class VentaDAO {
         }
 
         String sqlVenta = "INSERT INTO Ventas "
-                        + "(id_venta, id_empleado, id_cliente, id_metodo, fecha, "
-                        + "total, monto_pagado, cambio, estado) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
+                + "(id_venta, id_empleado, id_cliente, id_metodo, fecha, "
+                + "total, monto_pagado, cambio, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         String sqlDetalle = "INSERT INTO detalle_ventas "
-                          + "(id_detalle_venta, id_venta, id_producto, cantidad, precio_unitario) "
-                          + "VALUES (?, ?, ?, ?, ?)";
-
-        String sqlExistencia = "UPDATE Productos "
-                             + "SET existencia = existencia - ? "
-                             + "WHERE id_producto = ? AND existencia >= ?";
+                + "(id_detalle_venta, id_venta, id_producto, cantidad, precio_unitario) "
+                + "VALUES (?, ?, ?, ?, ?)";
+        String sqlExistencia = "UPDATE Productos SET existencia = existencia - ? "
+                + "WHERE id_producto = ? AND existencia >= ?";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -225,14 +223,12 @@ public class VentaDAO {
                 conexion.commit();
                 venta.setIdVenta(idVenta);
                 return idVenta;
-
             } catch (SQLException e) {
                 conexion.rollback();
                 throw e;
             } finally {
                 conexion.setAutoCommit(true);
             }
-
         } catch (SQLException e) {
             System.err.println("Error al registrar la venta:");
             e.printStackTrace();
@@ -241,20 +237,16 @@ public class VentaDAO {
         }
     }
 
-    // Marca la venta como cancelada (Inactivo) y devuelve al inventario
-    // las cantidades vendidas, en una sola transacción.
     public boolean cancelar(int idVenta) {
         mensajeError = null;
 
-        String sqlVenta = "UPDATE Ventas SET estado = ? "
-                        + "WHERE id_venta = ? "
-                        + "AND UPPER(COALESCE(TRIM(estado), '')) IN ('', 'ACTIVO')";
-
+        String sqlVenta = "UPDATE Ventas SET estado = ? WHERE id_venta = ? "
+                + "AND UPPER(COALESCE(TRIM(estado), '')) IN ('', 'ACTIVO')";
         String sqlExistencia = "UPDATE Productos p "
-                             + "INNER JOIN (SELECT id_producto, SUM(cantidad) AS cantidad "
-                             + "FROM detalle_ventas WHERE id_venta = ? "
-                             + "GROUP BY id_producto) d ON p.id_producto = d.id_producto "
-                             + "SET p.existencia = p.existencia + d.cantidad";
+                + "INNER JOIN (SELECT id_producto, SUM(cantidad) AS cantidad "
+                + "FROM detalle_ventas WHERE id_venta = ? GROUP BY id_producto) d "
+                + "ON p.id_producto = d.id_producto "
+                + "SET p.existencia = p.existencia + d.cantidad";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -268,7 +260,6 @@ public class VentaDAO {
                 try (PreparedStatement ps = conexion.prepareStatement(sqlVenta)) {
                     ps.setString(1, Estados.INACTIVO);
                     ps.setInt(2, idVenta);
-
                     if (ps.executeUpdate() == 0) {
                         conexion.rollback();
                         mensajeError = "La venta no existe o ya estaba cancelada.";
@@ -283,14 +274,12 @@ public class VentaDAO {
 
                 conexion.commit();
                 return true;
-
             } catch (SQLException e) {
                 conexion.rollback();
                 throw e;
             } finally {
                 conexion.setAutoCommit(true);
             }
-
         } catch (SQLException e) {
             System.err.println("Error al cancelar la venta:");
             e.printStackTrace();
@@ -299,15 +288,11 @@ public class VentaDAO {
         }
     }
 
-    // Solo el cliente y el método de pago se pueden corregir.
     public boolean actualizarDatos(int idVenta, int idCliente, int idMetodo) {
-        String sql = "UPDATE Ventas SET id_cliente = ?, id_metodo = ? "
-                   + "WHERE id_venta = ?";
+        String sql = "UPDATE Ventas SET id_cliente = ?, id_metodo = ? WHERE id_venta = ?";
 
         try (Connection conexion = Conexion.conectar()) {
-            if (conexion == null) {
-                return false;
-            }
+            if (conexion == null) return false;
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
                 ps.setInt(1, idCliente);

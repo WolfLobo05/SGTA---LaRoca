@@ -113,6 +113,24 @@
                         GridPane.columnIndex="1" GridPane.rowIndex="2"
                         prefWidth="300.0" prefHeight="36.0"
                         style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                
+                <Button text="Mermas"
+                        onAction="#abrirMermas"
+                        GridPane.columnIndex="1" GridPane.rowIndex="3"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <Button text="Devoluciones de Clientes"
+                        onAction="#abrirDevolucionesClientes"
+                        GridPane.columnIndex="1" GridPane.rowIndex="4"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <Button text="Devoluciones a Proveedores"
+                        onAction="#abrirDevolucionesProveedores"
+                        GridPane.columnIndex="1" GridPane.rowIndex="5"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>            
             </GridPane>
 
         </VBox>

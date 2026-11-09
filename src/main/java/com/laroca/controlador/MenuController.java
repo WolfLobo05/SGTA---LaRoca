@@ -79,6 +79,27 @@ public class MenuController {
                 "La Roca - Compras");
     }
 
+    @FXML
+    private void abrirMermas() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/mermas.fxml",
+                "La Roca - Mermas");
+    }
+
+    @FXML
+    private void abrirDevolucionesClientes() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/devoluciones-clientes.fxml",
+                "La Roca - Devoluciones de Clientes");
+    }
+
+    @FXML
+    private void abrirDevolucionesProveedores() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/devoluciones-proveedores.fxml",
+                "La Roca - Devoluciones a Proveedores");
+    }
+
     private void abrirVentana(String ruta, String titulo)
             throws IOException {
 

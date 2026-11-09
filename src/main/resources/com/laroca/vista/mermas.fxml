@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefWidth="900.0" prefHeight="600.0"
+            minWidth="900.0" minHeight="600.0"
+            maxWidth="900.0" maxHeight="600.0"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.laroca.controlador.MermaController">
+
+    <top>
+        <VBox>
+            <HBox styleClass="barra-titulo">
+                <Label text='Sistema abarrotes "La Roca" — Gestión de Mermas'
+                       styleClass="titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="botones-ventana">
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                </HBox>
+            </HBox>      
+                <HBox styleClass="barra-herramientas">
+                  <Button fx:id="btnNueva" text="Nueva merma"
+                  onAction="#nuevaMerma"
+                  styleClass="boton-principal"/>
+
+                <Button fx:id="btnCancelar" text="Cancelar merma"
+                onAction="#cancelarMerma"
+                styleClass="boton-eliminar"
+                disable="true"/>
+
+                <Button text="Volver al menú"
+                onAction="#volverAlMenu"
+                styleClass="boton-secundario"/>
+
+                <CheckBox fx:id="chkMostrarCanceladas"
+                text="Mostrar canceladas"
+                onAction="#cambiarMostrarCanceladas"
+                styleClass="check-inactivos"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label fx:id="lblFechaActual" styleClass="fecha"/>
+            </HBox>
+
+        </VBox>
+    </top>
+
+    <center>
+        <HBox styleClass="contenido" spacing="10.0">
+            <VBox spacing="8.0" HBox.hgrow="ALWAYS">
+                <Label text="Mermas registradas" styleClass="titulo-detalle"/>
+                <TableView fx:id="tableMermas" VBox.vgrow="ALWAYS" styleClass="tabla">
+                    <columns>
+                        <TableColumn fx:id="colId" text="ID" minWidth="42.0" prefWidth="45.0" sortable="false"/>
+                        <TableColumn fx:id="colFolio" text="Folio" minWidth="75.0" prefWidth="85.0" sortable="false"/>
+                        <TableColumn fx:id="colEmpleado" text="Empleado" minWidth="100.0" prefWidth="130.0" sortable="false"/>
+                        <TableColumn fx:id="colFecha" text="Fecha" minWidth="85.0" prefWidth="95.0" sortable="false"/>
+                        <TableColumn fx:id="colEstado" text="Estado" minWidth="75.0" prefWidth="85.0" sortable="false"/>
+                    </columns>
+                </TableView>
+            </VBox>
+
+            <VBox styleClass="panel-detalle" minWidth="390.0" prefWidth="390.0"
+                  maxWidth="390.0" spacing="8.0">
+                <Label text="Detalle de la merma" styleClass="titulo-detalle"/>
+                <HBox spacing="8.0">
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Folio" styleClass="etiqueta"/>
+                        <TextField fx:id="txtFolio" editable="false" focusTraversable="false" styleClass="campo-lectura"/>
+                    </VBox>
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Fecha" styleClass="etiqueta"/>
+                        <TextField fx:id="txtFecha" editable="false" focusTraversable="false" styleClass="campo-lectura"/>
+                    </VBox>
+                </HBox>
+                <VBox styleClass="campo">
+                    <Label text="Empleado" styleClass="etiqueta"/>
+                    <TextField fx:id="txtEmpleado" editable="false" focusTraversable="false" styleClass="campo-lectura"/>
+                </VBox>
+                <VBox styleClass="campo">
+                    <Label text="Estado" styleClass="etiqueta"/>
+                    <TextField fx:id="txtEstado" editable="false" focusTraversable="false" styleClass="campo-lectura"/>
+                </VBox>
+                <TableView fx:id="tableDetalle" VBox.vgrow="ALWAYS" styleClass="tabla">
+                    <columns>
+                        <TableColumn fx:id="colProducto" text="Producto" minWidth="95.0" prefWidth="110.0" sortable="false"/>
+                        <TableColumn fx:id="colCantidad" text="Cant." minWidth="42.0" prefWidth="45.0" sortable="false"/>
+                        <TableColumn fx:id="colPrecio" text="Costo unit." minWidth="70.0" prefWidth="75.0" sortable="false"/>
+                        <TableColumn fx:id="colSubtotal" text="Subtotal" minWidth="70.0" prefWidth="75.0" sortable="false"/>
+                        <TableColumn fx:id="colMotivo" text="Motivo" minWidth="80.0" prefWidth="100.0" sortable="false"/>
+                    </columns>
+                </TableView>
+                <HBox>
+                    <Label text="Artículos:" styleClass="etiqueta"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="lblArticulos" text="0" styleClass="resumen-valor"/>
+                </HBox>
+                <HBox alignment="CENTER_RIGHT">
+                    <Label text="Costo total:" styleClass="etiqueta"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="lblTotal" text="0.00" styleClass="total-grande"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </center>
+
+    <bottom>
+        <HBox styleClass="pie">
+            <Label fx:id="lblEstadoFooter" text="0 mermas registradas" styleClass="texto-pie"/>
+        </HBox>
+    </bottom>
+</BorderPane>

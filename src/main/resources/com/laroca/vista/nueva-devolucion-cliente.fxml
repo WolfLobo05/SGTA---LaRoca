@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefWidth="900.0" prefHeight="600.0"
+            minWidth="900.0" minHeight="600.0"
+            maxWidth="900.0" maxHeight="600.0"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.laroca.controlador.NuevaDevolucionClienteController">
+
+    <top>
+        <VBox>
+            <HBox styleClass="barra-titulo">
+                <Label text='Sistema abarrotes "La Roca" — Nueva Devolución'
+                       styleClass="titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="botones-ventana">
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                </HBox>
+            </HBox>
+
+            <HBox styleClass="barra-herramientas">
+                <Button fx:id="btnNuevaDevolucion"
+                        text="Nueva devolución"
+                        styleClass="boton-principal"
+                        disable="true"/>
+
+                <Button fx:id="btnCancelar"
+                        text="Cancelar"
+                        onAction="#cancelar"
+                        styleClass="boton-eliminar"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label text="Folio:" styleClass="fecha"/>
+                <Label fx:id="lblFolio" styleClass="fecha, folio"/>
+                <Label fx:id="lblFecha" styleClass="fecha"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <HBox styleClass="contenido" spacing="10.0">
+
+            <VBox spacing="8.0" HBox.hgrow="ALWAYS">
+
+                <VBox styleClass="panel-detalle">
+                    <Label text="Buscar venta original"
+                           styleClass="titulo-detalle"/>
+
+                    <HBox spacing="8.0" alignment="BOTTOM_LEFT"
+                          styleClass="formulario-compacto">
+
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                            <Label text="Folio de venta"
+                                   styleClass="etiqueta"/>
+                            <TextField fx:id="txtFolioVenta"
+                                       promptText="Escribe el folio, por ejemplo V-001"
+                                       onAction="#buscarVenta"/>
+                        </VBox>
+
+                        <Button fx:id="btnBuscarVenta"
+                                text="Buscar"
+                                onAction="#buscarVenta"
+                                prefHeight="30.0"
+                                styleClass="boton-secundario"/>
+                    </HBox>
+                </VBox>
+
+                <VBox styleClass="panel-detalle"
+                      VBox.vgrow="ALWAYS">
+
+                    <Label text="Productos de la venta"
+                           styleClass="titulo-detalle"/>
+
+                    <TableView fx:id="tableProductosVenta"
+                               VBox.vgrow="ALWAYS"
+                               styleClass="tabla">
+
+                        <columns>
+                            <TableColumn fx:id="colProducto"
+                                         text="Producto"
+                                         prefWidth="160.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colVendidos"
+                                         text="Vendidos"
+                                         prefWidth="65.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colDevueltos"
+                                         text="Devueltos"
+                                         prefWidth="70.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colDisponibles"
+                                         text="Disponibles"
+                                         prefWidth="80.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colPrecio"
+                                         text="Precio unit."
+                                         prefWidth="85.0"
+                                         sortable="false"/>
+                        </columns>
+                    </TableView>
+
+                    <HBox spacing="8.0"
+                          alignment="BOTTOM_LEFT"
+                          styleClass="formulario-compacto">
+
+                        <VBox styleClass="campo"
+                              minWidth="75.0"
+                              prefWidth="75.0">
+                            <Label text="Cantidad"
+                                   styleClass="etiqueta"/>
+                            <TextField fx:id="txtCantidad"
+                                       text="1"/>
+                        </VBox>
+
+                        <VBox styleClass="campo"
+                              HBox.hgrow="ALWAYS">
+                            <Label text="Motivo de devolución"
+                                   styleClass="etiqueta"/>
+                            <TextField fx:id="txtMotivo"
+                                       promptText="Escribe el motivo"/>
+                        </VBox>
+
+                        <Button fx:id="btnAgregar"
+                                text="Agregar"
+                                onAction="#agregarProducto"
+                                prefHeight="30.0"
+                                styleClass="boton-principal"/>
+                    </HBox>
+                </VBox>
+
+                <VBox styleClass="panel-detalle"
+                      VBox.vgrow="ALWAYS">
+
+                    <Label text="Productos por devolver"
+                           styleClass="titulo-detalle"/>
+
+                    <TableView fx:id="tableCarrito"
+                               VBox.vgrow="ALWAYS"
+                               styleClass="tabla">
+
+                        <columns>
+                            <TableColumn fx:id="colCarritoProducto"
+                                         text="Producto"
+                                         prefWidth="145.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colCarritoCantidad"
+                                         text="Cantidad"
+                                         prefWidth="65.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colCarritoPrecio"
+                                         text="Precio"
+                                         prefWidth="75.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colCarritoSubtotal"
+                                         text="Subtotal"
+                                         prefWidth="80.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colCarritoMotivo"
+                                         text="Motivo"
+                                         prefWidth="100.0"
+                                         sortable="false"/>
+
+                            <TableColumn fx:id="colQuitar"
+                                         text=""
+                                         prefWidth="35.0"
+                                         sortable="false"
+                                         resizable="false"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </VBox>
+
+            <VBox styleClass="panel-detalle"
+                  minWidth="260.0"
+                  prefWidth="260.0"
+                  maxWidth="260.0">
+
+                <Label text="Datos de la devolución"
+                       styleClass="titulo-detalle"/>
+
+                <VBox styleClass="formulario-compacto"
+                      VBox.vgrow="ALWAYS">
+
+                    <VBox styleClass="campo">
+                        <Label text="Empleado"
+                               styleClass="etiqueta"/>
+                        <TextField fx:id="txtEmpleado"
+                                   editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Cliente"
+                               styleClass="etiqueta"/>
+                        <TextField fx:id="txtCliente"
+                                   editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Fecha"
+                               styleClass="etiqueta"/>
+                        <TextField fx:id="txtFecha"
+                                   editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Venta original"
+                               styleClass="etiqueta"/>
+                        <TextField fx:id="txtVenta"
+                                   editable="false"
+                                   focusTraversable="false"
+                                   styleClass="campo-lectura"/>
+                    </VBox>
+
+                    <HBox>
+                        <Label text="Productos"
+                               styleClass="etiqueta"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblNumProductos"
+                               text="0"
+                               styleClass="resumen-valor"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="Artículos"
+                               styleClass="etiqueta"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblArticulos"
+                               text="0"
+                               styleClass="resumen-valor"/>
+                    </HBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Total devuelto"
+                               styleClass="etiqueta"/>
+                        <Label fx:id="lblTotal"
+                               maxWidth="Infinity"
+                               styleClass="total-grande"/>
+                    </VBox>
+                </VBox>
+
+                <HBox styleClass="acciones-detalle">
+                    <Button fx:id="btnRegistrar"
+                            text="Registrar devolución"
+                            onAction="#registrarDevolucion"
+                            HBox.hgrow="ALWAYS"
+                            maxWidth="Infinity"
+                            styleClass="boton-principal"
+                            disable="true"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </center>
+
+    <bottom>
+        <HBox styleClass="pie">
+            <Label fx:id="lblEstadoFooter"
+                   text="0 productos en la devolución"
+                   styleClass="texto-pie"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
