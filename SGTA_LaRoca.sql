@@ -143,6 +143,7 @@ CREATE TABLE Mermas (
     id_merma INTEGER UNSIGNED NOT NULL,
     id_empleado INTEGER UNSIGNED NOT NULL,
     fecha DATE NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_merma),
     CONSTRAINT fk_mermas_empleado FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
 );
@@ -156,6 +157,7 @@ CREATE TABLE Devolucion_Clientes (
     id_venta INTEGER UNSIGNED NOT NULL,
     id_empleado INTEGER UNSIGNED NOT NULL,
     fecha DATE NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_devolucion_cliente),
     CONSTRAINT fk_devolucion_clientes_venta FOREIGN KEY (id_venta) REFERENCES Ventas(id_venta),
     CONSTRAINT fk_devolucion_clientes_empleado FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
@@ -167,6 +169,7 @@ CREATE TABLE Devolucion_Proveedores (
     id_compras INTEGER UNSIGNED NOT NULL,
     id_empleado INTEGER UNSIGNED NOT NULL,
     fecha DATE NULL,
+    estado VARCHAR(30) NOT NULL DEFAULT 'Activo',
     PRIMARY KEY (id_devolucion_proveedor),
     CONSTRAINT fk_devolucion_proveedores_compra FOREIGN KEY (id_compras) REFERENCES Compras(id_compras),
     CONSTRAINT fk_devolucion_proveedores_empleado FOREIGN KEY (id_empleado) REFERENCES Empleados(id_empleado)
