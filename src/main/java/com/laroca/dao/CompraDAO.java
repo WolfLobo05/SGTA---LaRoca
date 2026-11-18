@@ -247,6 +247,17 @@ public class CompraDAO {
                     }
                 }
 
+                // Las devoluciones a proveedor activas ya restaron parte de la
+                // compra; cancelarla restaría esas unidades dos veces.
+                // El UPDATE anterior bloquea la compra, igual que el registro
+                // de devoluciones, así que no puede entrar una nueva a la vez.
+                if (contarDevolucionesActivas(conexion, idCompra) > 0) {
+                    conexion.rollback();
+                    mensajeError = "La compra tiene devoluciones a proveedor activas. "
+                            + "Cancela primero sus devoluciones y después la compra.";
+                    return false;
+                }
+
                 List<DetalleCompra> detalles = new ArrayList<>();
 
                 try (PreparedStatement ps = conexion.prepareStatement(sqlDetalle)) {
@@ -347,6 +358,18 @@ public class CompraDAO {
         }
 
         return null;
+    }
+
+    private int contarDevolucionesActivas(Connection conexion, int idCompra) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Devolucion_Proveedores "
+                   + "WHERE id_compras = ? AND UPPER(COALESCE(TRIM(estado), '')) IN ('', 'ACTIVO')";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idCompra);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
     }
 
     private int siguienteId(Connection conexion, String sql) throws SQLException {
