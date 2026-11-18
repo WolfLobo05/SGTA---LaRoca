@@ -109,36 +109,14 @@ public class MenuController {
     private void abrirEstadisticasStock() throws IOException {
         abrirVentana(
                 "/com/laroca/vista/estadisticas-stock.fxml",
-                "La Roca - Estadísticas de Stock");
+                "Sistema abarrotes \"La roca\" — Reporte de Inventario");
     }
 
     @FXML
-    private void abrirEstadisticasGenerales() {
-        try {
-            String ruta = "/com/laroca/vista/estadisticas-generales.fxml";
-            System.out.println("----------------------------------------");
-            System.out.println("INTENTANDO ABRIR: " + ruta);
-            
-            java.net.URL archivoUrl = getClass().getResource(ruta);
-            System.out.println("URL DEL FXML ENCONTRADA: " + archivoUrl);
-            
-            if (archivoUrl == null) {
-                System.err.println("¡ERROR CRÍTICO! El archivo FXML no existe en esa ruta o Maven no lo copió.");
-                return;
-            }
-
-            FXMLLoader loader = new FXMLLoader(archivoUrl);
-            Parent vista = loader.load();
-
-            Stage ventana = (Stage) btnUnidades.getScene().getWindow();
-            Navegacion.mostrar(ventana, vista, "La Roca - Estadísticas Generales");
-            System.out.println("¡VENTANA ABIERTA EXITOSAMENTE!");
-            System.out.println("----------------------------------------");
-            
-        } catch (Exception e) {
-            System.err.println("¡EXCEPCIÓN CAPTURADA AL INTENTAR ABRIR LA VISTA!");
-            e.printStackTrace();
-        }
+    private void abrirEstadisticasGenerales() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/estadisticas-generales.fxml",
+                "La Roca - Estadísticas Generales");
     }
 
     private void abrirVentana(String ruta, String titulo)

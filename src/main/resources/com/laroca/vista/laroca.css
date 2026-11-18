@@ -383,3 +383,220 @@
     -fx-pref-height: 1px;
     -fx-max-height: 1px;
 }
+
+
+/* =====================================================================
+   Componentes compartidos de reportes y estadísticas
+   ===================================================================== */
+
+/* ---------- Barra de filtros: controles con su etiqueta arriba ---------- */
+
+.barra-filtros {
+    -fx-background-color: #e4e4e4;
+    -fx-border-color: transparent transparent #b5b5b5 transparent;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 16px 8px 16px;
+    -fx-spacing: 10px;
+    -fx-alignment: BOTTOM_LEFT;
+}
+
+.filtro {
+    -fx-spacing: 3px;
+}
+
+.etiqueta-filtro {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10.5px;
+}
+
+.barra-filtros .combo-box,
+.barra-filtros .date-picker,
+.barra-filtros .text-field {
+    -fx-min-height: 28px;
+    -fx-pref-height: 28px;
+    -fx-max-height: 28px;
+}
+
+.date-picker {
+    -fx-font-size: 11.5px;
+}
+
+/* ---------- Tarjetas de resumen ---------- */
+
+.tarjeta-resumen {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 10px 6px 10px;
+    -fx-spacing: 2px;
+}
+
+.tarjeta-titulo {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 9.5px;
+}
+
+.tarjeta-valor {
+    -fx-text-fill: #222222;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.tarjeta-valor-alerta {
+    -fx-text-fill: #c0392b;
+}
+
+.tarjeta-subtitulo {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10px;
+}
+
+/* ---------- Pastillas de estado ---------- */
+
+.pastilla {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-padding: 1px 7px 1px 7px;
+    -fx-background-radius: 8px;
+}
+
+.pastilla-ok {
+    -fx-background-color: #dff2e1;
+    -fx-text-fill: #236b33;
+}
+
+.pastilla-alerta {
+    -fx-background-color: #fbe1df;
+    -fx-text-fill: #a82a1f;
+}
+
+/* ---------- Fila de totales ---------- */
+
+.fila-totales {
+    -fx-border-color: #333333 transparent transparent transparent;
+    -fx-border-width: 1.5px 0 0 0;
+}
+
+.fila-totales .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #222222;
+}
+
+/* ---------- Paneles blancos de secciones (Estadísticas) ---------- */
+
+.panel-seccion {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-border-width: 1px;
+    -fx-padding: 10px 12px 10px 12px;
+    -fx-spacing: 4px;
+}
+
+.titulo-seccion {
+    -fx-text-fill: #333333;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.subtitulo-seccion {
+    -fx-text-fill: #777777;
+    -fx-font-size: 10px;
+}
+
+.fondo-desplazable,
+.fondo-desplazable > .viewport {
+    -fx-background-color: #ececec;
+    -fx-background: #ececec;
+}
+
+/* ---------- Reporte de Inventario: hojas blancas ---------- */
+
+.reporte-fondo,
+.reporte-fondo > .viewport {
+    -fx-background-color: #d6d6d6;
+    -fx-background: #d6d6d6;
+}
+
+.reporte-paginas {
+    -fx-alignment: TOP_CENTER;
+    -fx-spacing: 16px;
+    -fx-padding: 16px;
+}
+
+/* También se usa fuera de la ventana (impresión), por eso repite la fuente. */
+.reporte-papel {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-border-width: 1px;
+    -fx-font-family: "Inter", "Arial";
+}
+
+.reporte-papel .reporte-negocio {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10px;
+}
+
+.reporte-papel .reporte-titulo {
+    -fx-text-fill: #222222;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+.reporte-papel .reporte-titulo-chico {
+    -fx-text-fill: #222222;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.reporte-papel .reporte-meta {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10px;
+}
+
+.reporte-regla {
+    -fx-background-color: #222222;
+}
+
+.reporte-encabezado-tabla {
+    -fx-border-color: transparent transparent #8c8c8c transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.reporte-papel .reporte-celda-encabezado {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.reporte-fila {
+    -fx-border-color: transparent transparent #e3e3e3 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.reporte-papel .reporte-celda {
+    -fx-text-fill: #222222;
+    -fx-font-size: 10.5px;
+}
+
+.reporte-papel .reporte-celda-stock {
+    -fx-font-weight: bold;
+}
+
+.reporte-papel .reporte-celda-negativa {
+    -fx-text-fill: #c0392b;
+}
+
+.reporte-papel .reporte-sin-datos {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-style: italic;
+}
+
+.reporte-papel .reporte-nota {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 9px;
+}
+
+.reporte-papel .reporte-nota-alerta {
+    -fx-text-fill: #c0392b;
+    -fx-font-weight: bold;
+}
