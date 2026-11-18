@@ -24,7 +24,7 @@ public class ClienteDAO {
                 + "apellido_materno, telefono, correo, estado "
                 + "FROM Clientes ORDER BY id_cliente";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
 
@@ -54,7 +54,7 @@ public class ClienteDAO {
         String sql = "SELECT COALESCE(MAX(id_cliente), 0) + 1 "
                 + "FROM Clientes";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
 
@@ -86,7 +86,7 @@ public class ClienteDAO {
                 + "WHERE id_cliente <> ? "
                 + "AND telefono = ?";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idExcluir);
@@ -112,7 +112,7 @@ public class ClienteDAO {
                 + "AND telefono = ? "
                 + "AND " + ES_INACTIVO;
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idExcluir);
@@ -136,7 +136,7 @@ public class ClienteDAO {
                 + "apellido_materno, telefono, correo, estado) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, cliente.getIdCliente());
@@ -165,7 +165,7 @@ public class ClienteDAO {
                 + "correo = ? "
                 + "WHERE id_cliente = ?";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, cliente.getNombre());
@@ -196,7 +196,7 @@ public class ClienteDAO {
     private boolean cambiarEstado(int idCliente, String estado) {
         String sql = "UPDATE Clientes SET estado = ? WHERE id_cliente = ?";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
                 PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, estado);
@@ -209,5 +209,18 @@ public class ClienteDAO {
                     + e.getMessage());
             return false;
         }
+    }
+
+    // Conexion.conectar() devuelve null si no hay conexión; aquí se
+    // convierte en SQLException para que cada método la atienda en su
+    // catch en lugar de fallar con NullPointerException.
+    private static Connection conectar() throws SQLException {
+        Connection conexion = Conexion.conectar();
+
+        if (conexion == null) {
+            throw new SQLException("No se pudo conectar con la base de datos.");
+        }
+
+        return conexion;
     }
 }

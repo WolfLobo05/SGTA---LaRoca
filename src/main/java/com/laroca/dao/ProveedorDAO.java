@@ -22,7 +22,7 @@ public class ProveedorDAO {
         List<Proveedor> lista = new ArrayList<>();
         String sql = "SELECT id_proveedor, rfc, nombre, telefono, correo, direccion, contacto, estado FROM Proveedores ORDER BY id_proveedor";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -118,7 +118,7 @@ public class ProveedorDAO {
     public boolean actualizar(Proveedor p) {
         String sql = "UPDATE Proveedores SET rfc = ?, nombre = ?, telefono = ?, correo = ?, direccion = ?, contacto = ? WHERE id_proveedor = ?";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, p.getRfc());
@@ -148,7 +148,7 @@ public class ProveedorDAO {
     private boolean cambiarEstado(int idProveedor, String estado) {
         String sql = "UPDATE Proveedores SET estado = ? WHERE id_proveedor = ?";
 
-        try (Connection con = Conexion.conectar();
+        try (Connection con = conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, estado);
@@ -158,5 +158,18 @@ public class ProveedorDAO {
             System.err.println("Error al cambiar el estado del proveedor: " + e.getMessage());
             return false;
         }
+    }
+
+    // Conexion.conectar() devuelve null si no hay conexión; aquí se
+    // convierte en SQLException para que cada método la atienda en su
+    // catch en lugar de fallar con NullPointerException.
+    private static Connection conectar() throws SQLException {
+        Connection conexion = Conexion.conectar();
+
+        if (conexion == null) {
+            throw new SQLException("No se pudo conectar con la base de datos.");
+        }
+
+        return conexion;
     }
 }
