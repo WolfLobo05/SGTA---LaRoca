@@ -1,7 +1,18 @@
 /* =====================================================================
-   Estilos comunes de las pantallas CRUD de SGTA - La Roca.
-   Todas las pantallas usan la misma estructura:
-   barra de título, barra de herramientas, tabla + panel Detalle y pie.
+   Hoja de estilos única de SGTA - La Roca (todas las pantallas).
+
+   Estructura común de cada pantalla:
+     .ventana            raíz (fondo, borde y fuente)
+     .barra-titulo       barra oscura con .titulo y .botones-ventana
+     .barra-herramientas acción principal a la izquierda, "Volver al
+                         menú" al final del grupo, fecha a la derecha
+     .barra-filtros      (reportes) controles con .etiqueta-filtro
+     .contenido          tabla + .panel-detalle
+     .pie / .texto-pie   barra de estado
+
+   Componentes: .boton-principal (azul), .boton-secundario (blanco con
+   borde), .boton-eliminar, .tabla, .tarjeta-resumen, .fila-totales,
+   .pastilla-ok / .pastilla-alerta, .panel-seccion.
    ===================================================================== */
 
 .ventana {
@@ -598,5 +609,129 @@
 
 .reporte-papel .reporte-nota-alerta {
     -fx-text-fill: #c0392b;
+    -fx-font-weight: bold;
+}
+
+
+/* =====================================================================
+   Estadísticas generales
+   ===================================================================== */
+
+.contenido-estadisticas {
+    -fx-padding: 12px;
+    -fx-spacing: 12px;
+}
+
+.fila-tarjetas {
+    -fx-spacing: 10px;
+}
+
+.fila-paneles {
+    -fx-spacing: 12px;
+}
+
+.grafico-ventas .chart-plot-background {
+    -fx-background-color: white;
+}
+
+.grafico-ventas .chart-bar {
+    -fx-bar-fill: #9cbbd6;
+}
+
+.grafico-ventas .barra-destacada {
+    -fx-bar-fill: #2f6fa8;
+}
+
+.grafico-ventas .axis {
+    -fx-tick-label-font-size: 9.5px;
+}
+
+
+/* =====================================================================
+   Menú principal
+   ===================================================================== */
+
+.menu-contenido {
+    -fx-spacing: 10px;
+    -fx-alignment: CENTER;
+}
+
+.menu-titulo {
+    -fx-text-fill: #333333;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.menu-subtitulo {
+    -fx-text-fill: #666666;
+    -fx-font-size: 13px;
+}
+
+.menu-seccion {
+    -fx-text-fill: #333333;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.boton-menu {
+    -fx-font-size: 14px;
+    -fx-min-width: 300px;
+    -fx-pref-width: 300px;
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+}
+
+
+/* =====================================================================
+   Inicio de sesión
+   ===================================================================== */
+
+.login-logo {
+    -fx-background-color: #2f6fa8;
+    -fx-border-color: #24567f;
+}
+
+.login-logo-texto {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.login-titulo {
+    -fx-text-fill: #262626;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.login-subtitulo {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10.5px;
+}
+
+.campo-login {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-font-size: 12px;
+}
+
+.texto-secundario {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10.5px;
+}
+
+.enlace {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 10.5px;
+    -fx-underline: false;
+    -fx-border-color: transparent;
+}
+
+.mensaje-error {
+    -fx-text-fill: #a83a3a;
+    -fx-font-size: 11px;
+}
+
+.boton-ancho {
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
 }

@@ -7,33 +7,40 @@
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
+<!-- Menú principal: misma ventana, barra de título y pie que el resto. -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
             maxWidth="900.0" maxHeight="600.0"
-            style="-fx-background-color: #ececec;"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.laroca.controlador.MenuController">
 
     <top>
-        <HBox alignment="CENTER_LEFT"
-              prefHeight="45.0" minHeight="45.0" maxHeight="45.0"
-              style="-fx-background-color: linear-gradient(to bottom, #3e3e3e, #2a2a2a); -fx-padding: 0 20px;">
-            <Label text="Sistema Abarrotes &quot;La Roca&quot;"
-                   style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <!-- BARRA DE TÍTULO -->
+        <HBox styleClass="barra-titulo">
+            <Label text='Sistema abarrotes "La Roca" — Menú Principal'
+                   styleClass="titulo"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <HBox styleClass="botones-ventana">
+                <Region styleClass="boton-ventana"/>
+                <Region styleClass="boton-ventana"/>
+                <Region styleClass="boton-ventana"/>
+            </HBox>
         </HBox>
     </top>
 
     <center>
-        <VBox spacing="10.0" alignment="CENTER">
+        <VBox styleClass="menu-contenido">
 
-            <Label text="MENÚ PRINCIPAL"
-                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
+            <Label text="MENÚ PRINCIPAL" styleClass="menu-titulo"/>
 
             <Label text="Selecciona el módulo que deseas administrar"
-                   style="-fx-font-size: 13px; -fx-text-fill: #666666;">
+                   styleClass="menu-subtitulo">
                 <VBox.margin>
                     <Insets bottom="8.0"/>
                 </VBox.margin>
@@ -47,109 +54,81 @@
                 </columnConstraints>
 
                 <!-- CATÁLOGOS -->
-                <Label text="Catálogos"
-                       GridPane.columnIndex="0" GridPane.rowIndex="0"
-                       style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
+                <Label text="Catálogos" styleClass="menu-seccion"
+                       GridPane.columnIndex="0" GridPane.rowIndex="0"/>
 
                 <Button fx:id="btnUnidades"
                         text="Unidades de Medida"
                         onAction="#abrirUnidades"
                         GridPane.columnIndex="0" GridPane.rowIndex="1"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button fx:id="btnCategorias"
                         text="Categorías de Productos"
                         onAction="#abrirCategorias"
                         GridPane.columnIndex="0" GridPane.rowIndex="2"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Roles"
                         onAction="#abrirRoles"
                         GridPane.columnIndex="0" GridPane.rowIndex="3"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Proveedores"
                         onAction="#abrirProveedores"
                         GridPane.columnIndex="0" GridPane.rowIndex="4"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Productos"
                         onAction="#abrirProductos"
                         GridPane.columnIndex="0" GridPane.rowIndex="5"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Usuarios"
                         onAction="#abrirUsuarios"
                         GridPane.columnIndex="0" GridPane.rowIndex="6"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Clientes"
                         onAction="#abrirClientes"
                         GridPane.columnIndex="0" GridPane.rowIndex="7"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                        styleClass="boton-principal, boton-menu"/>
 
-                <!-- OPERACIONES -->
-                <Label text="Operaciones"
-                       GridPane.columnIndex="1" GridPane.rowIndex="0"
-                       style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
+                <!-- OPERACIONES Y REPORTES -->
+                <Label text="Operaciones" styleClass="menu-seccion"
+                       GridPane.columnIndex="1" GridPane.rowIndex="0"/>
 
                 <Button text="Ventas"
                         onAction="#abrirVentas"
                         GridPane.columnIndex="1" GridPane.rowIndex="1"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Compras"
                         onAction="#abrirCompras"
                         GridPane.columnIndex="1" GridPane.rowIndex="2"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-                
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Mermas"
                         onAction="#abrirMermas"
                         GridPane.columnIndex="1" GridPane.rowIndex="3"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Devoluciones de Clientes"
                         onAction="#abrirDevolucionesClientes"
                         GridPane.columnIndex="1" GridPane.rowIndex="4"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Devoluciones a Proveedores"
                         onAction="#abrirDevolucionesProveedores"
                         GridPane.columnIndex="1" GridPane.rowIndex="5"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
-
-                <Button text="Estadísticas de Stock"
+                        styleClass="boton-principal, boton-menu"/>
+                <Button text="Reporte de Inventario"
                         onAction="#abrirEstadisticasStock"
                         GridPane.columnIndex="1" GridPane.rowIndex="6"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>            
-
+                        styleClass="boton-principal, boton-menu"/>
                 <Button text="Estadísticas Generales"
                         onAction="#abrirEstadisticasGenerales"
                         GridPane.columnIndex="1" GridPane.rowIndex="7"
-                        prefWidth="300.0" prefHeight="36.0"
-                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>            
+                        styleClass="boton-principal, boton-menu"/>
             </GridPane>
 
         </VBox>
     </center>
 
     <bottom>
-        <HBox alignment="CENTER_LEFT" style="-fx-padding: 0 20px 12px 20px;">
-            <Label text="SGTA - La Roca"
-                   style="-fx-text-fill: #777777; -fx-font-size: 11px;"/>
+        <!-- BARRA INFERIOR -->
+        <HBox styleClass="pie">
+            <Label text="SGTA - La Roca" styleClass="texto-pie"/>
         </HBox>
     </bottom>
 

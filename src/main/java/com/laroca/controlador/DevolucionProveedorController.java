@@ -2,11 +2,8 @@ package com.laroca.controlador;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 import com.laroca.dao.DevolucionProveedorDAO;
@@ -66,8 +63,8 @@ public class DevolucionProveedorController {
 
     @FXML private TableColumn<DetalleDevolucionProveedor, String> colProducto;
     @FXML private TableColumn<DetalleDevolucionProveedor, Integer> colCantidad;
-    @FXML private TableColumn<DetalleDevolucionProveedor, BigDecimal> colPrecio;
-    @FXML private TableColumn<DetalleDevolucionProveedor, BigDecimal> colSubtotal;
+    @FXML private TableColumn<DetalleDevolucionProveedor, String> colPrecio;
+    @FXML private TableColumn<DetalleDevolucionProveedor, String> colSubtotal;
     @FXML private TableColumn<DetalleDevolucionProveedor, String> colMotivo;
 
     @FXML private Label lblTotal;
@@ -86,10 +83,6 @@ public class DevolucionProveedorController {
     private final ObservableList<DetalleDevolucionProveedor> detalles =
             FXCollections.observableArrayList();
 
-    private final NumberFormat formatoDinero =
-            NumberFormat.getCurrencyInstance(
-                    Locale.forLanguageTag("es-MX"));
-
     // =====================================================
     // INICIALIZACIÓN
     // =====================================================
@@ -102,12 +95,9 @@ public class DevolucionProveedorController {
         tableDevoluciones.setItems(devoluciones);
         tableDetalle.setItems(detalles);
 
-        lblFechaActual.setText(
-                LocalDate.now().format(
-                        DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        lblFechaActual.setText(Formato.fecha(LocalDate.now()));
 
-        lblTotal.setText(
-                formatoDinero.format(BigDecimal.ZERO));
+        lblTotal.setText(Formato.dinero(BigDecimal.ZERO));
 
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
@@ -172,12 +162,12 @@ public class DevolucionProveedorController {
                         c.getValue().getCantidad()));
 
         colPrecio.setCellValueFactory(c ->
-                new ReadOnlyObjectWrapper<>(
-                        c.getValue().getPrecio()));
+                new ReadOnlyStringWrapper(
+                        Formato.dinero(c.getValue().getPrecio())));
 
         colSubtotal.setCellValueFactory(c ->
-                new ReadOnlyObjectWrapper<>(
-                        c.getValue().getSubtotal()));
+                new ReadOnlyStringWrapper(
+                        Formato.dinero(c.getValue().getSubtotal())));
 
         colMotivo.setCellValueFactory(c ->
                 new ReadOnlyStringWrapper(
@@ -484,8 +474,7 @@ public class DevolucionProveedorController {
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            lblTotal.setText(
-                    formatoDinero.format(total));
+            lblTotal.setText(Formato.dinero(total));
 
         } catch (Exception e) {
 
@@ -494,7 +483,7 @@ public class DevolucionProveedorController {
             detalles.clear();
 
             lblTotal.setText(
-                    formatoDinero.format(BigDecimal.ZERO));
+                    Formato.dinero(BigDecimal.ZERO));
 
             mostrarAlerta(
                     Alert.AlertType.ERROR,
@@ -520,7 +509,7 @@ public class DevolucionProveedorController {
         txtEstado.clear();
 
         lblTotal.setText(
-                formatoDinero.format(BigDecimal.ZERO));
+                Formato.dinero(BigDecimal.ZERO));
 
         lblEstadoFooter.setText(
                 "Selecciona una devolución para consultar su detalle.");

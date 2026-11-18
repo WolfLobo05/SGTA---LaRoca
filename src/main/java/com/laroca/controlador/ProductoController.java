@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Optional;
 
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -54,7 +55,7 @@ public class ProductoController {
     private TableColumn<Producto, String> columnaUnidad;
 
     @FXML
-    private TableColumn<Producto, BigDecimal> columnaPrecio;
+    private TableColumn<Producto, String> columnaPrecio;
 
     @FXML
     private TableColumn<Producto, Integer> columnaExistencia;
@@ -130,8 +131,8 @@ public class ProductoController {
         columnaUnidad.setCellValueFactory(
                 new PropertyValueFactory<>("nombreUnidad"));
 
-        columnaPrecio.setCellValueFactory(
-                new PropertyValueFactory<>("precio"));
+        columnaPrecio.setCellValueFactory(c ->
+                new ReadOnlyStringWrapper(Formato.dinero(c.getValue().getPrecio())));
 
         columnaExistencia.setCellValueFactory(
                 new PropertyValueFactory<>("existencia"));
