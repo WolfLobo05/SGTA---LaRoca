@@ -9,8 +9,6 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Mismo tamaño fijo que las pantallas CRUD (900x600).
-     El contenido queda centrado, con espacio gris arriba y abajo. -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
             maxWidth="900.0" maxHeight="600.0"
@@ -129,6 +127,18 @@
                 <Button text="Devoluciones a Proveedores"
                         onAction="#abrirDevolucionesProveedores"
                         GridPane.columnIndex="1" GridPane.rowIndex="5"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>
+
+                <Button text="Estadísticas de Stock"
+                        onAction="#abrirEstadisticasStock"
+                        GridPane.columnIndex="1" GridPane.rowIndex="6"
+                        prefWidth="300.0" prefHeight="36.0"
+                        style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>            
+
+                <Button text="Estadísticas Generales"
+                        onAction="#abrirEstadisticasGenerales"
+                        GridPane.columnIndex="1" GridPane.rowIndex="7"
                         prefWidth="300.0" prefHeight="36.0"
                         style="-fx-background-color: #2f6fa8; -fx-text-fill: white; -fx-font-size: 14px;"/>            
             </GridPane>

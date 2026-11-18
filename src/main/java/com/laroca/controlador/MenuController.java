@@ -17,6 +17,11 @@ public class MenuController {
     private Button btnCategorias;
 
     @FXML
+    public void initialize() {
+        Navegacion.verificarSesion(btnUnidades);
+    }
+
+    @FXML
     private void abrirUnidades() throws IOException {
         abrirVentana(
                 "/com/laroca/vista/unidad-medida.fxml",
@@ -100,6 +105,42 @@ public class MenuController {
                 "La Roca - Devoluciones a Proveedores");
     }
 
+    @FXML
+    private void abrirEstadisticasStock() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/estadisticas-stock.fxml",
+                "La Roca - Estadísticas de Stock");
+    }
+
+    @FXML
+    private void abrirEstadisticasGenerales() {
+        try {
+            String ruta = "/com/laroca/vista/estadisticas-generales.fxml";
+            System.out.println("----------------------------------------");
+            System.out.println("INTENTANDO ABRIR: " + ruta);
+            
+            java.net.URL archivoUrl = getClass().getResource(ruta);
+            System.out.println("URL DEL FXML ENCONTRADA: " + archivoUrl);
+            
+            if (archivoUrl == null) {
+                System.err.println("¡ERROR CRÍTICO! El archivo FXML no existe en esa ruta o Maven no lo copió.");
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(archivoUrl);
+            Parent vista = loader.load();
+
+            Stage ventana = (Stage) btnUnidades.getScene().getWindow();
+            Navegacion.mostrar(ventana, vista, "La Roca - Estadísticas Generales");
+            System.out.println("¡VENTANA ABIERTA EXITOSAMENTE!");
+            System.out.println("----------------------------------------");
+            
+        } catch (Exception e) {
+            System.err.println("¡EXCEPCIÓN CAPTURADA AL INTENTAR ABRIR LA VISTA!");
+            e.printStackTrace();
+        }
+    }
+
     private void abrirVentana(String ruta, String titulo)
             throws IOException {
 
@@ -108,8 +149,6 @@ public class MenuController {
 
         Parent vista = loader.load();
 
-        // Se usa la misma ventana del menú, con el tamaño estándar,
-        // para que no cambie de tamaño ni de posición al navegar.
         Stage ventana = (Stage) btnUnidades.getScene().getWindow();
         Navegacion.mostrar(ventana, vista, titulo);
     }

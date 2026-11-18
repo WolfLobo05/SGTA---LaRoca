@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefWidth="900.0" prefHeight="600.0"
+            minWidth="900.0" minHeight="600.0"
+            maxWidth="900.0" maxHeight="600.0"
+            styleClass="ventana"
+            stylesheets="@laroca.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.laroca.controlador.EstadisticasStockController">
+
+    <top>
+        <VBox>
+
+            <!-- BARRA DE TÍTULO -->
+            <HBox styleClass="barra-titulo">
+                <Label text='Sistema abarrotes "La Roca" — Estadísticas de Stock'
+                       styleClass="titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="botones-ventana">
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                    <Region styleClass="boton-ventana"/>
+                </HBox>
+            </HBox>
+
+            <!-- BARRA DE HERRAMIENTAS -->
+            <HBox styleClass="barra-herramientas" spacing="8.0" alignment="CENTER_LEFT">
+                <Button fx:id="btnGenerar"
+                        text="Generar estadísticas"
+                        onAction="#handleGenerarEstadisticas"
+                        styleClass="boton-principal"/>
+
+                <Button fx:id="btnActualizar"
+                        text="Actualizar"
+                        onAction="#handleActualizar"
+                        styleClass="boton-secundario"/>
+
+                <Button fx:id="btnExportar"
+                        text="Exportar"
+                        onAction="#handleExportar"
+                        styleClass="boton-secundario"/>
+
+                <Button fx:id="btnVolverMenu"
+                        text="Volver al menú"
+                        onAction="#volverAlMenu"
+                        styleClass="boton-secundario"/>
+
+                <!-- ComboBox exacto para el período igual a Figma -->
+                <ComboBox fx:id="cmbPeriodo"
+                          prefWidth="220.0"
+                          promptText="Período Consultado: Septiembre 2026"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+        </VBox>
+    </top>
+
+    <center>
+        <HBox styleClass="contenido" spacing="10.0">
+
+            <!-- TABLA DE ESTADÍSTICAS (IZQUIERDA) -->
+            <TableView fx:id="tablaStock"
+                       HBox.hgrow="ALWAYS"
+                       styleClass="tabla">
+                <columns>
+                    <TableColumn fx:id="colProducto" text="Producto" prefWidth="120.0" sortable="false"/>
+                    <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="75.0" sortable="false" styleClass="columna-numero"/>
+                    <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="75.0" sortable="false" styleClass="columna-numero"/>
+                    <TableColumn fx:id="colStockAct" text="Stock Act." prefWidth="75.0" sortable="false" styleClass="columna-numero"/>
+                    <TableColumn fx:id="colCantExistente" text="Cant. existente" prefWidth="95.0" sortable="false" styleClass="columna-numero"/>
+                </columns>
+            </TableView>
+
+            <!-- PANEL DE RESUMEN (DERECHA) -->
+            <VBox styleClass="panel-detalle"
+                  minWidth="347.0"
+                  prefWidth="347.0"
+                  maxWidth="347.0"
+                  spacing="8.0">
+
+                <Label text="Resumen de Estadísticas"
+                       styleClass="titulo-detalle"/>
+
+                <VBox styleClass="formulario-compacto"
+                      VBox.vgrow="ALWAYS" spacing="6.0">
+
+                    <!-- Total de Productos -->
+                    <VBox styleClass="campo">
+                        <Label text="Total de Productos" styleClass="etiqueta"/>
+                        <Label fx:id="lblTotalProductos" text="0 productos" maxWidth="Infinity" styleClass="campo-lectura" style="-fx-padding: 6;"/>
+                    </VBox>
+
+                    <!-- Total de entradas -->
+                    <VBox styleClass="campo">
+                        <Label text="Total de entradas" styleClass="etiqueta"/>
+                        <Label fx:id="lblTotalEntradas" text="0 unidades" maxWidth="Infinity" styleClass="campo-lectura" style="-fx-padding: 6;"/>
+                    </VBox>
+
+                    <!-- Total de salidas -->
+                    <VBox styleClass="campo">
+                        <Label text="Total de salidas" styleClass="etiqueta"/>
+                        <Label fx:id="lblTotalSalidas" text="0 unidades" maxWidth="Infinity" styleClass="campo-lectura" style="-fx-padding: 6;"/>
+                    </VBox>
+
+                    <!-- Producto con mayor salida -->
+                    <VBox styleClass="campo">
+                        <Label text="Producto con mayor salida" styleClass="etiqueta"/>
+                        <Label fx:id="lblMayorSalida" text="-" maxWidth="Infinity" styleClass="campo-lectura" style="-fx-padding: 6;"/>
+                    </VBox>
+
+                    <!-- Producto con menor stock -->
+                    <VBox styleClass="campo">
+                        <Label text="Producto con menor stock" styleClass="etiqueta"/>
+                        <Label fx:id="lblMenorStock" text="-" maxWidth="Infinity" styleClass="campo-lectura" style="-fx-padding: 6;"/>
+                    </VBox>
+
+                </VBox>
+
+            </VBox>
+
+        </HBox>
+    </center>
+
+    <bottom>
+        <HBox styleClass="pie">
+            <Label fx:id="lblEstadoRegistros"
+                   text="0 productos registrados"
+                   styleClass="texto-pie"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
