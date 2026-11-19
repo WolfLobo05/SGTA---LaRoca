@@ -100,6 +100,23 @@ public class MenuController {
                 "La Roca - Devoluciones a Proveedores");
     }
 
+    // NUEVO: Estadísticas generales
+    @FXML
+    private void abrirEstadisticasGenerales() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/estadisticas-generales.fxml",
+                "La Roca - Estadísticas Generales");
+    }
+
+    // NUEVO: Estadísticas de stock
+    @FXML
+    private void abrirEstadisticasStock() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/estadisticas-stock.fxml",
+                "La Roca - Estadísticas de Stock");
+    }
+
+
     private void abrirVentana(String ruta, String titulo)
             throws IOException {
 
@@ -108,9 +125,8 @@ public class MenuController {
 
         Parent vista = loader.load();
 
-        // Se usa la misma ventana del menú, con el tamaño estándar,
-        // para que no cambie de tamaño ni de posición al navegar.
         Stage ventana = (Stage) btnUnidades.getScene().getWindow();
+
         Navegacion.mostrar(ventana, vista, titulo);
     }
 }
