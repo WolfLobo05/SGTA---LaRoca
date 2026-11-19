@@ -17,7 +17,7 @@ public class Conexion {
     private static final String USUARIO = valor("laroca.db.usuario", "LAROCA_DB_USUARIO",
             "root");
     private static final String PASSWORD = valor("laroca.db.password", "LAROCA_DB_PASSWORD",
-            "011125");
+            "sgta2026LaRoca$");
 
     // Devuelve null si no se pudo conectar; quien llama debe revisarlo.
     public static Connection conectar() {
