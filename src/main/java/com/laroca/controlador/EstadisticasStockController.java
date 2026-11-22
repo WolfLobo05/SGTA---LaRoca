@@ -129,6 +129,10 @@ public class EstadisticasStockController {
     @FXML
     public void initialize() {
 
+        if (!Navegacion.verificarPermiso(btnVolverMenu, "CONSULTAR_INVENTARIO")) {
+            return;
+        }
+
         LocalDate hoy = LocalDate.now();
 
         lblFecha.setText(Formato.fecha(hoy));
@@ -255,6 +259,10 @@ public class EstadisticasStockController {
 
     private void generar(boolean conAlertas) {
 
+        if (!Sesion.tienePermiso("CONSULTAR_INVENTARIO")) {
+            return;
+        }
+
         LocalDate desde = leerFecha(dpDesde);
         LocalDate hasta = leerFecha(dpHasta);
 
@@ -374,6 +382,10 @@ public class EstadisticasStockController {
     @FXML
     private void imprimir() {
 
+        if (!Sesion.tienePermiso("CONSULTAR_INVENTARIO")) {
+            return;
+        }
+
         if (reporteActual == null) {
             return;
         }
@@ -442,6 +454,10 @@ public class EstadisticasStockController {
 
     @FXML
     private void exportarPdf() {
+        if (!Sesion.tienePermiso("CONSULTAR_INVENTARIO")) {
+            return;
+        }
+
         File archivo = elegirArchivo(
                 "Exportar reporte a PDF",
                 "PDF (*.pdf)",
@@ -464,6 +480,10 @@ public class EstadisticasStockController {
 
     @FXML
     private void exportarExcel() {
+        if (!Sesion.tienePermiso("CONSULTAR_INVENTARIO")) {
+            return;
+        }
+
         File archivo = elegirArchivo(
                 "Exportar reporte a Excel",
                 "Libro de Excel (*.xlsx)",

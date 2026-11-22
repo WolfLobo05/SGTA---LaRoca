@@ -26,6 +26,7 @@ import com.laroca.conexion.Conexion;
 import com.laroca.dao.CategoriaDAO;
 import com.laroca.modelo.Categoria;
 import com.laroca.modelo.Estados;
+import com.laroca.modelo.Sesion;
 import com.laroca.reporte.DatosReporteEstadisticas;
 import com.laroca.reporte.ExportadorEstadisticasPdf;
 import com.laroca.reporte.ExportadorEstadisticasExcel;
@@ -166,6 +167,10 @@ public class EstadisticasGeneralesController {
 
     @FXML
     public void initialize() {
+        if (!Navegacion.verificarPermiso(btnVolver, "ESTADISTICAS_GENERALES")) {
+            return;
+        }
+
         lblFecha.setText(Formato.fecha(LocalDate.now()));
 
         colTopNombre.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
@@ -385,17 +390,27 @@ public class EstadisticasGeneralesController {
 
     @FXML
     private void handleGenerar() {
+        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
+            return;
+        }
         cargarDatosDashboard();
     }
 
     @FXML
     private void handleActualizar() {
+        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
+            return;
+        }
         cargarFiltrosDinamicos();
         cargarDatosDashboard();
     }
 
     @FXML
     private void handleExportar() {
+        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
+            return;
+        }
+
         // Validar el mismo rango que se utilizará en el reporte.
         LocalDate desde = leerFecha(dpDesde);
         LocalDate hasta = leerFecha(dpHasta);
