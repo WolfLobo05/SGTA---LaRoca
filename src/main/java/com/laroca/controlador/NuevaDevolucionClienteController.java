@@ -50,42 +50,73 @@ public class NuevaDevolucionClienteController {
     // COMPONENTES FXML
     // =========================================================
 
-    @FXML private Button btnNuevaDevolucion;
-    @FXML private Button btnCancelar;
-    @FXML private Label lblFolio;
-    @FXML private Label lblFecha;
-    @FXML private TextField txtFolioVenta;
-    @FXML private Button btnBuscarVenta;
+    @FXML
+    private Button btnNuevaDevolucion;
+    @FXML
+    private Button btnCancelar;
+    @FXML
+    private Label lblFolio;
+    @FXML
+    private Label lblFecha;
+    @FXML
+    private TextField txtFolioVenta;
+    @FXML
+    private Button btnBuscarVenta;
 
-    @FXML private TableView<ProductoVentaDevolucion> tableProductosVenta;
-    @FXML private TableColumn<ProductoVentaDevolucion, String> colProducto;
-    @FXML private TableColumn<ProductoVentaDevolucion, Integer> colVendidos;
-    @FXML private TableColumn<ProductoVentaDevolucion, Integer> colDevueltos;
-    @FXML private TableColumn<ProductoVentaDevolucion, Integer> colDisponibles;
-    @FXML private TableColumn<ProductoVentaDevolucion, String> colPrecio;
+    @FXML
+    private TableView<ProductoVentaDevolucion> tableProductosVenta;
+    @FXML
+    private TableColumn<ProductoVentaDevolucion, String> colProducto;
+    @FXML
+    private TableColumn<ProductoVentaDevolucion, Integer> colVendidos;
+    @FXML
+    private TableColumn<ProductoVentaDevolucion, Integer> colDevueltos;
+    @FXML
+    private TableColumn<ProductoVentaDevolucion, Integer> colDisponibles;
+    @FXML
+    private TableColumn<ProductoVentaDevolucion, String> colPrecio;
 
-    @FXML private TextField txtCantidad;
-    @FXML private TextField txtMotivo;
-    @FXML private Button btnAgregar;
+    @FXML
+    private TextField txtCantidad;
+    @FXML
+    private TextField txtMotivo;
+    @FXML
+    private Button btnAgregar;
 
-    @FXML private TableView<DetalleDevolucionCliente> tableCarrito;
-    @FXML private TableColumn<DetalleDevolucionCliente, String> colCarritoProducto;
-    @FXML private TableColumn<DetalleDevolucionCliente, Integer> colCarritoCantidad;
-    @FXML private TableColumn<DetalleDevolucionCliente, String> colCarritoPrecio;
-    @FXML private TableColumn<DetalleDevolucionCliente, String> colCarritoSubtotal;
-    @FXML private TableColumn<DetalleDevolucionCliente, String> colCarritoMotivo;
-    @FXML private TableColumn<DetalleDevolucionCliente, Void> colQuitar;
+    @FXML
+    private TableView<DetalleDevolucionCliente> tableCarrito;
+    @FXML
+    private TableColumn<DetalleDevolucionCliente, String> colCarritoProducto;
+    @FXML
+    private TableColumn<DetalleDevolucionCliente, Integer> colCarritoCantidad;
+    @FXML
+    private TableColumn<DetalleDevolucionCliente, String> colCarritoPrecio;
+    @FXML
+    private TableColumn<DetalleDevolucionCliente, String> colCarritoSubtotal;
+    @FXML
+    private TableColumn<DetalleDevolucionCliente, String> colCarritoMotivo;
+    @FXML
+    private TableColumn<DetalleDevolucionCliente, Void> colQuitar;
 
-    @FXML private TextField txtEmpleado;
-    @FXML private TextField txtCliente;
-    @FXML private TextField txtFecha;
-    @FXML private TextField txtVenta;
+    @FXML
+    private TextField txtEmpleado;
+    @FXML
+    private TextField txtCliente;
+    @FXML
+    private TextField txtFecha;
+    @FXML
+    private TextField txtVenta;
 
-    @FXML private Label lblNumProductos;
-    @FXML private Label lblArticulos;
-    @FXML private Label lblTotal;
-    @FXML private Button btnRegistrar;
-    @FXML private Label lblEstadoFooter;
+    @FXML
+    private Label lblNumProductos;
+    @FXML
+    private Label lblArticulos;
+    @FXML
+    private Label lblTotal;
+    @FXML
+    private Button btnRegistrar;
+    @FXML
+    private Label lblEstadoFooter;
 
     // =========================================================
     // DAO, LISTAS Y BUSCADOR
@@ -94,11 +125,9 @@ public class NuevaDevolucionClienteController {
     private final DevolucionClienteDAO devolucionDAO = new DevolucionClienteDAO();
     private final VentaDAO ventaDAO = new VentaDAO();
 
-    private final ObservableList<ProductoVentaDevolucion> productosVenta =
-            FXCollections.observableArrayList();
+    private final ObservableList<ProductoVentaDevolucion> productosVenta = FXCollections.observableArrayList();
 
-    private final ObservableList<DetalleDevolucionCliente> carrito =
-            FXCollections.observableArrayList();
+    private final ObservableList<DetalleDevolucionCliente> carrito = FXCollections.observableArrayList();
 
     private Venta ventaSeleccionada;
 
@@ -106,8 +135,7 @@ public class NuevaDevolucionClienteController {
     private final ListView<Venta> listaSugerencias = new ListView<>();
     private boolean seleccionandoSugerencia = false;
 
-    private static final DateTimeFormatter FORMATO_FECHA =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // =========================================================
     // INICIALIZACIÓN
@@ -115,6 +143,12 @@ public class NuevaDevolucionClienteController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para registrar devoluciones de
+        // clientes.
+        if (!Navegacion.verificarPermiso(tableCarrito, "DEVOLUCIONES_CLIENTES")) {
+            return;
+        }
 
         configurarTablaProductos();
         configurarTablaCarrito();
@@ -131,9 +165,9 @@ public class NuevaDevolucionClienteController {
                 new Label("Agrega los productos que deseas devolver."));
 
         txtCantidad.setTextFormatter(
-                new TextFormatter<String>(cambio ->
-                        cambio.getControlNewText().matches("\\d{0,4}")
-                                ? cambio : null));
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("\\d{0,4}")
+                        ? cambio
+                        : null));
 
         txtEmpleado.setText(
                 Sesion.haySesion() ? Sesion.getUsuario() : "Sin sesión iniciada");
@@ -144,20 +178,20 @@ public class NuevaDevolucionClienteController {
 
         int siguienteId = devolucionDAO.obtenerSiguienteId();
         lblFolio.setText(siguienteId > 0
-                ? String.format("DC-%03d", siguienteId) : "—");
+                ? String.format("DC-%03d", siguienteId)
+                : "—");
 
         carrito.addListener(
-                (ListChangeListener<DetalleDevolucionCliente>)
-                        cambio -> actualizarResumen());
+                (ListChangeListener<DetalleDevolucionCliente>) cambio -> actualizarResumen());
 
         tableProductosVenta.getSelectionModel()
                 .selectedItemProperty()
                 .addListener((obs, anterior, actual) -> {
-                    if (actual != null) txtCantidad.setText("1");
+                    if (actual != null)
+                        txtCantidad.setText("1");
                 });
 
         btnRegistrar.setDisable(true);
-        Navegacion.verificarSesion(tableCarrito);
     }
 
     // =========================================================
@@ -170,9 +204,8 @@ public class NuevaDevolucionClienteController {
         colDevueltos.setCellValueFactory(new PropertyValueFactory<>("cantidadDevuelta"));
         colDisponibles.setCellValueFactory(new PropertyValueFactory<>("cantidadDisponible"));
 
-        colPrecio.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(
-                        Formato.dinero(c.getValue().getPrecioUnitario())));
+        colPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(
+                Formato.dinero(c.getValue().getPrecioUnitario())));
     }
 
     private void configurarTablaCarrito() {
@@ -181,25 +214,22 @@ public class NuevaDevolucionClienteController {
         colCarritoCantidad.setCellValueFactory(
                 new PropertyValueFactory<>("cantidad"));
 
-        colCarritoPrecio.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(
-                        Formato.dinero(c.getValue().getPrecio())));
+        colCarritoPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(
+                Formato.dinero(c.getValue().getPrecio())));
 
-        colCarritoSubtotal.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(
-                        Formato.dinero(c.getValue().getSubtotal())));
+        colCarritoSubtotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(
+                Formato.dinero(c.getValue().getSubtotal())));
 
         colCarritoMotivo.setCellValueFactory(
                 new PropertyValueFactory<>("motivo"));
 
-        colQuitar.setCellFactory(columna ->
-                new CeldaQuitar<>(carrito::remove));
+        colQuitar.setCellFactory(columna -> new CeldaQuitar<>(carrito::remove));
 
         tableCarrito.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DELETE) {
-                DetalleDevolucionCliente seleccionado =
-                        tableCarrito.getSelectionModel().getSelectedItem();
-                if (seleccionado != null) carrito.remove(seleccionado);
+                DetalleDevolucionCliente seleccionado = tableCarrito.getSelectionModel().getSelectedItem();
+                if (seleccionado != null)
+                    carrito.remove(seleccionado);
             }
         });
     }
@@ -223,7 +253,8 @@ public class NuevaDevolucionClienteController {
 
                 String folio = String.format("V-%03d", venta.getIdVenta());
                 String cliente = venta.getNombreCliente() == null
-                        ? "Cliente sin nombre" : venta.getNombreCliente();
+                        ? "Cliente sin nombre"
+                        : venta.getNombreCliente();
                 String fecha = venta.getFecha() == null
                         ? "Sin fecha"
                         : venta.getFecha().toLocalDate().format(FORMATO_FECHA);
@@ -238,7 +269,8 @@ public class NuevaDevolucionClienteController {
         popupVentas.setHideOnEscape(true);
 
         txtFolioVenta.textProperty().addListener((obs, anterior, actual) -> {
-            if (seleccionandoSugerencia) return;
+            if (seleccionandoSugerencia)
+                return;
 
             if (ventaSeleccionada != null) {
                 String folioCargado = String.format(
@@ -256,7 +288,8 @@ public class NuevaDevolucionClienteController {
             if (event.getClickCount() == 1) {
                 Venta seleccionada = listaSugerencias
                         .getSelectionModel().getSelectedItem();
-                if (seleccionada != null) seleccionarVentaSugerida(seleccionada);
+                if (seleccionada != null)
+                    seleccionarVentaSugerida(seleccionada);
             }
         });
 
@@ -264,14 +297,16 @@ public class NuevaDevolucionClienteController {
             if (event.getCode() == KeyCode.ENTER) {
                 Venta seleccionada = listaSugerencias
                         .getSelectionModel().getSelectedItem();
-                if (seleccionada != null) seleccionarVentaSugerida(seleccionada);
+                if (seleccionada != null)
+                    seleccionarVentaSugerida(seleccionada);
             }
         });
 
         txtFolioVenta.focusedProperty().addListener((obs, anterior, enfocado) -> {
             if (!enfocado) {
                 Platform.runLater(() -> {
-                    if (!listaSugerencias.isFocused()) popupVentas.hide();
+                    if (!listaSugerencias.isFocused())
+                        popupVentas.hide();
                 });
             }
         });
@@ -295,7 +330,8 @@ public class NuevaDevolucionClienteController {
         Bounds limites = txtFolioVenta.localToScreen(
                 txtFolioVenta.getBoundsInLocal());
 
-        if (limites == null || txtFolioVenta.getScene() == null) return;
+        if (limites == null || txtFolioVenta.getScene() == null)
+            return;
 
         listaSugerencias.setPrefWidth(
                 Math.max(txtFolioVenta.getWidth(), 300));
@@ -312,7 +348,8 @@ public class NuevaDevolucionClienteController {
     }
 
     private void seleccionarVentaSugerida(Venta venta) {
-        if (venta == null) return;
+        if (venta == null)
+            return;
 
         popupVentas.hide();
         seleccionandoSugerencia = true;
@@ -365,7 +402,8 @@ public class NuevaDevolucionClienteController {
     }
 
     private void cargarVentaSeleccionada(Venta venta) {
-        if (venta == null) return;
+        if (venta == null)
+            return;
 
         if (!Estados.esActivo(venta.getEstado())) {
             limpiarVenta();
@@ -374,8 +412,7 @@ public class NuevaDevolucionClienteController {
             return;
         }
 
-        List<ProductoVentaDevolucion> productos =
-                devolucionDAO.listarProductosVenta(venta.getIdVenta());
+        List<ProductoVentaDevolucion> productos = devolucionDAO.listarProductosVenta(venta.getIdVenta());
 
         if (productos == null || productos.isEmpty()) {
             limpiarVenta();
@@ -419,8 +456,7 @@ public class NuevaDevolucionClienteController {
             return;
         }
 
-        ProductoVentaDevolucion producto =
-                tableProductosVenta.getSelectionModel().getSelectedItem();
+        ProductoVentaDevolucion producto = tableProductosVenta.getSelectionModel().getSelectedItem();
 
         if (producto == null) {
             mostrarAlerta("Producto no seleccionado",
@@ -526,8 +562,8 @@ public class NuevaDevolucionClienteController {
 
         lblEstadoFooter.setText(productos
                 + (productos == 1
-                    ? " producto en la devolución"
-                    : " productos en la devolución"));
+                        ? " producto en la devolución"
+                        : " productos en la devolución"));
     }
 
     private BigDecimal calcularTotal() {
@@ -559,8 +595,8 @@ public class NuevaDevolucionClienteController {
         if (!confirmar(
                 "Registrar devolución",
                 "¿Deseas registrar esta devolución?\n\n"
-                + "Total devuelto: " + Formato.dinero(calcularTotal())
-                + "\n\nLas unidades se reintegrarán al inventario.")) {
+                        + "Total devuelto: " + Formato.dinero(calcularTotal())
+                        + "\n\nLas unidades se reintegrarán al inventario.")) {
             return;
         }
 
@@ -582,8 +618,8 @@ public class NuevaDevolucionClienteController {
         mostrarInformacion(
                 "Devolución registrada",
                 "La devolución " + devolucion.getFolio()
-                + " se registró correctamente.\n\n"
-                + "El inventario fue actualizado.");
+                        + " se registró correctamente.\n\n"
+                        + "El inventario fue actualizado.");
 
         volverAGestion(idDevolucion);
     }
@@ -672,4 +708,3 @@ public class NuevaDevolucionClienteController {
         alerta.showAndWait();
     }
 }
-

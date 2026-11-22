@@ -3,6 +3,7 @@ package com.laroca.controlador;
 import com.laroca.dao.CategoriaDAO;
 import com.laroca.modelo.Categoria;
 import com.laroca.modelo.Estados;
+import com.laroca.modelo.Sesion;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -69,6 +70,12 @@ public class CategoriaController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para acceder a categorías.
+        if (!Navegacion.verificarPermiso(tablaCategorias, "CATEGORIAS")) {
+            return;
+        }
+
         columnaNombre.setCellValueFactory(
                 new PropertyValueFactory<>("nombre"));
         columnaDescripcion.setCellValueFactory(
@@ -168,6 +175,11 @@ public class CategoriaController {
 
     @FXML
     private void nuevo() {
+
+        if (!Sesion.tienePermiso("CATEGORIAS")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -182,6 +194,11 @@ public class CategoriaController {
 
     @FXML
     private void guardar() {
+
+        if (!Sesion.tienePermiso("CATEGORIAS")) {
+            return;
+        }
+
         String nombre = txtNombre.getText().trim();
         String descripcion = txtDescripcion.getText().trim();
 
@@ -275,6 +292,11 @@ public class CategoriaController {
     // Elimina (desactiva) o reactiva la categoría, según la casilla.
     @FXML
     private void eliminar() {
+
+        if (!Sesion.tienePermiso("CATEGORIAS")) {
+            return;
+        }
+
         Categoria seleccionada = tablaCategorias
                 .getSelectionModel().getSelectedItem();
 

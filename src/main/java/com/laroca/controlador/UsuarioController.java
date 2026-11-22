@@ -1,4 +1,3 @@
-
 package com.laroca.controlador;
 
 import com.laroca.dao.RolDAO;
@@ -6,6 +5,7 @@ import com.laroca.dao.UsuarioDAO;
 import com.laroca.modelo.Estados;
 import com.laroca.modelo.Rol;
 import com.laroca.modelo.Usuario;
+import com.laroca.modelo.Sesion;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -75,6 +75,11 @@ public class UsuarioController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para acceder a usuarios.
+        if (!Navegacion.verificarPermiso(tablaUsuarios, "USUARIOS")) {
+            return;
+        }
 
         lblFecha.setText(LocalDate.now().format(
                 DateTimeFormatter.ofPattern("dd/MM/yyyy")));
@@ -298,6 +303,11 @@ public class UsuarioController {
 
     @FXML
     private void nuevo() {
+
+        if (!Sesion.tienePermiso("USUARIOS")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -381,6 +391,11 @@ public class UsuarioController {
 
     @FXML
     private void guardar() {
+
+        if (!Sesion.tienePermiso("USUARIOS")) {
+            return;
+        }
+
         String usuario = txtUsuario.getText().trim();
         String password = txtPassword.getText();
         String nombre = txtNombre.getText().trim();
@@ -500,6 +515,11 @@ public class UsuarioController {
     // Elimina (desactiva) o reactiva el usuario, según la casilla.
     @FXML
     private void eliminar() {
+
+        if (!Sesion.tienePermiso("USUARIOS")) {
+            return;
+        }
+
         if (usuarioSeleccionado == null) {
             return;
         }

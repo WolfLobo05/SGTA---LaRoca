@@ -87,31 +87,36 @@
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Roles"
+                    <Button fx:id="btnRoles"
+                            text="Roles"
                             onAction="#abrirRoles"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Proveedores"
+                    <Button fx:id="btnProveedores"
+                            text="Proveedores"
                             onAction="#abrirProveedores"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Productos"
+                    <Button fx:id="btnProductos"
+                            text="Productos"
                             onAction="#abrirProductos"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Usuarios"
+                    <Button fx:id="btnUsuarios"
+                            text="Usuarios"
                             onAction="#abrirUsuarios"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Clientes"
+                    <Button fx:id="btnClientes"
+                            text="Clientes"
                             onAction="#abrirClientes"
                             maxWidth="Infinity"
                             prefHeight="34"
@@ -134,31 +139,36 @@
                     <Region prefHeight="1"
                             style="-fx-background-color: #337AB7;"/>
 
-                    <Button text="Ventas"
+                    <Button fx:id="btnVentas"
+                            text="Ventas"
                             onAction="#abrirVentas"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Compras"
+                    <Button fx:id="btnCompras"
+                            text="Compras"
                             onAction="#abrirCompras"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Mermas"
+                    <Button fx:id="btnMermas"
+                            text="Mermas"
                             onAction="#abrirMermas"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Devoluciones de Clientes"
+                    <Button fx:id="btnDevolucionesClientes"
+                            text="Devoluciones de Clientes"
                             onAction="#abrirDevolucionesClientes"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Devoluciones a Proveedores"
+                    <Button fx:id="btnDevolucionesProveedores"
+                            text="Devoluciones a Proveedores"
                             onAction="#abrirDevolucionesProveedores"
                             maxWidth="Infinity"
                             prefHeight="34"
@@ -181,20 +191,16 @@
                     <Region prefHeight="1"
                             style="-fx-background-color: #337AB7;"/>
 
-                    <Button text="Estadísticas Generales"
+                    <Button fx:id="btnEstadisticasGenerales"
+                            text="Estadísticas Generales"
                             onAction="#abrirEstadisticasGenerales"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
 
-                    <Button text="Estadísticas de Stock"
+                    <Button fx:id="btnConsultarInventario"
+                            text="Consultar Inventario"
                             onAction="#abrirEstadisticasStock"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button text="Reporte de Inventario"
-                            onAction="#abrirReporteInventario"
                             maxWidth="Infinity"
                             prefHeight="34"
                             styleClass="boton-principal, boton-menu"/>
@@ -215,4 +221,3 @@
     </bottom>
 
 </BorderPane>
-  

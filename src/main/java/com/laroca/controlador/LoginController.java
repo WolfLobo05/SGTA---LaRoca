@@ -43,23 +43,35 @@ public class LoginController {
         Usuario empleado = empleadoDAO.iniciarSesion(usuario, password);
 
         if (empleado != null) {
-            // Guardar quién inició sesión para registrar ventas y compras.
-            Sesion.establecer(empleado.getIdUsuario(), empleado.getUsuario(),
-                    empleado.getNombreCompleto());
+
+            // Guardar los datos del empleado y su rol en la sesión.
+            Sesion.establecer(
+                    empleado.getIdUsuario(),
+                    empleado.getUsuario(),
+                    empleado.getNombreCompleto(),
+                    empleado.getNombreRol()
+            );
 
             try {
-                // Cargar el Menú Principal
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/laroca/vista/menu.fxml"));
+                // Cargar el menú principal.
+                FXMLLoader loader = new FXMLLoader(
+                        getClass().getResource("/com/laroca/vista/menu.fxml")
+                );
+
                 Parent root = loader.load();
 
-                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                Stage stage = (Stage) ((Node) event.getSource())
+                        .getScene().getWindow();
+
                 Navegacion.mostrar(stage, root, Navegacion.TITULO_MENU);
                 stage.centerOnScreen();
                 stage.show();
+
             } catch (IOException e) {
                 e.printStackTrace();
                 lblMensaje.setText("Error al cargar la pantalla del menú.");
             }
+
         } else {
             lblMensaje.setText("Usuario o contraseña incorrectos.");
         }
@@ -67,6 +79,8 @@ public class LoginController {
 
     @FXML
     private void olvidarPassword() {
-        lblMensaje.setText("Contacta al administrador para restablecer tu acceso.");
+        lblMensaje.setText(
+                "Contacta al administrador para restablecer tu acceso."
+        );
     }
 }

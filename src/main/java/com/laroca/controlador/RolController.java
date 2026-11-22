@@ -3,6 +3,7 @@ package com.laroca.controlador;
 import com.laroca.dao.RolDAO;
 import com.laroca.modelo.Estados;
 import com.laroca.modelo.Rol;
+import com.laroca.modelo.Sesion;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -78,6 +79,11 @@ public class RolController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para administrar roles.
+        if (!Navegacion.verificarPermiso(tablaRoles, "ROLES")) {
+            return;
+        }
 
         lblFecha.setText(
                 LocalDate.now().format(
@@ -188,6 +194,11 @@ public class RolController {
 
     @FXML
     private void nuevo() {
+
+        if (!Sesion.tienePermiso("ROLES")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -209,6 +220,11 @@ public class RolController {
 
     @FXML
     private void guardar() {
+
+        if (!Sesion.tienePermiso("ROLES")) {
+            return;
+        }
+
         String nombre = txtNombre.getText().trim();
         String descripcion = txtDescripcion.getText().trim();
 
@@ -308,6 +324,11 @@ public class RolController {
     // Elimina (desactiva) o reactiva el rol, según la casilla.
     @FXML
     private void eliminar() {
+
+        if (!Sesion.tienePermiso("ROLES")) {
+            return;
+        }
+
         if (rolSeleccionado == null) {
             return;
         }

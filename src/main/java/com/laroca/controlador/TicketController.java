@@ -9,6 +9,7 @@ import java.util.Objects;
 import com.laroca.dao.VentaDAO;
 import com.laroca.modelo.DetalleVenta;
 import com.laroca.modelo.Venta;
+import com.laroca.modelo.Sesion;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -62,7 +63,20 @@ public class TicketController {
 
     // Abre el ticket de la venta como ventana modal y espera a que se cierre.
     // Se usa al cobrar una venta nueva y al reimprimir.
+
     public static void mostrar(Window duenio, int idVenta) {
+
+        // Verificar que exista una sesión y que el usuario tenga permiso de Ventas.
+        if (!Sesion.haySesion() || !Sesion.tienePermiso("VENTAS")) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.setTitle("Acceso denegado");
+            alerta.setHeaderText(null);
+            alerta.setContentText(
+                    "No tienes permiso para generar o consultar tickets de venta.");
+            alerta.showAndWait();
+            return;
+        }
+
         try {
             FXMLLoader loader = new FXMLLoader(
                     TicketController.class.getResource("/com/laroca/vista/ticket.fxml"));

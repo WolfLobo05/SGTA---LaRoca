@@ -6,6 +6,7 @@ import com.laroca.dao.UnidadMedidaDAO;
 import com.laroca.modelo.Categoria;
 import com.laroca.modelo.Estados;
 import com.laroca.modelo.Producto;
+import com.laroca.modelo.Sesion;
 import com.laroca.modelo.UnidadMedida;
 
 import java.io.IOException;
@@ -114,6 +115,11 @@ public class ProductoController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para administrar productos.
+        if (!Navegacion.verificarPermiso(tablaProductos, "PRODUCTOS")) {
+            return;
+        }
 
         lblFecha.setText(
                 LocalDate.now().format(
@@ -376,6 +382,11 @@ public class ProductoController {
 
     @FXML
     private void nuevo() {
+
+        if (!Sesion.tienePermiso("PRODUCTOS")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -397,6 +408,11 @@ public class ProductoController {
 
     @FXML
     private void guardar() {
+
+        if (!Sesion.tienePermiso("PRODUCTOS")) {
+            return;
+        }
+
         String codigo = txtCodigo.getText().trim();
         String nombre = txtNombre.getText().trim();
         String textoPrecio = txtPrecio.getText().trim();
@@ -577,6 +593,11 @@ public class ProductoController {
     // Elimina (desactiva) o reactiva el producto, según la casilla.
     @FXML
     private void eliminar() {
+
+        if (!Sesion.tienePermiso("PRODUCTOS")) {
+            return;
+        }
+
         if (productoSeleccionado == null) {
             return;
         }

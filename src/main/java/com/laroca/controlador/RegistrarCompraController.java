@@ -99,14 +99,18 @@ public class RegistrarCompraController {
     private final ProductoDAO productoDAO = new ProductoDAO();
     private final ProveedorDAO proveedorDAO = new ProveedorDAO();
 
-    private final ObservableList<DetalleCompra> carrito =
-            FXCollections.observableArrayList();
+    private final ObservableList<DetalleCompra> carrito = FXCollections.observableArrayList();
 
     // Producto identificado por código o mediante Buscar.
     private Producto productoElegido;
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para registrar compras.
+        if (!Navegacion.verificarPermiso(tableCarrito, "COMPRAS")) {
+            return;
+        }
 
         colNumero.setCellFactory(columna -> new TableCell<>() {
             @Override
@@ -131,8 +135,7 @@ public class RegistrarCompraController {
         configurarEdicionCantidad();
 
         // Botón para quitar productos del carrito.
-        colQuitar.setCellFactory(columna ->
-                new CeldaQuitar<>(carrito::remove));
+        colQuitar.setCellFactory(columna -> new CeldaQuitar<>(carrito::remove));
 
         tableCarrito.setItems(carrito);
 
@@ -142,8 +145,7 @@ public class RegistrarCompraController {
         // Supr quita el renglón seleccionado.
         tableCarrito.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.DELETE) {
-                DetalleCompra linea =
-                        tableCarrito.getSelectionModel().getSelectedItem();
+                DetalleCompra linea = tableCarrito.getSelectionModel().getSelectedItem();
 
                 if (linea != null) {
                     carrito.remove(linea);
@@ -152,14 +154,16 @@ public class RegistrarCompraController {
         });
 
         // Cantidad: solo enteros de 1 a 9999.
-        txtCantidad.setTextFormatter(new TextFormatter<String>(cambio ->
-                cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
-                        ? cambio : null));
+        txtCantidad.setTextFormatter(
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
+                        ? cambio
+                        : null));
 
         // Precio de compra: hasta 7 enteros y 2 decimales.
-        txtPrecio.setTextFormatter(new TextFormatter<String>(cambio ->
-                cambio.getControlNewText().matches("^\\d{0,7}(\\.\\d{0,2})?$")
-                        ? cambio : null));
+        txtPrecio.setTextFormatter(
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("^\\d{0,7}(\\.\\d{0,2})?$")
+                        ? cambio
+                        : null));
 
         cmbProveedor.setConverter(new StringConverter<Proveedor>() {
             @Override
@@ -187,12 +191,9 @@ public class RegistrarCompraController {
                 : "Sin sesión iniciada");
 
         carrito.addListener(
-                (ListChangeListener<DetalleCompra>) cambio ->
-                        actualizarResumen());
+                (ListChangeListener<DetalleCompra>) cambio -> actualizarResumen());
 
         iniciarCompra();
-
-        Navegacion.verificarSesion(tableCarrito);
     }
 
     // =========================================================
@@ -204,8 +205,7 @@ public class RegistrarCompraController {
         tableCarrito.setEditable(true);
         colCantidad.setEditable(true);
 
-        colCantidad.setCellFactory(columna ->
-                new TableCell<DetalleCompra, Integer>() {
+        colCantidad.setCellFactory(columna -> new TableCell<DetalleCompra, Integer>() {
 
             private final TextField txtEditar = new TextField();
 
@@ -410,8 +410,7 @@ public class RegistrarCompraController {
 
         txtCodigo.setText(textoProducto(producto));
 
-        BigDecimal ultimoPrecio =
-                compraDAO.ultimoPrecioCompra(producto.getIdProducto());
+        BigDecimal ultimoPrecio = compraDAO.ultimoPrecioCompra(producto.getIdProducto());
 
         txtPrecio.setText(
                 ultimoPrecio == null

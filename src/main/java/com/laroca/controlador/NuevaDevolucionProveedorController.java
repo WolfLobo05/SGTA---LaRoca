@@ -49,56 +49,84 @@ public class NuevaDevolucionProveedorController {
     // COMPONENTES FXML
     // =========================================================
 
-    @FXML private Button btnNuevaDevolucion;
-    @FXML private Button btnCancelar;
-    @FXML private Label lblFolio;
-    @FXML private Label lblFecha;
+    @FXML
+    private Button btnNuevaDevolucion;
+    @FXML
+    private Button btnCancelar;
+    @FXML
+    private Label lblFolio;
+    @FXML
+    private Label lblFecha;
 
-    @FXML private TextField txtFolioCompra;
-    @FXML private Button btnBuscarCompra;
+    @FXML
+    private TextField txtFolioCompra;
+    @FXML
+    private Button btnBuscarCompra;
 
-    @FXML private TableView<ProductoCompraDevolucion> tableProductosCompra;
-    @FXML private TableColumn<ProductoCompraDevolucion, String> colProducto;
-    @FXML private TableColumn<ProductoCompraDevolucion, Integer> colComprados;
-    @FXML private TableColumn<ProductoCompraDevolucion, Integer> colDevueltos;
-    @FXML private TableColumn<ProductoCompraDevolucion, Integer> colDisponibles;
-    @FXML private TableColumn<ProductoCompraDevolucion, String> colPrecioCompra;
+    @FXML
+    private TableView<ProductoCompraDevolucion> tableProductosCompra;
+    @FXML
+    private TableColumn<ProductoCompraDevolucion, String> colProducto;
+    @FXML
+    private TableColumn<ProductoCompraDevolucion, Integer> colComprados;
+    @FXML
+    private TableColumn<ProductoCompraDevolucion, Integer> colDevueltos;
+    @FXML
+    private TableColumn<ProductoCompraDevolucion, Integer> colDisponibles;
+    @FXML
+    private TableColumn<ProductoCompraDevolucion, String> colPrecioCompra;
 
-    @FXML private TextField txtCantidad;
-    @FXML private TextField txtMotivo;
-    @FXML private Button btnAgregar;
+    @FXML
+    private TextField txtCantidad;
+    @FXML
+    private TextField txtMotivo;
+    @FXML
+    private Button btnAgregar;
 
-    @FXML private TableView<DetalleDevolucionProveedor> tableCarrito;
-    @FXML private TableColumn<DetalleDevolucionProveedor, String> colCarritoProducto;
-    @FXML private TableColumn<DetalleDevolucionProveedor, Integer> colCarritoCantidad;
-    @FXML private TableColumn<DetalleDevolucionProveedor, String> colCarritoPrecio;
-    @FXML private TableColumn<DetalleDevolucionProveedor, String> colCarritoSubtotal;
-    @FXML private TableColumn<DetalleDevolucionProveedor, String> colCarritoMotivo;
-    @FXML private TableColumn<DetalleDevolucionProveedor, Void> colQuitar;
+    @FXML
+    private TableView<DetalleDevolucionProveedor> tableCarrito;
+    @FXML
+    private TableColumn<DetalleDevolucionProveedor, String> colCarritoProducto;
+    @FXML
+    private TableColumn<DetalleDevolucionProveedor, Integer> colCarritoCantidad;
+    @FXML
+    private TableColumn<DetalleDevolucionProveedor, String> colCarritoPrecio;
+    @FXML
+    private TableColumn<DetalleDevolucionProveedor, String> colCarritoSubtotal;
+    @FXML
+    private TableColumn<DetalleDevolucionProveedor, String> colCarritoMotivo;
+    @FXML
+    private TableColumn<DetalleDevolucionProveedor, Void> colQuitar;
 
-    @FXML private TextField txtEmpleado;
-    @FXML private TextField txtProveedor;
-    @FXML private TextField txtFecha;
-    @FXML private TextField txtCompra;
+    @FXML
+    private TextField txtEmpleado;
+    @FXML
+    private TextField txtProveedor;
+    @FXML
+    private TextField txtFecha;
+    @FXML
+    private TextField txtCompra;
 
-    @FXML private Label lblNumProductos;
-    @FXML private Label lblArticulos;
-    @FXML private Label lblTotal;
-    @FXML private Button btnRegistrar;
-    @FXML private Label lblEstadoFooter;
+    @FXML
+    private Label lblNumProductos;
+    @FXML
+    private Label lblArticulos;
+    @FXML
+    private Label lblTotal;
+    @FXML
+    private Button btnRegistrar;
+    @FXML
+    private Label lblEstadoFooter;
 
     // =========================================================
     // DAO, LISTAS Y BUSCADOR
     // =========================================================
 
-    private final DevolucionProveedorDAO devolucionDAO =
-            new DevolucionProveedorDAO();
+    private final DevolucionProveedorDAO devolucionDAO = new DevolucionProveedorDAO();
 
-    private final ObservableList<ProductoCompraDevolucion> productosCompra =
-            FXCollections.observableArrayList();
+    private final ObservableList<ProductoCompraDevolucion> productosCompra = FXCollections.observableArrayList();
 
-    private final ObservableList<DetalleDevolucionProveedor> carrito =
-            FXCollections.observableArrayList();
+    private final ObservableList<DetalleDevolucionProveedor> carrito = FXCollections.observableArrayList();
 
     private Compra compraSeleccionada;
 
@@ -106,8 +134,7 @@ public class NuevaDevolucionProveedorController {
     private final ListView<Compra> listaSugerencias = new ListView<>();
     private boolean seleccionandoSugerencia = false;
 
-    private static final DateTimeFormatter FORMATO_FECHA =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // =========================================================
     // INICIALIZACIÓN
@@ -115,6 +142,13 @@ public class NuevaDevolucionProveedorController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para registrar devoluciones a
+        // proveedores.
+        if (!Navegacion.verificarPermiso(tableCarrito, "DEVOLUCIONES_PROVEEDORES")) {
+            return;
+        }
+
         configurarTablaProductos();
         configurarTablaCarrito();
 
@@ -130,14 +164,14 @@ public class NuevaDevolucionProveedorController {
                 new Label("Agrega los productos que deseas devolver al proveedor."));
 
         txtCantidad.setTextFormatter(
-                new TextFormatter<String>(cambio ->
-                        cambio.getControlNewText().matches("\\d{0,4}")
-                                ? cambio : null));
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("\\d{0,4}")
+                        ? cambio
+                        : null));
 
         txtMotivo.setTextFormatter(
-                new TextFormatter<String>(cambio ->
-                        cambio.getControlNewText().length() <= 100
-                                ? cambio : null));
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().length() <= 100
+                        ? cambio
+                        : null));
 
         txtEmpleado.setText(
                 Sesion.haySesion() ? Sesion.getUsuario() : "Sin sesión iniciada");
@@ -148,20 +182,20 @@ public class NuevaDevolucionProveedorController {
 
         int siguienteId = devolucionDAO.obtenerSiguienteId();
         lblFolio.setText(siguienteId > 0
-                ? String.format("DP-%03d", siguienteId) : "—");
+                ? String.format("DP-%03d", siguienteId)
+                : "—");
 
         carrito.addListener(
-                (ListChangeListener<DetalleDevolucionProveedor>)
-                        cambio -> actualizarResumen());
+                (ListChangeListener<DetalleDevolucionProveedor>) cambio -> actualizarResumen());
 
         tableProductosCompra.getSelectionModel()
                 .selectedItemProperty()
                 .addListener((obs, anterior, actual) -> {
-                    if (actual != null) txtCantidad.setText("1");
+                    if (actual != null)
+                        txtCantidad.setText("1");
                 });
 
         btnRegistrar.setDisable(true);
-        Navegacion.verificarSesion(tableCarrito);
     }
 
     // =========================================================
@@ -178,9 +212,8 @@ public class NuevaDevolucionProveedorController {
         colDisponibles.setCellValueFactory(
                 new PropertyValueFactory<>("cantidadDisponible"));
 
-        colPrecioCompra.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(
-                        Formato.dinero(c.getValue().getPrecioCompra())));
+        colPrecioCompra.setCellValueFactory(c -> new ReadOnlyStringWrapper(
+                Formato.dinero(c.getValue().getPrecioCompra())));
     }
 
     private void configurarTablaCarrito() {
@@ -189,25 +222,22 @@ public class NuevaDevolucionProveedorController {
         colCarritoCantidad.setCellValueFactory(
                 new PropertyValueFactory<>("cantidad"));
 
-        colCarritoPrecio.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(
-                        Formato.dinero(c.getValue().getPrecio())));
+        colCarritoPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(
+                Formato.dinero(c.getValue().getPrecio())));
 
-        colCarritoSubtotal.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(
-                        Formato.dinero(c.getValue().getSubtotal())));
+        colCarritoSubtotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(
+                Formato.dinero(c.getValue().getSubtotal())));
 
         colCarritoMotivo.setCellValueFactory(
                 new PropertyValueFactory<>("motivo"));
 
-        colQuitar.setCellFactory(columna ->
-                new CeldaQuitar<>(carrito::remove));
+        colQuitar.setCellFactory(columna -> new CeldaQuitar<>(carrito::remove));
 
         tableCarrito.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DELETE) {
-                DetalleDevolucionProveedor seleccionado =
-                        tableCarrito.getSelectionModel().getSelectedItem();
-                if (seleccionado != null) carrito.remove(seleccionado);
+                DetalleDevolucionProveedor seleccionado = tableCarrito.getSelectionModel().getSelectedItem();
+                if (seleccionado != null)
+                    carrito.remove(seleccionado);
             }
         });
     }
@@ -230,7 +260,8 @@ public class NuevaDevolucionProveedorController {
 
                 String folio = compra.getFolio();
                 String proveedor = compra.getNombreProveedor() == null
-                        ? "Proveedor sin nombre" : compra.getNombreProveedor();
+                        ? "Proveedor sin nombre"
+                        : compra.getNombreProveedor();
                 String fecha = compra.getFecha() == null
                         ? "Sin fecha"
                         : compra.getFecha().format(FORMATO_FECHA);
@@ -245,7 +276,8 @@ public class NuevaDevolucionProveedorController {
         popupCompras.setHideOnEscape(true);
 
         txtFolioCompra.textProperty().addListener((obs, anterior, actual) -> {
-            if (seleccionandoSugerencia) return;
+            if (seleccionandoSugerencia)
+                return;
 
             if (compraSeleccionada != null) {
                 String folioCargado = compraSeleccionada.getFolio();
@@ -261,7 +293,8 @@ public class NuevaDevolucionProveedorController {
             if (event.getClickCount() == 1) {
                 Compra seleccionada = listaSugerencias
                         .getSelectionModel().getSelectedItem();
-                if (seleccionada != null) seleccionarCompraSugerida(seleccionada);
+                if (seleccionada != null)
+                    seleccionarCompraSugerida(seleccionada);
             }
         });
 
@@ -269,14 +302,16 @@ public class NuevaDevolucionProveedorController {
             if (event.getCode() == KeyCode.ENTER) {
                 Compra seleccionada = listaSugerencias
                         .getSelectionModel().getSelectedItem();
-                if (seleccionada != null) seleccionarCompraSugerida(seleccionada);
+                if (seleccionada != null)
+                    seleccionarCompraSugerida(seleccionada);
             }
         });
 
         txtFolioCompra.focusedProperty().addListener((obs, anterior, enfocado) -> {
             if (!enfocado) {
                 Platform.runLater(() -> {
-                    if (!listaSugerencias.isFocused()) popupCompras.hide();
+                    if (!listaSugerencias.isFocused())
+                        popupCompras.hide();
                 });
             }
         });
@@ -300,7 +335,8 @@ public class NuevaDevolucionProveedorController {
         Bounds limites = txtFolioCompra.localToScreen(
                 txtFolioCompra.getBoundsInLocal());
 
-        if (limites == null || txtFolioCompra.getScene() == null) return;
+        if (limites == null || txtFolioCompra.getScene() == null)
+            return;
 
         listaSugerencias.setPrefWidth(
                 Math.max(txtFolioCompra.getWidth(), 320));
@@ -317,7 +353,8 @@ public class NuevaDevolucionProveedorController {
     }
 
     private void seleccionarCompraSugerida(Compra compra) {
-        if (compra == null) return;
+        if (compra == null)
+            return;
 
         popupCompras.hide();
         seleccionandoSugerencia = true;
@@ -377,7 +414,8 @@ public class NuevaDevolucionProveedorController {
     }
 
     private void cargarCompraSeleccionada(Compra compra) {
-        if (compra == null) return;
+        if (compra == null)
+            return;
 
         if (!Estados.esActivo(compra.getEstado())) {
             limpiarCompra();
@@ -386,8 +424,7 @@ public class NuevaDevolucionProveedorController {
             return;
         }
 
-        List<ProductoCompraDevolucion> productos =
-                devolucionDAO.listarProductosCompra(compra.getIdCompra());
+        List<ProductoCompraDevolucion> productos = devolucionDAO.listarProductosCompra(compra.getIdCompra());
 
         if (productos == null || productos.isEmpty()) {
             limpiarCompra();
@@ -431,8 +468,7 @@ public class NuevaDevolucionProveedorController {
             return;
         }
 
-        ProductoCompraDevolucion producto =
-                tableProductosCompra.getSelectionModel().getSelectedItem();
+        ProductoCompraDevolucion producto = tableProductosCompra.getSelectionModel().getSelectedItem();
 
         if (producto == null) {
             mostrarAlerta("Producto no seleccionado",
@@ -497,13 +533,12 @@ public class NuevaDevolucionProveedorController {
             return;
         }
 
-        DetalleDevolucionProveedor detalle =
-                new DetalleDevolucionProveedor(
-                        producto.getIdProducto(),
-                        producto.getNombreProducto(),
-                        cantidad,
-                        producto.getPrecioCompra(),
-                        motivo);
+        DetalleDevolucionProveedor detalle = new DetalleDevolucionProveedor(
+                producto.getIdProducto(),
+                producto.getNombreProducto(),
+                cantidad,
+                producto.getPrecioCompra(),
+                motivo);
 
         carrito.add(detalle);
         txtCantidad.setText("1");
@@ -539,8 +574,8 @@ public class NuevaDevolucionProveedorController {
 
         lblEstadoFooter.setText(productos
                 + (productos == 1
-                    ? " producto en la devolución"
-                    : " productos en la devolución"));
+                        ? " producto en la devolución"
+                        : " productos en la devolución"));
     }
 
     private BigDecimal calcularTotal() {
@@ -572,8 +607,8 @@ public class NuevaDevolucionProveedorController {
         if (!confirmar(
                 "Registrar devolución",
                 "¿Deseas registrar esta devolución al proveedor?\n\n"
-                + "Total de la devolución: " + Formato.dinero(calcularTotal())
-                + "\n\nLas unidades se descontarán del inventario.")) {
+                        + "Total de la devolución: " + Formato.dinero(calcularTotal())
+                        + "\n\nLas unidades se descontarán del inventario.")) {
             return;
         }
 
@@ -597,8 +632,8 @@ public class NuevaDevolucionProveedorController {
         mostrarInformacion(
                 "Devolución registrada",
                 "La devolución " + devolucion.getFolio()
-                + " se registró correctamente.\n\n"
-                + "El inventario fue actualizado.");
+                        + " se registró correctamente.\n\n"
+                        + "El inventario fue actualizado.");
 
         volverAGestion(idDevolucion);
     }
@@ -643,7 +678,7 @@ public class NuevaDevolucionProveedorController {
             e.printStackTrace();
             mostrarAlerta("Error",
                     "La devolución se registró, pero no se pudo abrir la gestión. "
-                    + "Verifica la ruta del FXML y el controlador de devoluciones.");
+                            + "Verifica la ruta del FXML y el controlador de devoluciones.");
         }
     }
 

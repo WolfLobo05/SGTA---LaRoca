@@ -122,8 +122,7 @@ public class NuevaVentaController {
     private final ClienteDAO clienteDAO = new ClienteDAO();
     private final MetodoPagoDAO metodoPagoDAO = new MetodoPagoDAO();
 
-    private final ObservableList<DetalleVenta> carrito =
-            FXCollections.observableArrayList();
+    private final ObservableList<DetalleVenta> carrito = FXCollections.observableArrayList();
 
     private final Map<Integer, Integer> existencias = new HashMap<>();
 
@@ -137,6 +136,11 @@ public class NuevaVentaController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para registrar ventas.
+        if (!Navegacion.verificarPermiso(tableCarrito, "VENTAS")) {
+            return;
+        }
 
         // Numeración de los renglones.
         colNumero.setCellFactory(columna -> new TableCell<>() {
@@ -171,8 +175,7 @@ public class NuevaVentaController {
         // Suprimir elimina el producto seleccionado.
         tableCarrito.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.DELETE) {
-                DetalleVenta linea =
-                        tableCarrito.getSelectionModel().getSelectedItem();
+                DetalleVenta linea = tableCarrito.getSelectionModel().getSelectedItem();
 
                 if (linea != null) {
                     carrito.remove(linea);
@@ -181,9 +184,10 @@ public class NuevaVentaController {
         });
 
         // Cantidad para agregar: enteros de 1 a 9999.
-        txtCantidad.setTextFormatter(new TextFormatter<String>(cambio ->
-                cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
-                        ? cambio : null));
+        txtCantidad.setTextFormatter(
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
+                        ? cambio
+                        : null));
 
         // Configuración del método de pago.
         cmbMetodo.setConverter(new StringConverter<MetodoPago>() {
@@ -222,8 +226,6 @@ public class NuevaVentaController {
         configurarBusquedaDinamica();
 
         iniciarVenta();
-
-        Navegacion.verificarSesion(tableCarrito);
     }
 
     // =========================================================
@@ -235,8 +237,7 @@ public class NuevaVentaController {
         tableCarrito.setEditable(true);
         colCantidad.setEditable(true);
 
-        colCantidad.setCellFactory(columna ->
-                new TableCell<DetalleVenta, Integer>() {
+        colCantidad.setCellFactory(columna -> new TableCell<DetalleVenta, Integer>() {
 
             private final TextField txtEditar = new TextField();
 
@@ -724,24 +725,22 @@ public class NuevaVentaController {
 
         List<Cliente> activos = clientesActivos();
 
-        DialogoSeleccion<Cliente> dialogo =
-                new DialogoSeleccion<>(
-                        ventana(),
-                        "Seleccionar cliente",
-                        texto -> {
+        DialogoSeleccion<Cliente> dialogo = new DialogoSeleccion<>(
+                ventana(),
+                "Seleccionar cliente",
+                texto -> {
 
-                            String filtro = texto.toLowerCase(Locale.ROOT);
+                    String filtro = texto.toLowerCase(Locale.ROOT);
 
-                            return activos.stream()
-                                    .filter(c ->
-                                            c.getNombreCompleto()
-                                                    .toLowerCase(Locale.ROOT)
-                                                    .contains(filtro)
-                                            || Objects.toString(
-                                                    c.getTelefono(), "")
-                                                    .contains(filtro))
-                                    .toList();
-                        });
+                    return activos.stream()
+                            .filter(c -> c.getNombreCompleto()
+                                    .toLowerCase(Locale.ROOT)
+                                    .contains(filtro)
+                                    || Objects.toString(
+                                            c.getTelefono(), "")
+                                            .contains(filtro))
+                            .toList();
+                });
 
         dialogo.agregarColumna(
                 "Nombre",
@@ -833,8 +832,7 @@ public class NuevaVentaController {
 
     private void actualizarStock() {
 
-        DetalleVenta linea =
-                tableCarrito.getSelectionModel().getSelectedItem();
+        DetalleVenta linea = tableCarrito.getSelectionModel().getSelectedItem();
 
         if (linea == null) {
 
@@ -946,10 +944,10 @@ public class NuevaVentaController {
 
         TextField editor = dialogo.getEditor();
 
-        editor.setTextFormatter(new TextFormatter<String>(cambio ->
-                cambio.getControlNewText()
-                        .matches("\\d{0,8}(\\.\\d{0,2})?")
-                        ? cambio : null));
+        editor.setTextFormatter(new TextFormatter<String>(cambio -> cambio.getControlNewText()
+                .matches("\\d{0,8}(\\.\\d{0,2})?")
+                        ? cambio
+                        : null));
 
         Button btnAceptar = (Button) dialogo.getDialogPane()
                 .lookupButton(ButtonType.OK);
@@ -957,9 +955,8 @@ public class NuevaVentaController {
         btnAceptar.setDisable(true);
 
         editor.textProperty().addListener(
-                (obs, anterior, actual) ->
-                        btnAceptar.setDisable(
-                                leerMonto(actual).compareTo(total) < 0));
+                (obs, anterior, actual) -> btnAceptar.setDisable(
+                        leerMonto(actual).compareTo(total) < 0));
 
         Runnable seleccionarTodo = () -> {
 

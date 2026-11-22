@@ -2,135 +2,85 @@ package com.laroca.controlador;
 
 import java.io.IOException;
 
+import com.laroca.modelo.Sesion;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 
 public class MenuController {
 
-    @FXML
-    private Button btnUnidades;
-
-    @FXML
-    private Button btnCategorias;
+    @FXML private Button btnUnidades;
+    @FXML private Button btnCategorias;
+    @FXML private Button btnRoles;
+    @FXML private Button btnProveedores;
+    @FXML private Button btnProductos;
+    @FXML private Button btnUsuarios;
+    @FXML private Button btnClientes;
+    @FXML private Button btnVentas;
+    @FXML private Button btnCompras;
+    @FXML private Button btnMermas;
+    @FXML private Button btnDevolucionesClientes;
+    @FXML private Button btnDevolucionesProveedores;
+    @FXML private Button btnEstadisticasGenerales;
+    @FXML private Button btnConsultarInventario;
 
     @FXML
     public void initialize() {
-        Navegacion.verificarSesion(btnUnidades);
+        if (!Navegacion.verificarSesion(btnUnidades)) {
+            return;
+        }
+
+        aplicarPermisos();
     }
 
-    @FXML
-    private void abrirUnidades() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/unidad-medida.fxml",
-                "La Roca - Unidades de Medida");
+    // Muestra únicamente los módulos permitidos para cada rol.
+    private void aplicarPermisos() {
+        configurar(btnUnidades, "UNIDADES");
+        configurar(btnCategorias, "CATEGORIAS");
+        configurar(btnRoles, "ROLES");
+        configurar(btnProveedores, "PROVEEDORES");
+        configurar(btnProductos, "PRODUCTOS");
+        configurar(btnUsuarios, "USUARIOS");
+        configurar(btnClientes, "CLIENTES");
+        configurar(btnVentas, "VENTAS");
+        configurar(btnCompras, "COMPRAS");
+        configurar(btnMermas, "MERMAS");
+        configurar(btnDevolucionesClientes, "DEVOLUCIONES_CLIENTES");
+        configurar(btnDevolucionesProveedores, "DEVOLUCIONES_PROVEEDORES");
+        configurar(btnEstadisticasGenerales, "ESTADISTICAS_GENERALES");
+        configurar(btnConsultarInventario, "CONSULTAR_INVENTARIO");
     }
 
-    @FXML
-    private void abrirCategorias() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/categorias.fxml",
-                "La Roca - Categorías");
+    // Oculta el botón y elimina el espacio que ocupaba.
+    private void configurar(Button boton, String permiso) {
+        boolean permitido = Sesion.tienePermiso(permiso);
+
+        boton.setVisible(permitido);
+        boton.setManaged(permitido);
     }
 
-    @FXML
-    private void abrirRoles() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/roles.fxml",
-                "La Roca - Roles");
-    }
-
-    @FXML
-    private void abrirProveedores() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/proveedores.fxml",
-                "La Roca - Proveedores");
-    }
-
-    @FXML
-    private void abrirProductos() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/productos.fxml",
-                "La Roca - Productos");
-    }
-
-    @FXML
-    private void abrirUsuarios() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/usuarios.fxml",
-                "La Roca - Usuarios");
-    }
-
-    @FXML
-    private void abrirClientes() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/clientes.fxml",
-                "La Roca - Clientes");
-    }
-
-    @FXML
-    private void abrirVentas() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/ventas.fxml",
-                "La Roca - Ventas");
-    }
-
-    @FXML
-    private void abrirCompras() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/compras.fxml",
-                "La Roca - Compras");
-    }
-
-    @FXML
-    private void abrirMermas() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/mermas.fxml",
-                "La Roca - Mermas");
-    }
-
-    @FXML
-    private void abrirDevolucionesClientes() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/devoluciones-clientes.fxml",
-                "La Roca - Devoluciones de Clientes");
-    }
-
-    @FXML
-    private void abrirDevolucionesProveedores() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/devoluciones-proveedores.fxml",
-                "La Roca - Devoluciones a Proveedores");
-    }
-
-    @FXML
-    private void abrirReporteInventario() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/reporte-inventario.fxml",
-                "La Roca - Reporte de Inventario");
-    }
-
-    @FXML
-    private void abrirEstadisticasStock() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/estadisticas-stock.fxml",
-                "La Roca - Estadísticas de Stock");
-    }
-
-    @FXML
-    private void abrirEstadisticasGenerales() throws IOException {
-        abrirVentana(
-                "/com/laroca/vista/estadisticas-generales.fxml",
-                "La Roca - Estadísticas Generales");
-    }
-
-    private void abrirVentana(String ruta, String titulo)
+    // Comprueba nuevamente el permiso antes de abrir una pantalla.
+    private void abrir(String permiso, String ruta, String titulo)
             throws IOException {
 
+        if (!Sesion.tienePermiso(permiso)) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.setTitle("Acceso restringido");
+            alerta.setHeaderText(null);
+            alerta.setContentText(
+                    "Tu rol no tiene permiso para acceder a este módulo."
+            );
+            alerta.showAndWait();
+            return;
+        }
+
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource(ruta));
+                getClass().getResource(ruta)
+        );
 
         Parent vista = loader.load();
 
@@ -138,5 +88,102 @@ public class MenuController {
 
         Navegacion.mostrar(ventana, vista, titulo);
     }
-}
 
+    @FXML
+    private void abrirUnidades() throws IOException {
+        abrir("UNIDADES",
+                "/com/laroca/vista/unidad-medida.fxml",
+                "La Roca - Unidades de Medida");
+    }
+
+    @FXML
+    private void abrirCategorias() throws IOException {
+        abrir("CATEGORIAS",
+                "/com/laroca/vista/categorias.fxml",
+                "La Roca - Categorías");
+    }
+
+    @FXML
+    private void abrirRoles() throws IOException {
+        abrir("ROLES",
+                "/com/laroca/vista/roles.fxml",
+                "La Roca - Roles");
+    }
+
+    @FXML
+    private void abrirProveedores() throws IOException {
+        abrir("PROVEEDORES",
+                "/com/laroca/vista/proveedores.fxml",
+                "La Roca - Proveedores");
+    }
+
+    @FXML
+    private void abrirProductos() throws IOException {
+        abrir("PRODUCTOS",
+                "/com/laroca/vista/productos.fxml",
+                "La Roca - Productos");
+    }
+
+    @FXML
+    private void abrirUsuarios() throws IOException {
+        abrir("USUARIOS",
+                "/com/laroca/vista/usuarios.fxml",
+                "La Roca - Usuarios");
+    }
+
+    @FXML
+    private void abrirClientes() throws IOException {
+        abrir("CLIENTES",
+                "/com/laroca/vista/clientes.fxml",
+                "La Roca - Clientes");
+    }
+
+    @FXML
+    private void abrirVentas() throws IOException {
+        abrir("VENTAS",
+                "/com/laroca/vista/ventas.fxml",
+                "La Roca - Ventas");
+    }
+
+    @FXML
+    private void abrirCompras() throws IOException {
+        abrir("COMPRAS",
+                "/com/laroca/vista/compras.fxml",
+                "La Roca - Compras");
+    }
+
+    @FXML
+    private void abrirMermas() throws IOException {
+        abrir("MERMAS",
+                "/com/laroca/vista/mermas.fxml",
+                "La Roca - Mermas");
+    }
+
+    @FXML
+    private void abrirDevolucionesClientes() throws IOException {
+        abrir("DEVOLUCIONES_CLIENTES",
+                "/com/laroca/vista/devoluciones-clientes.fxml",
+                "La Roca - Devoluciones de Clientes");
+    }
+
+    @FXML
+    private void abrirDevolucionesProveedores() throws IOException {
+        abrir("DEVOLUCIONES_PROVEEDORES",
+                "/com/laroca/vista/devoluciones-proveedores.fxml",
+                "La Roca - Devoluciones a Proveedores");
+    }
+
+    @FXML
+    private void abrirEstadisticasStock() throws IOException {
+        abrir("CONSULTAR_INVENTARIO",
+                "/com/laroca/vista/estadisticas-stock.fxml",
+                "La Roca - Consultar Inventario");
+    }
+
+    @FXML
+    private void abrirEstadisticasGenerales() throws IOException {
+        abrir("ESTADISTICAS_GENERALES",
+                "/com/laroca/vista/estadisticas-generales.fxml",
+                "La Roca - Estadísticas Generales");
+    }
+}

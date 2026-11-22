@@ -15,14 +15,15 @@ public class EmpleadoDAO {
         return iniciarSesion(usuario, password) != null;
     }
 
-    // Devuelve el empleado (id y nombre) si el usuario y la contraseña
-    // son correctos; null en cualquier otro caso.
+    // Devuelve el empleado si el usuario y la contraseña son correctos.
     public Usuario iniciarSesion(String usuario, String password) {
 
-        String sql = "SELECT id_empleado, usuario, password_hash, nombre, "
-                + "apellido_paterno, apellido_materno FROM Empleados "
-                + "WHERE usuario = ? "
-                + "AND (UPPER(estado) = 'ACTIVO' OR estado IS NULL)";
+        String sql = "SELECT e.id_empleado, e.id_rol, e.usuario, e.password_hash, e.nombre, "
+                + "e.apellido_paterno, e.apellido_materno, r.nombre AS nombre_rol "
+                + "FROM Empleados e INNER JOIN Roles r ON r.id_rol = e.id_rol "
+                + "WHERE e.usuario = ? "
+                + "AND (UPPER(e.estado) = 'ACTIVO' OR e.estado IS NULL) "
+                + "AND UPPER(r.estado) = 'ACTIVO'";
 
         try (Connection con = Conexion.conectar()) {
 
@@ -46,8 +47,7 @@ public class EmpleadoDAO {
                         return null;
                     }
 
-                    // Compatibilidad con contraseñas que ya estaban guardadas
-                    // como texto normal.
+                    // Compatibilidad con contraseñas guardadas como texto normal.
                     boolean valida = passwordGuardada.equals(password);
 
                     // Compatibilidad con contraseñas guardadas mediante SHA-256.
@@ -65,10 +65,13 @@ public class EmpleadoDAO {
 
                     Usuario empleado = new Usuario();
                     empleado.setIdUsuario(rs.getInt("id_empleado"));
+                    empleado.setIdRol(rs.getInt("id_rol"));
+                    empleado.setNombreRol(rs.getString("nombre_rol"));
                     empleado.setUsuario(rs.getString("usuario"));
                     empleado.setNombre(rs.getString("nombre"));
                     empleado.setApellidoPaterno(rs.getString("apellido_paterno"));
                     empleado.setApellidoMaterno(rs.getString("apellido_materno"));
+
                     return empleado;
                 }
             }

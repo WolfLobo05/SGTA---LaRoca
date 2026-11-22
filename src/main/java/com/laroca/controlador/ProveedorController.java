@@ -8,6 +8,7 @@ import java.util.Objects;
 import com.laroca.dao.ProveedorDAO;
 import com.laroca.modelo.Estados;
 import com.laroca.modelo.Proveedor;
+import com.laroca.modelo.Sesion;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -63,6 +64,12 @@ public class ProveedorController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para acceder a proveedores.
+        if (!Navegacion.verificarPermiso(tableProveedores, "PROVEEDORES")) {
+            return;
+        }
+
         lblFechaActual.setText(
                 LocalDate.now().format(
                         DateTimeFormatter.ofPattern("dd/MM/yyyy")));
@@ -138,6 +145,11 @@ public class ProveedorController {
 
     @FXML
     private void nuevoProveedor() {
+
+        if (!Sesion.tienePermiso("PROVEEDORES")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -160,6 +172,11 @@ public class ProveedorController {
 
     @FXML
     private void guardarProveedor() {
+
+        if (!Sesion.tienePermiso("PROVEEDORES")) {
+            return;
+        }
+
         String rfc = txtRfc.getText().trim().toUpperCase();
         String nombre = txtNombre.getText().trim();
         String contacto = txtContacto.getText().trim();
@@ -241,6 +258,11 @@ public class ProveedorController {
     // Elimina (desactiva) o reactiva el proveedor, según la casilla.
     @FXML
     private void eliminarProveedor() {
+
+        if (!Sesion.tienePermiso("PROVEEDORES")) {
+            return;
+        }
+
         if (proveedorSeleccionado == null) {
             return;
         }

@@ -2,6 +2,7 @@ package com.laroca.controlador;
 
 import com.laroca.dao.UnidadMedidaDAO;
 import com.laroca.modelo.Estados;
+import com.laroca.modelo.Sesion;
 import com.laroca.modelo.UnidadMedida;
 
 import java.io.IOException;
@@ -77,12 +78,21 @@ public class UnidadMedidaController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para administrar unidades.
+        if (!Navegacion.verificarPermiso(tablaUnidades, "UNIDADES")) {
+            return;
+        }
+
         lblFecha.setText(
                 LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
         columnaNombre.setCellValueFactory(
                 new PropertyValueFactory<>("nombre"));
+
         columnaAbreviatura.setCellValueFactory(
                 new PropertyValueFactory<>("abreviatura"));
+
         columnaEstado.setCellValueFactory(
                 new PropertyValueFactory<>("estado"));
 
@@ -173,6 +183,11 @@ public class UnidadMedidaController {
 
     @FXML
     private void nuevo() {
+
+        if (!Sesion.tienePermiso("UNIDADES")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -191,6 +206,11 @@ public class UnidadMedidaController {
 
     @FXML
     private void guardar() {
+
+        if (!Sesion.tienePermiso("UNIDADES")) {
+            return;
+        }
+
         String nombre = txtNombre.getText().trim();
         String abreviatura = txtAbreviatura.getText().trim();
 
@@ -292,6 +312,11 @@ public class UnidadMedidaController {
     // Elimina (desactiva) o reactiva la unidad, según la casilla.
     @FXML
     private void eliminar() {
+
+        if (!Sesion.tienePermiso("UNIDADES")) {
+            return;
+        }
+
         if (unidadSeleccionada == null) {
             mostrarAlerta(
                     Alert.AlertType.WARNING,

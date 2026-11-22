@@ -48,35 +48,58 @@ public class RegistrarMermaController {
     private static final int MAX_SUGERENCIAS = 8;
     private static final int MAX_MOTIVO = 100;
 
-    @FXML private Button btnCancelarMerma;
-    @FXML private Label lblFolio;
-    @FXML private Label lblFechaMerma;
-    @FXML private TextField txtCodigo;
-    @FXML private TextField txtCantidad;
-    @FXML private TextField txtMotivo;
-    @FXML private Button btnBuscar;
-    @FXML private Button btnAgregar;
-    @FXML private TableView<DetalleMerma> tableCarrito;
-    @FXML private TableColumn<DetalleMerma, Void> colNumero;
-    @FXML private TableColumn<DetalleMerma, String> colProducto;
-    @FXML private TableColumn<DetalleMerma, Integer> colCantidad;
-    @FXML private TableColumn<DetalleMerma, String> colPrecio;
-    @FXML private TableColumn<DetalleMerma, String> colSubtotal;
-    @FXML private TableColumn<DetalleMerma, String> colMotivo;
-    @FXML private TableColumn<DetalleMerma, Void> colQuitar;
-    @FXML private Label lblStock;
-    @FXML private TextField txtEmpleado;
-    @FXML private TextField txtFecha;
-    @FXML private Label lblNumProductos;
-    @FXML private Label lblArticulos;
-    @FXML private Label lblTotal;
-    @FXML private Button btnRegistrar;
-    @FXML private Label lblEstadoFooter;
+    @FXML
+    private Button btnCancelarMerma;
+    @FXML
+    private Label lblFolio;
+    @FXML
+    private Label lblFechaMerma;
+    @FXML
+    private TextField txtCodigo;
+    @FXML
+    private TextField txtCantidad;
+    @FXML
+    private TextField txtMotivo;
+    @FXML
+    private Button btnBuscar;
+    @FXML
+    private Button btnAgregar;
+    @FXML
+    private TableView<DetalleMerma> tableCarrito;
+    @FXML
+    private TableColumn<DetalleMerma, Void> colNumero;
+    @FXML
+    private TableColumn<DetalleMerma, String> colProducto;
+    @FXML
+    private TableColumn<DetalleMerma, Integer> colCantidad;
+    @FXML
+    private TableColumn<DetalleMerma, String> colPrecio;
+    @FXML
+    private TableColumn<DetalleMerma, String> colSubtotal;
+    @FXML
+    private TableColumn<DetalleMerma, String> colMotivo;
+    @FXML
+    private TableColumn<DetalleMerma, Void> colQuitar;
+    @FXML
+    private Label lblStock;
+    @FXML
+    private TextField txtEmpleado;
+    @FXML
+    private TextField txtFecha;
+    @FXML
+    private Label lblNumProductos;
+    @FXML
+    private Label lblArticulos;
+    @FXML
+    private Label lblTotal;
+    @FXML
+    private Button btnRegistrar;
+    @FXML
+    private Label lblEstadoFooter;
 
     private final MermaDAO mermaDAO = new MermaDAO();
     private final ProductoDAO productoDAO = new ProductoDAO();
-    private final ObservableList<DetalleMerma> carrito =
-            FXCollections.observableArrayList();
+    private final ObservableList<DetalleMerma> carrito = FXCollections.observableArrayList();
     private final Map<Integer, Integer> existencias = new HashMap<>();
     private final ContextMenu menuSugerencias = new ContextMenu();
 
@@ -85,6 +108,12 @@ public class RegistrarMermaController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para registrar mermas.
+        if (!Navegacion.verificarPermiso(tableCarrito, "MERMAS")) {
+            return;
+        }
+
         colNumero.setCellFactory(columna -> new TableCell<>() {
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -93,16 +122,12 @@ public class RegistrarMermaController {
             }
         });
 
-        colProducto.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(c.getValue().getNombreProducto()));
-        colCantidad.setCellValueFactory(c ->
-                new javafx.beans.property.ReadOnlyObjectWrapper<>(c.getValue().getCantidad()));
-        colPrecio.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(Formato.dinero(c.getValue().getPrecio())));
-        colSubtotal.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(Formato.dinero(c.getValue().getSubtotal())));
-        colMotivo.setCellValueFactory(c ->
-                new ReadOnlyStringWrapper(c.getValue().getMotivo()));
+        colProducto.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().getNombreProducto()));
+        colCantidad.setCellValueFactory(
+                c -> new javafx.beans.property.ReadOnlyObjectWrapper<>(c.getValue().getCantidad()));
+        colPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(Formato.dinero(c.getValue().getPrecio())));
+        colSubtotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(Formato.dinero(c.getValue().getSubtotal())));
+        colMotivo.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().getMotivo()));
 
         configurarEdicionCantidad();
         colQuitar.setCellFactory(columna -> new CeldaQuitar<>(carrito::remove));
@@ -113,15 +138,17 @@ public class RegistrarMermaController {
         tableCarrito.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.DELETE) {
                 DetalleMerma linea = tableCarrito.getSelectionModel().getSelectedItem();
-                if (linea != null) carrito.remove(linea);
+                if (linea != null)
+                    carrito.remove(linea);
             }
         });
 
-        txtCantidad.setTextFormatter(new TextFormatter<String>(cambio ->
-                cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
-                        ? cambio : null));
-        txtMotivo.setTextFormatter(new TextFormatter<String>(cambio ->
-                cambio.getControlNewText().length() <= MAX_MOTIVO ? cambio : null));
+        txtCantidad.setTextFormatter(
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
+                        ? cambio
+                        : null));
+        txtMotivo.setTextFormatter(
+                new TextFormatter<String>(cambio -> cambio.getControlNewText().length() <= MAX_MOTIVO ? cambio : null));
 
         carrito.addListener((ListChangeListener<DetalleMerma>) cambio -> actualizarResumen());
         tableCarrito.getSelectionModel().selectedItemProperty()
@@ -129,7 +156,6 @@ public class RegistrarMermaController {
 
         configurarBusquedaDinamica();
         iniciarMerma();
-        Navegacion.verificarSesion(tableCarrito);
     }
 
     private void configurarEdicionCantidad() {
@@ -138,18 +164,23 @@ public class RegistrarMermaController {
         colCantidad.setCellFactory(columna -> new TableCell<DetalleMerma, Integer>() {
             private final TextField editor = new TextField();
             {
-                editor.setTextFormatter(new TextFormatter<String>(cambio ->
-                        cambio.getControlNewText().matches("\\d{0,4}") ? cambio : null));
+                editor.setTextFormatter(new TextFormatter<String>(
+                        cambio -> cambio.getControlNewText().matches("\\d{0,4}") ? cambio : null));
                 editor.setOnAction(e -> confirmarCantidad());
                 editor.setOnKeyPressed(e -> {
-                    if (e.getCode() == KeyCode.ESCAPE) cancelEdit();
+                    if (e.getCode() == KeyCode.ESCAPE)
+                        cancelEdit();
                 });
                 editor.focusedProperty().addListener((obs, antes, enfocado) -> {
-                    if (!enfocado && isEditing()) confirmarCantidad();
+                    if (!enfocado && isEditing())
+                        confirmarCantidad();
                 });
             }
-            @Override public void startEdit() {
-                if (isEmpty()) return;
+
+            @Override
+            public void startEdit() {
+                if (isEmpty())
+                    return;
                 super.startEdit();
                 editor.setText(getItem() == null ? "" : getItem().toString());
                 setText(null);
@@ -157,34 +188,45 @@ public class RegistrarMermaController {
                 editor.selectAll();
                 editor.requestFocus();
             }
-            @Override public void cancelEdit() {
+
+            @Override
+            public void cancelEdit() {
                 super.cancelEdit();
                 setGraphic(null);
                 setText(getItem() == null ? "" : getItem().toString());
             }
-            @Override protected void updateItem(Integer cantidad, boolean empty) {
+
+            @Override
+            protected void updateItem(Integer cantidad, boolean empty) {
                 super.updateItem(cantidad, empty);
                 if (empty) {
-                    setText(null); setGraphic(null);
+                    setText(null);
+                    setGraphic(null);
                 } else if (isEditing()) {
-                    setText(null); setGraphic(editor);
+                    setText(null);
+                    setGraphic(editor);
                 } else {
                     setText(cantidad == null ? "" : cantidad.toString());
                     setGraphic(null);
                 }
             }
+
             private void confirmarCantidad() {
-                if (!isEditing()) return;
+                if (!isEditing())
+                    return;
                 String texto = editor.getText().trim();
                 if (texto.isEmpty()) {
                     mostrarAlerta("Cantidad inválida", "La cantidad debe ser mayor que cero.");
-                    cancelEdit(); return;
+                    cancelEdit();
+                    return;
                 }
                 int nueva;
-                try { nueva = Integer.parseInt(texto); }
-                catch (NumberFormatException ex) {
+                try {
+                    nueva = Integer.parseInt(texto);
+                } catch (NumberFormatException ex) {
                     mostrarAlerta("Cantidad inválida", "Ingresa un número entero válido.");
-                    cancelEdit(); return;
+                    cancelEdit();
+                    return;
                 }
                 DetalleMerma linea = getTableView().getItems().get(getIndex());
                 int acumulada = cantidadEnCarrito(linea.getIdProducto())
@@ -194,7 +236,8 @@ public class RegistrarMermaController {
                     mostrarAlerta("Stock insuficiente",
                             "La cantidad acumulada de este producto no puede superar las "
                                     + stock + " unidades disponibles.");
-                    cancelEdit(); return;
+                    cancelEdit();
+                    return;
                 }
                 linea.setCantidad(nueva);
                 commitEdit(nueva);
@@ -206,7 +249,8 @@ public class RegistrarMermaController {
 
     private void configurarBusquedaDinamica() {
         txtCodigo.textProperty().addListener((obs, anterior, actual) -> {
-            if (actualizandoCodigo) return;
+            if (actualizandoCodigo)
+                return;
             productoElegido = null;
             mostrarSugerencias(actual);
         });
@@ -214,10 +258,12 @@ public class RegistrarMermaController {
             if (menuSugerencias.isShowing() && !menuSugerencias.getItems().isEmpty()) {
                 menuSugerencias.getItems().get(0).fire();
                 event.consume();
-            } else agregarProducto();
+            } else
+                agregarProducto();
         });
         txtCodigo.focusedProperty().addListener((obs, anterior, enfocado) -> {
-            if (!enfocado) Platform.runLater(menuSugerencias::hide);
+            if (!enfocado)
+                Platform.runLater(menuSugerencias::hide);
         });
     }
 
@@ -225,18 +271,24 @@ public class RegistrarMermaController {
         menuSugerencias.hide();
         menuSugerencias.getItems().clear();
         String filtro = texto == null ? "" : texto.trim();
-        if (filtro.isEmpty()) return;
+        if (filtro.isEmpty())
+            return;
         List<Producto> resultados;
-        try { resultados = productoDAO.buscarActivos(filtro); }
-        catch (Exception e) { e.printStackTrace(); return; }
-        if (resultados == null || resultados.isEmpty()) return;
+        try {
+            resultados = productoDAO.buscarActivos(filtro);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+        if (resultados == null || resultados.isEmpty())
+            return;
         int limite = Math.min(resultados.size(), MAX_SUGERENCIAS);
         for (int i = 0; i < limite; i++) {
             Producto producto = resultados.get(i);
             MenuItem sugerencia = new MenuItem(
                     producto.getNombre() + " | Código: "
-                    + Objects.toString(producto.getCodigoBarras(), "Sin código")
-                    + " | Stock: " + producto.getExistencia());
+                            + Objects.toString(producto.getCodigoBarras(), "Sin código")
+                            + " | Stock: " + producto.getExistencia());
             sugerencia.setOnAction(event -> seleccionarSugerencia(producto));
             menuSugerencias.getItems().add(sugerencia);
         }
@@ -248,7 +300,8 @@ public class RegistrarMermaController {
     }
 
     private void seleccionarSugerencia(Producto producto) {
-        if (producto == null) return;
+        if (producto == null)
+            return;
         menuSugerencias.hide();
         productoElegido = producto;
         actualizandoCodigo = true;
@@ -275,11 +328,13 @@ public class RegistrarMermaController {
         String motivo = txtMotivo.getText() == null ? "" : txtMotivo.getText().trim();
         if (txtCantidad.getText().isEmpty()) {
             mostrarAlerta("Cantidad obligatoria", "Escribe una cantidad mayor que cero.");
-            txtCantidad.requestFocus(); return;
+            txtCantidad.requestFocus();
+            return;
         }
         if (motivo.isEmpty()) {
             mostrarAlerta("Motivo obligatorio", "Indica el motivo de la merma de este producto.");
-            txtMotivo.requestFocus(); return;
+            txtMotivo.requestFocus();
+            return;
         }
         int cantidad = Integer.parseInt(txtCantidad.getText());
         Producto producto;
@@ -289,9 +344,11 @@ public class RegistrarMermaController {
             producto = BuscadorProductos.buscar(ventana(), "");
         } else {
             producto = productoDAO.buscarActivoPorCodigo(texto);
-            if (producto == null) producto = BuscadorProductos.buscar(ventana(), texto);
+            if (producto == null)
+                producto = BuscadorProductos.buscar(ventana(), texto);
         }
-        if (producto == null) return;
+        if (producto == null)
+            return;
         if (agregarAlCarrito(producto, cantidad, motivo)) {
             menuSugerencias.hide();
             txtCodigo.clear();
@@ -305,9 +362,11 @@ public class RegistrarMermaController {
     @FXML
     private void buscarProducto() {
         String texto = txtCodigo.getText() == null ? "" : txtCodigo.getText().trim();
-        if (productoElegido != null && texto.equals(textoProducto(productoElegido))) texto = "";
+        if (productoElegido != null && texto.equals(textoProducto(productoElegido)))
+            texto = "";
         Producto producto = BuscadorProductos.buscar(ventana(), texto);
-        if (producto != null) seleccionarSugerencia(producto);
+        if (producto != null)
+            seleccionarSugerencia(producto);
     }
 
     private String textoProducto(Producto producto) {
@@ -327,7 +386,7 @@ public class RegistrarMermaController {
         if (precio == null || precio.compareTo(BigDecimal.ZERO) <= 0) {
             mostrarAlerta("Sin historial de compra",
                     "No se puede agregar \"" + producto.getNombre()
-                    + "\" porque no tiene un último precio de compra válido registrado.");
+                            + "\" porque no tiene un último precio de compra válido registrado.");
             return false;
         }
         existencias.put(producto.getIdProducto(), producto.getExistencia());
@@ -349,13 +408,15 @@ public class RegistrarMermaController {
     private int cantidadEnCarrito(int idProducto) {
         int total = 0;
         for (DetalleMerma linea : carrito) {
-            if (linea.getIdProducto() == idProducto) total += linea.getCantidad();
+            if (linea.getIdProducto() == idProducto)
+                total += linea.getCantidad();
         }
         return total;
     }
 
     private boolean datosMermaValidos() {
-        if (!Sesion.haySesion() || carrito.isEmpty()) return false;
+        if (!Sesion.haySesion() || carrito.isEmpty())
+            return false;
         for (DetalleMerma linea : carrito) {
             if (linea.getCantidad() <= 0 || linea.getPrecio() == null
                     || linea.getPrecio().compareTo(BigDecimal.ZERO) <= 0
@@ -380,7 +441,8 @@ public class RegistrarMermaController {
         lblTotal.setText(Formato.dinero(calcularTotal()));
         btnRegistrar.setDisable(!datosMermaValidos());
         lblEstadoFooter.setText(productos.size() + (productos.size() == 1
-                ? " producto en la merma" : " productos en la merma"));
+                ? " producto en la merma"
+                : " productos en la merma"));
         actualizarStock();
     }
 
@@ -397,7 +459,8 @@ public class RegistrarMermaController {
 
     private BigDecimal calcularTotal() {
         BigDecimal total = BigDecimal.ZERO;
-        for (DetalleMerma linea : carrito) total = total.add(linea.getSubtotal());
+        for (DetalleMerma linea : carrito)
+            total = total.add(linea.getSubtotal());
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -413,7 +476,8 @@ public class RegistrarMermaController {
             return;
         }
         if (!confirmar("Registrar merma", "Se descontarán "
-                + lblArticulos.getText() + " artículos del inventario. ¿Deseas continuar?")) return;
+                + lblArticulos.getText() + " artículos del inventario. ¿Deseas continuar?"))
+            return;
 
         Merma merma = new Merma();
         merma.setIdEmpleado(Sesion.getIdEmpleado());
@@ -434,7 +498,8 @@ public class RegistrarMermaController {
     @FXML
     private void cancelarMerma() {
         if (!carrito.isEmpty() && !confirmar("Cancelar merma",
-                "¿Deseas cancelar el registro? Se descartarán los productos agregados.")) return;
+                "¿Deseas cancelar el registro? Se descartarán los productos agregados."))
+            return;
         volverAGestion();
     }
 

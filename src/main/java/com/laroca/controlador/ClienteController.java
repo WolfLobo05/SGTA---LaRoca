@@ -8,6 +8,7 @@ import java.util.Objects;
 import com.laroca.dao.ClienteDAO;
 import com.laroca.modelo.Cliente;
 import com.laroca.modelo.Estados;
+import com.laroca.modelo.Sesion;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -89,6 +90,11 @@ public class ClienteController {
 
     @FXML
     public void initialize() {
+
+        // Verificar que el usuario tenga permiso para administrar clientes.
+        if (!Navegacion.verificarPermiso(tableClientes, "CLIENTES")) {
+            return;
+        }
 
         lblFechaActual.setText(
                 LocalDate.now().format(
@@ -200,6 +206,11 @@ public class ClienteController {
 
     @FXML
     private void nuevoCliente() {
+
+        if (!Sesion.tienePermiso("CLIENTES")) {
+            return;
+        }
+
         if (chkMostrarInactivos.isSelected()) {
             return;
         }
@@ -225,6 +236,10 @@ public class ClienteController {
 
     @FXML
     private void guardarCliente() {
+
+        if (!Sesion.tienePermiso("CLIENTES")) {
+            return;
+        }
 
         if (esPublicoGeneral(clienteSeleccionado)) {
             avisarClienteProtegido();
@@ -327,6 +342,11 @@ public class ClienteController {
     // Elimina (desactiva) o reactiva el cliente, según la casilla.
     @FXML
     private void eliminarCliente() {
+
+        if (!Sesion.tienePermiso("CLIENTES")) {
+            return;
+        }
+
         if (clienteSeleccionado == null) {
             return;
         }
