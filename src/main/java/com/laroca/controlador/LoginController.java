@@ -44,7 +44,8 @@ public class LoginController {
 
         if (empleado != null) {
             // Guardar quién inició sesión para registrar ventas y compras.
-            Sesion.establecer(empleado.getIdUsuario(), empleado.getUsuario());
+            Sesion.establecer(empleado.getIdUsuario(), empleado.getUsuario(),
+                    empleado.getNombreCompleto());
 
             try {
                 // Cargar el Menú Principal

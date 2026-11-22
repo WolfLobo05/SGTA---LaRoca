@@ -17,6 +17,11 @@ public class MenuController {
     private Button btnCategorias;
 
     @FXML
+    public void initialize() {
+        Navegacion.verificarSesion(btnUnidades);
+    }
+
+    @FXML
     private void abrirUnidades() throws IOException {
         abrirVentana(
                 "/com/laroca/vista/unidad-medida.fxml",
@@ -100,15 +105,13 @@ public class MenuController {
                 "La Roca - Devoluciones a Proveedores");
     }
 
-    // NUEVO: Estadísticas generales
     @FXML
-    private void abrirEstadisticasGenerales() throws IOException {
+    private void abrirReporteInventario() throws IOException {
         abrirVentana(
-                "/com/laroca/vista/estadisticas-generales.fxml",
-                "La Roca - Estadísticas Generales");
+                "/com/laroca/vista/reporte-inventario.fxml",
+                "La Roca - Reporte de Inventario");
     }
 
-    // NUEVO: Estadísticas de stock
     @FXML
     private void abrirEstadisticasStock() throws IOException {
         abrirVentana(
@@ -116,6 +119,12 @@ public class MenuController {
                 "La Roca - Estadísticas de Stock");
     }
 
+    @FXML
+    private void abrirEstadisticasGenerales() throws IOException {
+        abrirVentana(
+                "/com/laroca/vista/estadisticas-generales.fxml",
+                "La Roca - Estadísticas Generales");
+    }
 
     private void abrirVentana(String ruta, String titulo)
             throws IOException {
@@ -130,3 +139,4 @@ public class MenuController {
         Navegacion.mostrar(ventana, vista, titulo);
     }
 }
+

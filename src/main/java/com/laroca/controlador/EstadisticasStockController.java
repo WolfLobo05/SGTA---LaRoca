@@ -1,391 +1,586 @@
 package com.laroca.controlador;
 
-import com.laroca.conexion.Conexion;
-
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.ArrayList;
+import java.util.List;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import com.laroca.dao.CategoriaDAO;
+import com.laroca.dao.ReporteInventarioDAO;
+import com.laroca.modelo.Categoria;
+import com.laroca.modelo.Estados;
+import com.laroca.modelo.FilaInventario;
+import com.laroca.modelo.Sesion;
+import com.laroca.reporte.DisenoReporte;
+import com.laroca.reporte.ExportadorExcel;
+import com.laroca.reporte.ExportadorPdf;
+import com.laroca.reporte.PaginasReporteFx;
+import com.laroca.reporte.ReporteInventario;
+import com.laroca.reporte.TextosReporte;
+
+import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.print.PageLayout;
+import javafx.print.PageOrientation;
+import javafx.print.Paper;
+import javafx.print.Printer;
+import javafx.print.PrinterJob;
+import javafx.scene.Group;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.transform.Scale;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
+import javafx.util.StringConverter;
 
 public class EstadisticasStockController {
 
-    @FXML private TableView<StockItem> tablaStock;
-    @FXML private TableColumn<StockItem, String> colProducto;
-    @FXML private TableColumn<StockItem, Integer> colEntradas;
-    @FXML private TableColumn<StockItem, Integer> colSalidas;
-    @FXML private TableColumn<StockItem, Integer> colStockAct;
-    @FXML private TableColumn<StockItem, Integer> colCantExistente;
+    private static final String TIPO_INVENTARIO_ACTUAL =
+            "Inventario actual";
 
-    @FXML private Label lblTotalProductos;
-    @FXML private Label lblTotalEntradas;
-    @FXML private Label lblTotalSalidas;
-    @FXML private Label lblMayorSalida;
-    @FXML private Label lblMenorStock;
-    @FXML private Label lblEstadoRegistros;
+    private static final String HOJA_ESTILOS =
+            "/com/laroca/vista/laroca.css";
 
+    private static final DateTimeFormatter FECHA_CAPTURA =
+            DateTimeFormatter.ofPattern("d/M/uuuu")
+                    .withResolverStyle(ResolverStyle.STRICT);
+
+    private static final DateTimeFormatter FECHA_ARCHIVO =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    private enum FiltroReorden {
+        TODOS("Todos"),
+        SOLO_REORDENAR("Solo a reordenar"),
+        SIN_REORDENAR("Sin reordenar");
+
+        private final String texto;
+
+        FiltroReorden(String texto) {
+            this.texto = texto;
+        }
+
+        boolean incluye(FilaInventario fila) {
+            return switch (this) {
+                case TODOS -> true;
+                case SOLO_REORDENAR -> fila.isReordenar();
+                case SIN_REORDENAR -> !fila.isReordenar();
+            };
+        }
+
+        @Override
+        public String toString() {
+            return texto;
+        }
+    }
+
+    private record OpcionCategoria(
+            Integer idCategoria,
+            String nombre,
+            String texto) {
+
+        @Override
+        public String toString() {
+            return texto;
+        }
+    }
+
+    @FXML private Button btnGenerar;
+    @FXML private Button btnImprimir;
+    @FXML private Button btnExportarPdf;
+    @FXML private Button btnExportarExcel;
     @FXML private Button btnVolverMenu;
-    @FXML private ComboBox<String> cmbPeriodo;
+
+    @FXML private ComboBox<String> cmbTipoReporte;
+    @FXML private ComboBox<OpcionCategoria> cmbCategoria;
+    @FXML private DatePicker dpDesde;
+    @FXML private DatePicker dpHasta;
+    @FXML private ComboBox<FiltroReorden> cmbReordenar;
+
+    @FXML private Label lblFecha;
+    @FXML private Label lblEstado;
+
+    @FXML private ScrollPane scrollReporte;
+    @FXML private VBox contenedorPaginas;
+
+    private final ReporteInventarioDAO reporteDAO =
+            new ReporteInventarioDAO();
+
+    private final CategoriaDAO categoriaDAO =
+            new CategoriaDAO();
+
+    private ReporteInventario reporteActual;
 
     @FXML
     public void initialize() {
-        colProducto.setCellValueFactory(new PropertyValueFactory<>("nombreProducto"));
-        colEntradas.setCellValueFactory(new PropertyValueFactory<>("entradas"));
-        colSalidas.setCellValueFactory(new PropertyValueFactory<>("salidas"));
-        colStockAct.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
-        colCantExistente.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
 
-        cargarPeriodosDisponibles();
+        LocalDate hoy = LocalDate.now();
 
-        if (cmbPeriodo != null) {
-            cmbPeriodo.setOnAction(event -> cargarDatosEstadisticas());
+        lblFecha.setText(Formato.fecha(hoy));
+
+        cmbTipoReporte.getItems().setAll(TIPO_INVENTARIO_ACTUAL);
+        cmbTipoReporte.setValue(TIPO_INVENTARIO_ACTUAL);
+
+        cmbReordenar.getItems().setAll(FiltroReorden.values());
+        cmbReordenar.setValue(FiltroReorden.TODOS);
+
+        configurarFecha(dpDesde);
+        configurarFecha(dpHasta);
+
+        // Desde el primer movimiento histórico hasta hoy.
+        LocalDate primerMovimiento =
+                reporteDAO.obtenerFechaPrimerMovimiento();
+
+        if (primerMovimiento == null) {
+
+            if (reporteDAO.getMensajeError() != null) {
+                lblEstado.setText(
+                        "No se pudo obtener el primer movimiento histórico.");
+
+                Platform.runLater(() -> mostrarError(
+                        "Error al consultar el historial",
+                        reporteDAO.getMensajeError()));
+            }
+
+            // Si todavía no hay movimientos, comienza hoy.
+            primerMovimiento = hoy;
         }
 
-        cargarDatosEstadisticas();
+        dpDesde.setValue(primerMovimiento);
+        dpHasta.setValue(hoy);
+
+        cargarCategorias();
+
+        cmbCategoria.valueProperty().addListener(
+                (obs, antes, ahora) -> filtrosCambiados());
+
+        cmbReordenar.valueProperty().addListener(
+                (obs, antes, ahora) -> filtrosCambiados());
+
+        dpDesde.valueProperty().addListener(
+                (obs, antes, ahora) -> filtrosCambiados());
+
+        dpHasta.valueProperty().addListener(
+                (obs, antes, ahora) -> filtrosCambiados());
+
+        generar(false);
     }
 
-    private void cargarPeriodosDisponibles() {
-        ObservableList<String> periodos = FXCollections.observableArrayList();
-        periodos.add("Histórico (General)");
-
-        String query = """
-            SELECT DISTINCT DATE_FORMAT(fecha, '%Y-%m') AS anio_mes
-            FROM (
-                SELECT fecha FROM Compras
-                UNION
-                SELECT fecha FROM Ventas
-            ) AS t
-            ORDER BY anio_mes DESC
-        """;
-
-        try (Connection conn = Conexion.conectar()) {
-
-            if (conn == null) {
-                if (lblEstadoRegistros != null) {
-                    lblEstadoRegistros.setText("No se pudo conectar a la base de datos.");
-                }
-                return;
+    private void configurarFecha(DatePicker selector) {
+        selector.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(LocalDate fecha) {
+                return Formato.fecha(fecha);
             }
 
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(query)) {
-
-                while (rs.next()) {
-                    String anioMes = rs.getString("anio_mes");
-
-                    if (anioMes != null && anioMes.length() >= 7) {
-                        String anio = anioMes.substring(0, 4);
-                        String mesNum = anioMes.substring(5, 7);
-                        String nombreMes = convertirNumeroAMes(mesNum);
-                        String periodoStr = nombreMes + " " + anio;
-
-                        if (!periodos.contains(periodoStr)) {
-                            periodos.add(periodoStr);
-                        }
-                    }
-                }
+            @Override
+            public LocalDate fromString(String texto) {
+                return interpretarFecha(texto);
             }
+        });
+    }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            if (lblEstadoRegistros != null) {
-                lblEstadoRegistros.setText("Error al cargar periodos: " + e.getMessage());
-            }
+    private static LocalDate interpretarFecha(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return null;
         }
 
-        if (cmbPeriodo != null) {
-            cmbPeriodo.setItems(periodos);
+        try {
+            return LocalDate.parse(texto.trim(), FECHA_CAPTURA);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
 
-            if (periodos.size() > 1) {
-                cmbPeriodo.setValue(periodos.get(1));
+    private void cargarCategorias() {
+        List<OpcionCategoria> opciones = new ArrayList<>();
+        opciones.add(new OpcionCategoria(null, "Todas", "Todas"));
+
+        List<Categoria> inactivas = new ArrayList<>();
+
+        for (Categoria categoria : categoriaDAO.listar()) {
+            if (Estados.esActivo(categoria.getEstado())) {
+                opciones.add(opcion(categoria, false));
             } else {
-                cmbPeriodo.setValue("Histórico (General)");
+                inactivas.add(categoria);
             }
+        }
+
+        for (Categoria categoria : inactivas) {
+            opciones.add(opcion(categoria, true));
+        }
+
+        cmbCategoria.getItems().setAll(opciones);
+        cmbCategoria.setValue(opciones.get(0));
+    }
+
+    private static OpcionCategoria opcion(
+            Categoria categoria,
+            boolean inactiva) {
+
+        String nombre = categoria.getNombre();
+
+        return new OpcionCategoria(
+                categoria.getIdCategoria(),
+                nombre,
+                inactiva ? nombre + " (inactiva)" : nombre);
+    }
+
+    private void filtrosCambiados() {
+        if (reporteActual != null) {
+            lblEstado.setText(
+                    "Los filtros cambiaron · presiona «Generar reporte» para actualizar");
         }
     }
 
-    private String convertirNumeroAMes(String mesNum) {
-        return switch (mesNum) {
-            case "01" -> "Enero";
-            case "02" -> "Febrero";
-            case "03" -> "Marzo";
-            case "04" -> "Abril";
-            case "05" -> "Mayo";
-            case "06" -> "Junio";
-            case "07" -> "Julio";
-            case "08" -> "Agosto";
-            case "09" -> "Septiembre";
-            case "10" -> "Octubre";
-            case "11" -> "Noviembre";
-            case "12" -> "Diciembre";
-            default -> "Mes";
-        };
+    @FXML
+    private void generarReporte() {
+        generar(true);
     }
 
-    @FXML
-    private void handleGenerarEstadisticas() {
-        cargarDatosEstadisticas();
-        mostrarAlerta("Éxito", "Estadísticas generadas correctamente.");
+    private void generar(boolean conAlertas) {
+
+        LocalDate desde = leerFecha(dpDesde);
+        LocalDate hasta = leerFecha(dpHasta);
+
+        if (desde == null || hasta == null) {
+            error(conAlertas, "Fecha no válida",
+                    "Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
+            return;
+        }
+
+        if (hasta.isBefore(desde)) {
+            error(conAlertas, "Periodo no válido",
+                    "La fecha Desde no puede ser posterior a la fecha Hasta.");
+            return;
+        }
+
+        OpcionCategoria categoria = cmbCategoria.getValue();
+
+        if (categoria == null) {
+            categoria = cmbCategoria.getItems().get(0);
+            cmbCategoria.setValue(categoria);
+        }
+
+        FiltroReorden filtro = cmbReordenar.getValue() == null
+                ? FiltroReorden.TODOS
+                : cmbReordenar.getValue();
+
+        List<FilaInventario> filas =
+                reporteDAO.consultar(desde, hasta, categoria.idCategoria());
+
+        if (filas == null) {
+            error(conAlertas, "No se pudo generar el reporte",
+                    reporteDAO.getMensajeError());
+            return;
+        }
+
+        List<FilaInventario> filtradas =
+                filas.stream().filter(filtro::incluye).toList();
+
+        String tipo = cmbTipoReporte.getValue() == null
+                ? TIPO_INVENTARIO_ACTUAL
+                : cmbTipoReporte.getValue();
+
+        reporteActual = new ReporteInventario(
+                tipo,
+                desde,
+                hasta,
+                categoria.nombre(),
+                filtro == FiltroReorden.TODOS ? null : filtro.toString(),
+                LocalDateTime.now().withSecond(0).withNano(0),
+                Sesion.getNombreParaMostrar(),
+                filtradas);
+
+        mostrarReporte();
+        lblEstado.setText(TextosReporte.resumen(reporteActual));
     }
 
-    @FXML
-    private void handleActualizar() {
-        cargarPeriodosDisponibles();
-        cargarDatosEstadisticas();
-        mostrarAlerta("Actualizado", "Datos sincronizados con éxito.");
+    private static LocalDate leerFecha(DatePicker selector) {
+        String texto = selector.getEditor().getText();
+
+        if (texto != null && !texto.isBlank()) {
+            LocalDate fecha = interpretarFecha(texto);
+
+            if (fecha != null && !fecha.equals(selector.getValue())) {
+                selector.setValue(fecha);
+            }
+
+            return fecha;
+        }
+
+        return selector.getValue();
     }
 
-    @FXML
-    private void handleExportar() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Guardar Estadísticas de Stock");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Archivo CSV (*.csv)", "*.csv")
-        );
-        fileChooser.setInitialFileName("Estadisticas_Stock.csv");
+    // Oculta las columnas Entradas y Salidas exclusivamente
+    // en Estadísticas de Stock.
+    private void ocultarEntradasYSalidas(List<VBox> paginas) {
 
-        File archivo = fileChooser.showSaveDialog(tablaStock.getScene().getWindow());
+        for (VBox pagina : paginas) {
+            for (Node nodo : pagina.getChildren()) {
 
-        if (archivo != null) {
-            try (FileWriter writer = new FileWriter(archivo)) {
-                writer.write("Producto,Entradas,Salidas,Stock Actual\n");
-
-                for (StockItem item : tablaStock.getItems()) {
-                    writer.write(String.format("\"%s\",%d,%d,%d\n",
-                            item.getNombreProducto(),
-                            item.getEntradas(),
-                            item.getSalidas(),
-                            item.getStockActual()));
+                if (!(nodo instanceof HBox fila)) {
+                    continue;
                 }
 
-                mostrarAlerta("Exportación Exitosa",
-                        "Reporte guardado en:\n" + archivo.getAbsolutePath());
+                boolean esFilaTabla =
+                        fila.getStyleClass().contains("reporte-encabezado-tabla")
+                        || fila.getStyleClass().contains("reporte-fila")
+                        || fila.getStyleClass().contains("fila-totales");
 
-            } catch (IOException e) {
-                e.printStackTrace();
-                mostrarAlerta("Error", "No se pudo exportar: " + e.getMessage());
+                if (esFilaTabla && fila.getChildren().size() >= 6) {
+                    fila.getChildren().remove(5);
+                    fila.getChildren().remove(4);
+                }
             }
         }
+    }
+
+    private List<VBox> construirPaginas(double altoPagina) {
+        List<VBox> paginas =
+                PaginasReporteFx.construir(reporteActual, altoPagina);
+
+        ocultarEntradasYSalidas(paginas);
+
+        return paginas;
+    }
+
+    private void mostrarReporte() {
+        contenedorPaginas.getChildren().setAll(
+                construirPaginas(DisenoReporte.ALTO_PAGINA));
+
+        scrollReporte.setVvalue(0);
+
+        btnImprimir.setDisable(false);
+        btnExportarPdf.setDisable(false);
+        btnExportarExcel.setDisable(false);
+    }
+
+    @FXML
+    private void imprimir() {
+
+        if (reporteActual == null) {
+            return;
+        }
+
+        PrinterJob trabajo = PrinterJob.createPrinterJob();
+
+        if (trabajo == null) {
+            mostrarError("Sin impresora",
+                    "No hay ninguna impresora disponible en este equipo.");
+            return;
+        }
+
+        Printer impresora = trabajo.getPrinter();
+
+        trabajo.getJobSettings().setPageLayout(
+                impresora.createPageLayout(
+                        Paper.NA_LETTER,
+                        PageOrientation.LANDSCAPE,
+                        Printer.MarginType.DEFAULT));
+
+        if (!trabajo.showPrintDialog(ventana())) {
+            trabajo.cancelJob();
+            return;
+        }
+
+        PageLayout hoja = trabajo.getJobSettings().getPageLayout();
+
+        double escala =
+                hoja.getPrintableWidth() / DisenoReporte.ANCHO_PAGINA;
+
+        double altoPagina =
+                hoja.getPrintableHeight() / escala;
+
+        List<VBox> paginas = construirPaginas(altoPagina);
+
+        String estilos =
+                getClass().getResource(HOJA_ESTILOS).toExternalForm();
+
+        boolean impreso = true;
+
+        for (VBox pagina : paginas) {
+            Scene escena = new Scene(new Group(pagina));
+            escena.getStylesheets().add(estilos);
+            escena.getRoot().applyCss();
+            escena.getRoot().layout();
+
+            pagina.getTransforms().add(new Scale(escala, escala));
+
+            if (!trabajo.printPage(hoja, pagina)) {
+                impreso = false;
+                break;
+            }
+        }
+
+        if (impreso && trabajo.endJob()) {
+            lblEstado.setText(
+                    "Reporte enviado a la impresora · "
+                    + paginas.size()
+                    + (paginas.size() == 1 ? " página" : " páginas"));
+        } else {
+            trabajo.cancelJob();
+            mostrarError("Error al imprimir",
+                    "No se pudo imprimir el reporte.");
+        }
+    }
+
+    @FXML
+    private void exportarPdf() {
+        File archivo = elegirArchivo(
+                "Exportar reporte a PDF",
+                "PDF (*.pdf)",
+                "pdf");
+
+        if (archivo == null) {
+            return;
+        }
+
+        try {
+            ExportadorPdf.exportar(reporteActual, archivo);
+            lblEstado.setText(
+                    "PDF guardado en " + archivo.getAbsolutePath());
+
+        } catch (IOException | RuntimeException e) {
+            e.printStackTrace();
+            mostrarError("No se pudo exportar a PDF", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void exportarExcel() {
+        File archivo = elegirArchivo(
+                "Exportar reporte a Excel",
+                "Libro de Excel (*.xlsx)",
+                "xlsx");
+
+        if (archivo == null) {
+            return;
+        }
+
+        try {
+            ExportadorExcel.exportar(reporteActual, archivo);
+            lblEstado.setText(
+                    "Excel guardado en " + archivo.getAbsolutePath());
+
+        } catch (IOException | RuntimeException e) {
+            e.printStackTrace();
+            mostrarError("No se pudo exportar a Excel", e.getMessage());
+        }
+    }
+
+    private File elegirArchivo(
+            String titulo,
+            String descripcion,
+            String extension) {
+
+        if (reporteActual == null) {
+            return null;
+        }
+
+        FileChooser selector = new FileChooser();
+        selector.setTitle(titulo);
+
+        selector.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter(
+                        descripcion, "*." + extension));
+
+        selector.setInitialFileName(
+                "Reporte_Inventario_"
+                + reporteActual.getDesde().format(FECHA_ARCHIVO)
+                + "_"
+                + reporteActual.getHasta().format(FECHA_ARCHIVO)
+                + "." + extension);
+
+        File archivo = selector.showSaveDialog(ventana());
+
+        if (archivo != null
+                && !archivo.getName().toLowerCase().endsWith("." + extension)) {
+
+            archivo = new File(
+                    archivo.getParentFile(),
+                    archivo.getName() + "." + extension);
+        }
+
+        return archivo;
     }
 
     @FXML
     private void volverAlMenu() {
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/com/laroca/vista/menu.fxml")
-            );
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource(
+                            "/com/laroca/vista/menu.fxml"));
 
-            javafx.scene.Parent vista = loader.load();
-            Stage ventana = (Stage) btnVolverMenu.getScene().getWindow();
+            Parent vista = loader.load();
 
-            Navegacion.mostrar(ventana, vista, "La Roca - Menú Principal");
+            Navegacion.mostrar(
+                    (Stage) ventana(),
+                    vista,
+                    Navegacion.TITULO_MENU);
 
-        } catch (Exception e) {
+        } catch (IOException | IllegalStateException e) {
             e.printStackTrace();
+
+            mostrarError(
+                    "Error de navegación",
+                    "No se pudo regresar al menú principal.\n"
+                    + e.getMessage());
         }
     }
 
-    private void cargarDatosEstadisticas() {
-        ObservableList<StockItem> listaStock = FXCollections.observableArrayList();
+    private void error(
+            boolean conAlerta,
+            String titulo,
+            String mensaje) {
 
-        String seleccion = cmbPeriodo != null
-                ? cmbPeriodo.getValue()
-                : "Histórico (General)";
+        lblEstado.setText(titulo + ": " + mensaje);
 
-        boolean filtrarPorMes = seleccion != null && !seleccion.contains("Histórico");
-
-        String mesNum = "11";
-        String anio = "2026";
-
-        if (filtrarPorMes) {
-            String[] partes = seleccion.split(" ");
-
-            if (partes.length >= 2) {
-                anio = partes[1];
-                mesNum = convertirMesANumero(partes[0]);
-            }
-        }
-
-        String query;
-
-        if (filtrarPorMes) {
-            query = """
-                SELECT
-                    p.nombre,
-                    COALESCE((SELECT SUM(dc.cantidad)
-                              FROM detalle_compras dc
-                              JOIN Compras c ON dc.id_compras = c.id_compras
-                              WHERE dc.id_producto = p.id_producto
-                              AND MONTH(c.fecha) = ? AND YEAR(c.fecha) = ?), 0)
-                              AS total_entradas,
-                    COALESCE((SELECT SUM(dv.cantidad)
-                              FROM detalle_ventas dv
-                              JOIN Ventas v ON dv.id_venta = v.id_venta
-                              WHERE dv.id_producto = p.id_producto
-                              AND MONTH(v.fecha) = ? AND YEAR(v.fecha) = ?), 0)
-                              AS total_salidas
-                FROM Productos p
-            """;
+        if (conAlerta) {
+            mostrarError(titulo, mensaje);
         } else {
-            query = """
-                SELECT
-                    p.nombre,
-                    COALESCE((SELECT SUM(dc.cantidad)
-                              FROM detalle_compras dc
-                              WHERE dc.id_producto = p.id_producto), 0)
-                              AS total_entradas,
-                    COALESCE((SELECT SUM(dv.cantidad)
-                              FROM detalle_ventas dv
-                              WHERE dv.id_producto = p.id_producto), 0)
-                              AS total_salidas
-                FROM Productos p
-            """;
-        }
-
-        try (Connection conn = Conexion.conectar()) {
-
-            if (conn == null) {
-                if (lblEstadoRegistros != null) {
-                    lblEstadoRegistros.setText("No se pudo conectar a la base de datos.");
-                }
-                return;
-            }
-
-            try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-
-                if (filtrarPorMes) {
-                    pstmt.setInt(1, Integer.parseInt(mesNum));
-                    pstmt.setInt(2, Integer.parseInt(anio));
-                    pstmt.setInt(3, Integer.parseInt(mesNum));
-                    pstmt.setInt(4, Integer.parseInt(anio));
-                }
-
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    int totalProd = 0;
-                    int sumEntradas = 0;
-                    int sumSalidas = 0;
-
-                    StockItem mayorSalida = null;
-                    StockItem menorStock = null;
-
-                    while (rs.next()) {
-                        String nombre = rs.getString("nombre");
-                        int entradas = rs.getInt("total_entradas");
-                        int salidas = rs.getInt("total_salidas");
-
-                        // Protección contra stock negativo (nunca baja de 0)
-                        int stockActual = Math.max(0, entradas - salidas);
-
-                        StockItem item = new StockItem(
-                                nombre, entradas, salidas, stockActual
-                        );
-
-                        listaStock.add(item);
-
-                        totalProd++;
-                        sumEntradas += entradas;
-                        sumSalidas += salidas;
-
-                        if (mayorSalida == null || salidas > mayorSalida.getSalidas()) {
-                            mayorSalida = item;
-                        }
-
-                        if (menorStock == null
-                                || stockActual < menorStock.getStockActual()) {
-                            menorStock = item;
-                        }
-                    }
-
-                    tablaStock.setItems(listaStock);
-
-                    lblTotalProductos.setText(totalProd + " productos");
-                    lblTotalEntradas.setText(sumEntradas + " unidades");
-                    lblTotalSalidas.setText(sumSalidas + " unidades");
-
-                    lblMayorSalida.setText(
-                            mayorSalida != null
-                                    ? mayorSalida.getNombreProducto()
-                                    : "-"
-                    );
-
-                    lblMenorStock.setText(
-                            menorStock != null
-                                    ? menorStock.getNombreProducto()
-                                    : "-"
-                    );
-
-                    lblEstadoRegistros.setText(
-                            totalProd + " productos (" + seleccion + ")"
-                    );
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            lblEstadoRegistros.setText("Error SQL: " + e.getMessage());
+            Platform.runLater(() -> mostrarError(titulo, mensaje));
         }
     }
 
-    private String convertirMesANumero(String nombreMes) {
-        return switch (nombreMes) {
-            case "Enero" -> "01";
-            case "Febrero" -> "02";
-            case "Marzo" -> "03";
-            case "Abril" -> "04";
-            case "Mayo" -> "05";
-            case "Junio" -> "06";
-            case "Julio" -> "07";
-            case "Agosto" -> "08";
-            case "Septiembre" -> "09";
-            case "Octubre" -> "10";
-            case "Noviembre" -> "11";
-            case "Diciembre" -> "12";
-            default -> "11";
-        };
-    }
+    private void mostrarError(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.ERROR);
 
-    private void mostrarAlerta(String titulo, String mensaje) {
-        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
+
+        alerta.setContentText(
+                mensaje == null || mensaje.isBlank()
+                ? "Ocurrió un error inesperado."
+                : mensaje);
+
+        Window duenio = ventana();
+
+        if (duenio != null) {
+            alerta.initOwner(duenio);
+        }
+
         alerta.showAndWait();
     }
 
-    public static class StockItem {
-        private String nombreProducto;
-        private int entradas;
-        private int salidas;
-        private int stockActual;
-
-        public StockItem(String nombreProducto, int entradas,
-                         int salidas, int stockActual) {
-            this.nombreProducto = nombreProducto;
-            this.entradas = entradas;
-            this.salidas = salidas;
-            this.stockActual = stockActual;
-        }
-
-        public String getNombreProducto() { return nombreProducto; }
-        public int getEntradas() { return entradas; }
-        public int getSalidas() { return salidas; }
-        public int getStockActual() { return stockActual; }
+    private Window ventana() {
+        return btnGenerar.getScene() == null
+                ? null
+                : btnGenerar.getScene().getWindow();
     }
 }

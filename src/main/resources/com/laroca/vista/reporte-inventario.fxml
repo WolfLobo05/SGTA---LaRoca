@@ -142,9 +142,9 @@
                     <Label text="Valor del inventario"/>
 
                     <Label fx:id="lblValor"
-                           text="$0.00"
-                           style="-fx-font-size: 20px;
-                                  -fx-font-weight: bold;"/>
+                         text="0.00"
+                         style="-fx-font-size: 20px;
+                          -fx-font-weight: bold;"/>
 
                 </VBox>
 

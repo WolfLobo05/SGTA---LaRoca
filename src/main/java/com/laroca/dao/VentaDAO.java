@@ -267,6 +267,17 @@ public class VentaDAO {
                     }
                 }
 
+                // Las devoluciones activas ya regresaron parte de la venta al
+                // inventario; cancelar la venta sumaría esas unidades dos veces.
+                // El UPDATE anterior bloquea la venta, igual que el registro
+                // de devoluciones, así que no puede entrar una nueva a la vez.
+                if (contarActivas(conexion, SQL_DEVOLUCIONES_ACTIVAS, idVenta) > 0) {
+                    conexion.rollback();
+                    mensajeError = "La venta tiene devoluciones activas. "
+                            + "Cancela primero sus devoluciones y después la venta.";
+                    return false;
+                }
+
                 try (PreparedStatement ps = conexion.prepareStatement(sqlExistencia)) {
                     ps.setInt(1, idVenta);
                     ps.executeUpdate();
@@ -304,6 +315,19 @@ public class VentaDAO {
             System.err.println("Error al actualizar la venta:");
             e.printStackTrace();
             return false;
+        }
+    }
+
+    private static final String SQL_DEVOLUCIONES_ACTIVAS =
+            "SELECT COUNT(*) FROM Devolucion_Clientes "
+          + "WHERE id_venta = ? AND UPPER(COALESCE(TRIM(estado), '')) IN ('', 'ACTIVO')";
+
+    private int contarActivas(Connection conexion, String sql, int id) throws SQLException {
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
         }
     }
 

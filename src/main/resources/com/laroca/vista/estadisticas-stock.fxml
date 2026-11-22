@@ -2,14 +2,17 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
+<!-- Reporte de Inventario (stock). Misma ventana de 900x600 y mismas
+     barras que el resto de las pantallas; los filtros van en su propia
+     barra debajo de la barra de herramientas. -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
             maxWidth="900.0" maxHeight="600.0"
@@ -21,8 +24,9 @@
 
     <top>
         <VBox>
+            <!-- BARRA DE TÍTULO -->
             <HBox styleClass="barra-titulo">
-                <Label text='Sistema abarrotes "La Roca" — Estadísticas de Stock'
+                <Label text='Sistema abarrotes "La roca" — Reporte de Inventario'
                        styleClass="titulo"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <HBox styleClass="botones-ventana">
@@ -32,128 +36,81 @@
                 </HBox>
             </HBox>
 
-            <HBox styleClass="barra-herramientas"
-                  spacing="8.0" alignment="CENTER_LEFT">
-
-                <Button fx:id="btnGenerar"
-                        text="Generar estadísticas"
-                        onAction="#handleGenerarEstadisticas"
+            <!-- BARRA DE HERRAMIENTAS: acción principal a la izquierda,
+                 Volver al menú al final, como en las demás pantallas -->
+            <HBox styleClass="barra-herramientas">
+                <Button fx:id="btnGenerar" text="Generar reporte"
+                        onAction="#generarReporte"
                         styleClass="boton-principal"/>
 
-                <Button fx:id="btnActualizar"
-                        text="Actualizar"
-                        onAction="#handleActualizar"
-                        styleClass="boton-secundario"/>
+                <Button fx:id="btnImprimir" text="Imprimir"
+                        onAction="#imprimir"
+                        styleClass="boton-secundario"
+                        disable="true"/>
 
-                <Button fx:id="btnExportar"
-                        text="Exportar"
-                        onAction="#handleExportar"
-                        styleClass="boton-secundario"/>
+                <Button fx:id="btnExportarPdf" text="Exportar PDF"
+                        onAction="#exportarPdf"
+                        styleClass="boton-secundario"
+                        disable="true"/>
 
-                <Button fx:id="btnVolverMenu"
-                        text="Volver al menú"
+                <Button fx:id="btnExportarExcel" text="Exportar Excel"
+                        onAction="#exportarExcel"
+                        styleClass="boton-secundario"
+                        disable="true"/>
+
+                <Button fx:id="btnVolverMenu" text="Volver al menú"
                         onAction="#volverAlMenu"
                         styleClass="boton-secundario"/>
 
-                <ComboBox fx:id="cmbPeriodo"
-                          prefWidth="220.0"
-                          promptText="Seleccionar período"/>
-
                 <Region HBox.hgrow="ALWAYS"/>
+
+                <Label fx:id="lblFecha" styleClass="fecha"/>
+            </HBox>
+
+            <!-- BARRA DE FILTROS -->
+            <HBox styleClass="barra-filtros">
+                <VBox styleClass="filtro">
+                    <Label text="Tipo de reporte" styleClass="etiqueta-filtro"/>
+                    <ComboBox fx:id="cmbTipoReporte" prefWidth="150.0"/>
+                </VBox>
+
+                <VBox styleClass="filtro">
+                    <Label text="Categoría" styleClass="etiqueta-filtro"/>
+                    <ComboBox fx:id="cmbCategoria" prefWidth="170.0"/>
+                </VBox>
+
+                <VBox styleClass="filtro">
+                    <Label text="Desde" styleClass="etiqueta-filtro"/>
+                    <DatePicker fx:id="dpDesde" prefWidth="120.0" promptText="dd/mm/aaaa"/>
+                </VBox>
+
+                <VBox styleClass="filtro">
+                    <Label text="Hasta" styleClass="etiqueta-filtro"/>
+                    <DatePicker fx:id="dpHasta" prefWidth="120.0" promptText="dd/mm/aaaa"/>
+                </VBox>
+
+                <VBox styleClass="filtro">
+                    <Label text="Reordenar" styleClass="etiqueta-filtro"/>
+                    <ComboBox fx:id="cmbReordenar" prefWidth="150.0"/>
+                </VBox>
             </HBox>
         </VBox>
     </top>
 
     <center>
-        <HBox styleClass="contenido" spacing="10.0">
-
-            <TableView fx:id="tablaStock"
-                       HBox.hgrow="ALWAYS"
-                       styleClass="tabla">
-                <columns>
-                    <TableColumn fx:id="colProducto" text="Producto"
-                                 prefWidth="120.0" sortable="false"/>
-                    <TableColumn fx:id="colEntradas" text="Entradas"
-                                 prefWidth="75.0" sortable="false"
-                                 styleClass="columna-numero"/>
-                    <TableColumn fx:id="colSalidas" text="Salidas"
-                                 prefWidth="75.0" sortable="false"
-                                 styleClass="columna-numero"/>
-                    <TableColumn fx:id="colStockAct" text="Stock Act."
-                                 prefWidth="75.0" sortable="false"
-                                 styleClass="columna-numero"/>
-                    <TableColumn fx:id="colCantExistente" text="Cant. existente"
-                                 prefWidth="95.0" sortable="false"
-                                 styleClass="columna-numero"/>
-                </columns>
-            </TableView>
-
-            <VBox styleClass="panel-detalle"
-                  minWidth="347.0"
-                  prefWidth="347.0"
-                  maxWidth="347.0"
-                  spacing="8.0">
-
-                <Label text="Resumen de Estadísticas"
-                       styleClass="titulo-detalle"/>
-
-                <VBox styleClass="formulario-compacto"
-                      VBox.vgrow="ALWAYS" spacing="6.0">
-
-                    <VBox styleClass="campo">
-                        <Label text="Total de Productos" styleClass="etiqueta"/>
-                        <Label fx:id="lblTotalProductos"
-                               text="0 productos"
-                               maxWidth="Infinity"
-                               styleClass="campo-lectura"
-                               style="-fx-padding: 6;"/>
-                    </VBox>
-
-                    <VBox styleClass="campo">
-                        <Label text="Total de entradas" styleClass="etiqueta"/>
-                        <Label fx:id="lblTotalEntradas"
-                               text="0 unidades"
-                               maxWidth="Infinity"
-                               styleClass="campo-lectura"
-                               style="-fx-padding: 6;"/>
-                    </VBox>
-
-                    <VBox styleClass="campo">
-                        <Label text="Total de salidas" styleClass="etiqueta"/>
-                        <Label fx:id="lblTotalSalidas"
-                               text="0 unidades"
-                               maxWidth="Infinity"
-                               styleClass="campo-lectura"
-                               style="-fx-padding: 6;"/>
-                    </VBox>
-
-                    <VBox styleClass="campo">
-                        <Label text="Producto con mayor salida" styleClass="etiqueta"/>
-                        <Label fx:id="lblMayorSalida"
-                               text="-"
-                               maxWidth="Infinity"
-                               styleClass="campo-lectura"
-                               style="-fx-padding: 6;"/>
-                    </VBox>
-
-                    <VBox styleClass="campo">
-                        <Label text="Producto con menor stock" styleClass="etiqueta"/>
-                        <Label fx:id="lblMenorStock"
-                               text="-"
-                               maxWidth="Infinity"
-                               styleClass="campo-lectura"
-                               style="-fx-padding: 6;"/>
-                    </VBox>
-
-                </VBox>
-            </VBox>
-        </HBox>
+        <!-- Páginas del reporte, como en la vista previa de impresión -->
+        <ScrollPane fx:id="scrollReporte"
+                    fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    styleClass="reporte-fondo">
+            <VBox fx:id="contenedorPaginas" styleClass="reporte-paginas"/>
+        </ScrollPane>
     </center>
 
     <bottom>
+        <!-- BARRA DE ESTADO -->
         <HBox styleClass="pie">
-            <Label fx:id="lblEstadoRegistros"
-                   text="0 productos registrados"
+            <Label fx:id="lblEstado" text="Genera el reporte para ver el inventario."
                    styleClass="texto-pie"/>
         </HBox>
     </bottom>

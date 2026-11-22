@@ -1,21 +1,38 @@
 package com.laroca.controlador;
 
-import com.laroca.conexion.Conexion;
-
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import com.laroca.conexion.Conexion;
+import com.laroca.dao.CategoriaDAO;
+import com.laroca.modelo.Categoria;
+import com.laroca.modelo.Estados;
+import com.laroca.reporte.DatosReporteEstadisticas;
+import com.laroca.reporte.ExportadorEstadisticasPdf;
+import com.laroca.reporte.ExportadorEstadisticasExcel;
+
+import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -24,31 +41,92 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 
+// Estadísticas generales del periodo.
+//
+// - Todas las consultas usan Conexion, días completos
+//   (fecha >= desde AND fecha < hasta + 1) y solo registros activos
+//   (las ventas, compras y mermas canceladas no cuentan).
+// - La categoría filtra todos los paneles.
+// - "Productos a reordenar" usa el mismo stock que el Reporte de
+//   Inventario: Productos.existencia contra punto_reorden.
 public class EstadisticasGeneralesController {
 
-    @FXML private ComboBox<String> cmbPeriodo;
-    @FXML private ComboBox<String> cmbCategoria;
-    @FXML private TextField txtDesde;
-    @FXML private TextField txtHasta;
+    private static final Locale ESPANOL = Locale.of("es", "MX");
+
+    private static final DateTimeFormatter FECHA_CAPTURA =
+            DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
+
+    private static final DateTimeFormatter DIA_GRAFICA = DateTimeFormatter.ofPattern("dd/MM");
+
+    private static final String ACTIVO = "UPPER(COALESCE(TRIM(%s.estado), '')) IN ('', 'ACTIVO')";
+
+    // Opción del combo Periodo: un mes o todo el historial.
+    private record Periodo(String etiqueta, LocalDate desde, LocalDate hasta) {
+
+        @Override
+        public String toString() {
+            return etiqueta;
+        }
+    }
+
+    // idCategoria null = "Todas".
+    private record OpcionCategoria(Integer idCategoria, String texto) {
+
+        @Override
+        public String toString() {
+            return texto;
+        }
+    }
+
+    private record TopProducto(String nombre, int cantidad) {
+    }
+
+    private record Importe(String nombre, BigDecimal total) {
+    }
+
+    private record CompraProveedor(String nombre, int compras, BigDecimal total) {
+    }
+
+    private record MermaProducto(String nombre, int cantidad, BigDecimal total) {
+    }
+
+    private record StockBajo(String nombre, int stock, int puntoReorden) {
+
+        String estado() {
+            if (stock < 0) {
+                return "Negativo";
+            }
+            return stock == 0 ? "Agotado" : "Reordenar";
+        }
+    }
+
+    @FXML private ComboBox<Periodo> cmbPeriodo;
+    @FXML private ComboBox<OpcionCategoria> cmbCategoria;
+    @FXML private DatePicker dpDesde;
+    @FXML private DatePicker dpHasta;
     @FXML private Button btnVolver;
     @FXML private Button btnGenerar;
     @FXML private Button btnActualizar;
     @FXML private Button btnExportar;
 
+    @FXML private Label lblFecha;
     @FXML private Label lblVentasPeriodo;
+    @FXML private Label lblSubVentas;
     @FXML private Label lblNumVentas;
     @FXML private Label lblTicketPromedio;
     @FXML private Label lblComprasPeriodo;
     @FXML private Label lblSubCompras;
     @FXML private Label lblMermasPeriodo;
+    @FXML private Label lblSubMermas;
+    @FXML private Label lblSubGrafico;
     @FXML private Label lblEstado;
 
     @FXML private BarChart<String, Number> graficoVentasDia;
@@ -57,573 +135,754 @@ public class EstadisticasGeneralesController {
     @FXML private TableColumn<TopProducto, String> colTopNombre;
     @FXML private TableColumn<TopProducto, Integer> colTopCantidad;
 
-    @FXML private TableColumn<CategoriaItem, String> colCatNombre;
-    @FXML private TableColumn<CategoriaItem, Double> colCatTotal;
-    @FXML private TableView<CategoriaItem> tablaCategoria;
+    @FXML private TableView<Importe> tablaCategoria;
+    @FXML private TableColumn<Importe, String> colCatNombre;
+    @FXML private TableColumn<Importe, String> colCatTotal;
 
-    @FXML private TableColumn<MetodoPagoItem, String> colMetodoNombre;
-    @FXML private TableColumn<MetodoPagoItem, Double> colMetodoTotal;
-    @FXML private TableView<MetodoPagoItem> tablaMetodoPago;
+    @FXML private TableView<Importe> tablaMetodoPago;
+    @FXML private TableColumn<Importe, String> colMetodoNombre;
+    @FXML private TableColumn<Importe, String> colMetodoTotal;
 
-    @FXML private TableView<StockBajoItem> tablaStockBajo;
-    @FXML private TableColumn<StockBajoItem, String> colStockProd;
-    @FXML private TableColumn<StockBajoItem, Integer> colStockActual;
-    @FXML private TableColumn<StockBajoItem, Integer> colStockMinimo;
-    @FXML private TableColumn<StockBajoItem, String> colStockEstado;
+    @FXML private TableView<CompraProveedor> tablaComprasProveedor;
+    @FXML private TableColumn<CompraProveedor, String> colProveedorNombre;
+    @FXML private TableColumn<CompraProveedor, Integer> colProveedorCompras;
+    @FXML private TableColumn<CompraProveedor, String> colProveedorTotal;
+
+    @FXML private TableView<MermaProducto> tablaMermasProducto;
+    @FXML private TableColumn<MermaProducto, String> colMermaProducto;
+    @FXML private TableColumn<MermaProducto, Integer> colMermaCantidad;
+    @FXML private TableColumn<MermaProducto, String> colMermaTotal;
+
+    @FXML private TableView<StockBajo> tablaStockBajo;
+    @FXML private TableColumn<StockBajo, String> colStockProd;
+    @FXML private TableColumn<StockBajo, Integer> colStockActual;
+    @FXML private TableColumn<StockBajo, Integer> colStockMinimo;
+    @FXML private TableColumn<StockBajo, String> colStockEstado;
+
+    private final CategoriaDAO categoriaDAO = new CategoriaDAO();
+
+    // Evita recargar mientras se llenan los combos por código.
+    private boolean cargandoFiltros;
 
     @FXML
     public void initialize() {
-        colTopNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        colTopCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        lblFecha.setText(Formato.fecha(LocalDate.now()));
 
-        colCatNombre.setCellValueFactory(new PropertyValueFactory<>("categoria"));
-        colCatTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
+        colTopNombre.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
+        colTopCantidad.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().cantidad()));
 
-        colMetodoNombre.setCellValueFactory(new PropertyValueFactory<>("metodo"));
-        colMetodoTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
+        colCatNombre.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
+        colCatTotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(Formato.dinero(c.getValue().total())));
 
-        colStockProd.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        colStockActual.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
-        colStockMinimo.setCellValueFactory(new PropertyValueFactory<>("puntoReorden"));
-        colStockEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+        colMetodoNombre.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
+        colMetodoTotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(Formato.dinero(c.getValue().total())));
+
+        colProveedorNombre.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
+        colProveedorCompras.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().compras()));
+        colProveedorTotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(Formato.dinero(c.getValue().total())));
+
+        colMermaProducto.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
+        colMermaCantidad.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().cantidad()));
+        colMermaTotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(Formato.dinero(c.getValue().total())));
+
+        colStockProd.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().nombre()));
+        colStockActual.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().stock()));
+        colStockMinimo.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().puntoReorden()));
+        colStockEstado.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().estado()));
+
+        configurarFecha(dpDesde);
+        configurarFecha(dpHasta);
+
+        cmbPeriodo.valueProperty().addListener((obs, antes, periodo) -> {
+            if (periodo != null && !cargandoFiltros) {
+                dpDesde.setValue(periodo.desde());
+                dpHasta.setValue(periodo.hasta());
+                cargarDatosDashboard();
+            }
+        });
+
+        cmbCategoria.valueProperty().addListener((obs, antes, ahora) -> {
+            if (ahora != null && !cargandoFiltros) {
+                cargarDatosDashboard();
+            }
+        });
 
         cargarFiltrosDinamicos();
-
-        cmbPeriodo.setOnAction(event -> {
-            String seleccionado = cmbPeriodo.getValue();
-            if (seleccionado != null && !seleccionado.isEmpty()) {
-                aplicarRangoFechasPorSeleccion(seleccionado);
-                cargarDatosDashboard();
-            }
-        });
-
-        cmbCategoria.setOnAction(event -> {
-            if (cmbCategoria.getValue() != null) {
-                cargarDatosDashboard();
-            }
-        });
-
         cargarDatosDashboard();
     }
 
-    private void cargarFiltrosDinamicos() {
-        try (Connection conn = Conexion.conectar()) {
-
-            if (conn == null) {
-                if (lblEstado != null) {
-                    lblEstado.setText("No se pudo conectar a la base de datos.");
-                }
-                return;
+    private void configurarFecha(DatePicker selector) {
+        selector.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(LocalDate fecha) {
+                return Formato.fecha(fecha);
             }
 
-            ObservableList<String> periodos = FXCollections.observableArrayList();
-            String qMeses = "SELECT DISTINCT fecha FROM Ventas ORDER BY fecha DESC";
-
-            try (Statement st = conn.createStatement();
-                 ResultSet rs = st.executeQuery(qMeses)) {
-
-                while (rs.next()) {
-                    String fechaStr = rs.getString(1);
-
-                    if (fechaStr != null && fechaStr.length() >= 7) {
-                        int anio = Integer.parseInt(fechaStr.substring(0, 4));
-                        int mes = Integer.parseInt(fechaStr.substring(5, 7));
-
-                        LocalDate fechaLocal = LocalDate.of(anio, mes, 1);
-                        String nombreMes = fechaLocal.getMonth()
-                                .getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
-
-                        String etiqueta = capitalize(nombreMes) + " " + anio;
-
-                        if (!periodos.contains(etiqueta)) {
-                            periodos.add(etiqueta);
-                        }
-                    }
-                }
+            @Override
+            public LocalDate fromString(String texto) {
+                return interpretarFecha(texto);
             }
-
-            if (periodos.isEmpty()) {
-                LocalDate hoy = LocalDate.now();
-                String mesActual = capitalize(
-                        hoy.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "ES"))
-                );
-                periodos.add(mesActual + " " + hoy.getYear());
-            }
-
-            periodos.add("Histórico (General)");
-
-            String seleccionadoPrevio = cmbPeriodo.getValue();
-            cmbPeriodo.setItems(periodos);
-
-            if (seleccionadoPrevio != null && periodos.contains(seleccionadoPrevio)) {
-                cmbPeriodo.setValue(seleccionadoPrevio);
-            } else {
-                cmbPeriodo.setValue(periodos.get(0));
-                aplicarRangoFechasPorSeleccion(periodos.get(0));
-            }
-
-            String categoriaPrevia = cmbCategoria.getValue();
-            ObservableList<String> categorias =
-                    FXCollections.observableArrayList("Todas");
-
-            String qCat = "SELECT nombre FROM Categoria ORDER BY nombre";
-
-            try (Statement st = conn.createStatement();
-                 ResultSet rs = st.executeQuery(qCat)) {
-
-                while (rs.next()) {
-                    categorias.add(rs.getString(1));
-                }
-            }
-
-            cmbCategoria.setItems(categorias);
-
-            if (categoriaPrevia != null && categorias.contains(categoriaPrevia)) {
-                cmbCategoria.setValue(categoriaPrevia);
-            } else {
-                cmbCategoria.setValue("Todas");
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            if (lblEstado != null) {
-                lblEstado.setText("Error al cargar filtros dinámicos de la BD: " + e.getMessage());
-            }
-        }
+        });
     }
 
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
-    }
-
-    private void aplicarRangoFechasPorSeleccion(String seleccion) {
-        if (seleccion.contains("Histórico")) {
-            txtDesde.setText("2020-01-01");
-            txtHasta.setText(LocalDate.now().toString());
-            return;
+    private static LocalDate interpretarFecha(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return null;
         }
 
         try {
-            String[] partes = seleccion.split(" ");
+            return LocalDate.parse(texto.trim(), FECHA_CAPTURA);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
 
-            if (partes.length >= 2) {
-                String nombreMes = partes[0].toLowerCase();
-                int anio = Integer.parseInt(partes[1]);
-                int mesNum = obtenerNumeroMes(nombreMes);
+    // Lee lo escrito en el selector aunque todavía no se haya confirmado.
+    private static LocalDate leerFecha(DatePicker selector) {
+        String texto = selector.getEditor().getText();
 
-                if (mesNum > 0) {
-                    YearMonth ym = YearMonth.of(anio, mesNum);
-                    LocalDate inicio = ym.atDay(1);
-                    LocalDate fin = ym.atEndOfMonth();
+        if (texto != null && !texto.isBlank()) {
+            LocalDate fecha = interpretarFecha(texto);
 
-                    txtDesde.setText(inicio.toString());
-                    txtHasta.setText(fin.toString());
+            if (fecha != null && !fecha.equals(selector.getValue())) {
+                selector.setValue(fecha);
+            }
+            return fecha;
+        }
+
+        return selector.getValue();
+    }
+
+    // Meses con ventas activas (más el mes actual) y el histórico;
+    // categorías de la tabla Categoria.
+    private void cargarFiltrosDinamicos() {
+        cargandoFiltros = true;
+
+        try {
+            Periodo previo = cmbPeriodo.getValue();
+            List<Periodo> periodos = new ArrayList<>();
+            YearMonth actual = YearMonth.now();
+            periodos.add(mes(actual));
+
+            LocalDate primeraFecha = null;
+
+            String sqlMeses = "SELECT DISTINCT YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes "
+                    + "FROM Ventas v WHERE v.fecha IS NOT NULL AND " + activo("v") + " "
+                    + "ORDER BY anio DESC, mes DESC";
+
+            // Mismo criterio que Estadísticas de Stock: primer movimiento
+            // histórico activo entre ventas, compras, mermas y devoluciones.
+            // Las devoluciones solo determinan el inicio del historial;
+            // no se agregan como indicadores nuevos en este dashboard.
+            String sqlPrimera = "SELECT MIN(f) FROM ("
+                    + "SELECT MIN(DATE(v.fecha)) AS f FROM Ventas v "
+                    + "WHERE v.fecha IS NOT NULL AND " + activo("v") + " "
+                    + "UNION ALL SELECT MIN(c.fecha) FROM Compras c "
+                    + "WHERE c.fecha IS NOT NULL AND " + activo("c") + " "
+                    + "UNION ALL SELECT MIN(m.fecha) FROM Mermas m "
+                    + "WHERE m.fecha IS NOT NULL AND " + activo("m") + " "
+                    + "UNION ALL SELECT MIN(dc.fecha) FROM Devolucion_Clientes dc "
+                    + "WHERE dc.fecha IS NOT NULL AND " + activo("dc") + " "
+                    + "UNION ALL SELECT MIN(dp.fecha) FROM Devolucion_Proveedores dp "
+                    + "WHERE dp.fecha IS NOT NULL AND " + activo("dp") + ") t";
+
+            try (Connection conexion = Conexion.conectar()) {
+                if (conexion == null) {
+                    lblEstado.setText("No se pudo conectar con la base de datos.");
+                } else {
+                    try (PreparedStatement ps = conexion.prepareStatement(sqlMeses);
+                         ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            YearMonth ym = YearMonth.of(rs.getInt("anio"), rs.getInt("mes"));
+                            if (!ym.equals(actual)) {
+                                periodos.add(mes(ym));
+                            }
+                        }
+                    }
+
+                    try (PreparedStatement ps = conexion.prepareStatement(sqlPrimera);
+                         ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getDate(1) != null) {
+                            primeraFecha = rs.getDate(1).toLocalDate();
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                lblEstado.setText("Error al cargar los periodos: " + e.getMessage());
+            }
+
+            LocalDate hoy = LocalDate.now();
+            LocalDate inicio = primeraFecha == null || primeraFecha.isAfter(hoy) ? hoy : primeraFecha;
+            periodos.add(new Periodo("Histórico (general)", inicio, hoy));
+
+            cmbPeriodo.getItems().setAll(periodos);
+            // Al abrir, mostrar el historial completo; los meses siguen disponibles.
+            Periodo seleccion = previo == null
+                    ? periodos.get(periodos.size() - 1)
+                    : periodos.get(0);
+            if (previo != null) {
+                for (Periodo p : periodos) {
+                    if (p.etiqueta().equals(previo.etiqueta())) {
+                        seleccion = p;
+                    }
                 }
             }
-        } catch (Exception e) {
-            LocalDate hoy = LocalDate.now();
-            txtDesde.setText(hoy.withDayOfMonth(1).toString());
-            txtHasta.setText(hoy.toString());
+            cmbPeriodo.setValue(seleccion);
+
+            if (previo == null) {
+                dpDesde.setValue(seleccion.desde());
+                dpHasta.setValue(seleccion.hasta());
+            }
+
+            // Categorías: activas y, al final, inactivas.
+            OpcionCategoria previa = cmbCategoria.getValue();
+            List<OpcionCategoria> categorias = new ArrayList<>();
+            categorias.add(new OpcionCategoria(null, "Todas"));
+            List<OpcionCategoria> inactivas = new ArrayList<>();
+
+            for (Categoria categoria : categoriaDAO.listar()) {
+                if (Estados.esActivo(categoria.getEstado())) {
+                    categorias.add(new OpcionCategoria(categoria.getIdCategoria(), categoria.getNombre()));
+                } else {
+                    inactivas.add(new OpcionCategoria(categoria.getIdCategoria(),
+                            categoria.getNombre() + " (inactiva)"));
+                }
+            }
+            categorias.addAll(inactivas);
+
+            cmbCategoria.getItems().setAll(categorias);
+            OpcionCategoria elegida = categorias.get(0);
+            if (previa != null) {
+                for (OpcionCategoria opcion : categorias) {
+                    if (opcion.texto().equals(previa.texto())) {
+                        elegida = opcion;
+                    }
+                }
+            }
+            cmbCategoria.setValue(elegida);
+
+        } finally {
+            cargandoFiltros = false;
         }
     }
 
-    private int obtenerNumeroMes(String mesStr) {
-        switch (mesStr) {
-            case "enero": return 1;
-            case "febrero": return 2;
-            case "marzo": return 3;
-            case "abril": return 4;
-            case "mayo": return 5;
-            case "junio": return 6;
-            case "julio": return 7;
-            case "agosto": return 8;
-            case "septiembre":
-            case "setiembre": return 9;
-            case "octubre": return 10;
-            case "noviembre": return 11;
-            case "diciembre": return 12;
-            default: return 1;
-        }
+    private static Periodo mes(YearMonth ym) {
+        String nombre = ym.getMonth().getDisplayName(TextStyle.FULL, ESPANOL);
+        String etiqueta = nombre.substring(0, 1).toUpperCase(ESPANOL) + nombre.substring(1) + " " + ym.getYear();
+        LocalDate fin = ym.atEndOfMonth();
+        LocalDate hoy = LocalDate.now();
+        return new Periodo(etiqueta, ym.atDay(1), fin.isAfter(hoy) && !ym.atDay(1).isAfter(hoy) ? hoy : fin);
     }
+
+    private static String activo(String alias) {
+        return String.format(ACTIVO, alias);
+    }
+
+    // ------------------------------------------------------------------
+    // Acciones
+    // ------------------------------------------------------------------
 
     @FXML
     private void handleGenerar() {
         cargarDatosDashboard();
-
-        if (lblEstado != null) {
-            lblEstado.setText("Estadísticas generadas del "
-                    + txtDesde.getText() + " al " + txtHasta.getText());
-        }
     }
 
     @FXML
     private void handleActualizar() {
         cargarFiltrosDinamicos();
         cargarDatosDashboard();
-
-        if (lblEstado != null) {
-            lblEstado.setText("Datos sincronizados con éxito desde MySQL a las "
-                    + java.time.LocalTime.now().withNano(0));
-        }
     }
 
     @FXML
     private void handleExportar() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Guardar Reporte de Estadísticas");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Archivo de texto (*.txt)", "*.txt")
+        // Validar el mismo rango que se utilizará en el reporte.
+        LocalDate desde = leerFecha(dpDesde);
+        LocalDate hasta = leerFecha(dpHasta);
+
+        if (desde == null || hasta == null) {
+            mostrarError("Fechas no válidas",
+                    "Selecciona las fechas Desde y Hasta antes de exportar.");
+            return;
+        }
+
+        if (hasta.isBefore(desde)) {
+            mostrarError("Periodo no válido",
+                    "La fecha Desde no puede ser posterior a la fecha Hasta.");
+            return;
+        }
+
+        FileChooser selector = new FileChooser();
+        selector.setTitle("Exportar estadísticas generales");
+
+        FileChooser.ExtensionFilter filtroPdf =
+                new FileChooser.ExtensionFilter("Documento PDF (*.pdf)", "*.pdf");
+        FileChooser.ExtensionFilter filtroExcel =
+                new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx");
+
+        selector.getExtensionFilters().addAll(filtroPdf, filtroExcel);
+        selector.setSelectedExtensionFilter(filtroPdf);
+        selector.setInitialFileName("Estadisticas_Generales_LaRoca.pdf");
+
+        File archivo = selector.showSaveDialog(btnExportar.getScene().getWindow());
+        if (archivo == null) {
+            return;
+        }
+
+        try {
+            DatosReporteEstadisticas datos = crearDatosReporte();
+
+            if (selector.getSelectedExtensionFilter() == filtroExcel) {
+                archivo = asegurarExtension(archivo, ".xlsx");
+                ExportadorEstadisticasExcel.exportar(datos, archivo);
+                lblEstado.setText("Excel guardado en " + archivo.getAbsolutePath());
+            } else {
+                archivo = asegurarExtension(archivo, ".pdf");
+                ExportadorEstadisticasPdf.exportar(datos, archivo);
+                lblEstado.setText("PDF guardado en " + archivo.getAbsolutePath());
+            }
+
+        } catch (IOException | RuntimeException e) {
+            e.printStackTrace();
+            mostrarError("Error de exportación",
+                    "No se pudo generar el reporte: " + e.getMessage());
+        }
+    }
+
+    private File asegurarExtension(File archivo, String extension) {
+        if (archivo.getName().toLowerCase(ESPANOL).endsWith(extension)) {
+            return archivo;
+        }
+        return new File(archivo.getParentFile(), archivo.getName() + extension);
+    }
+
+    private DatosReporteEstadisticas crearDatosReporte() {
+        LocalDate desde = leerFecha(dpDesde);
+        LocalDate hasta = leerFecha(dpHasta);
+
+        if (desde == null || hasta == null || hasta.isBefore(desde)) {
+            throw new IllegalStateException("El periodo seleccionado no es válido.");
+        }
+
+        String categoria = cmbCategoria.getValue() == null
+                ? "Todas" : cmbCategoria.getValue().texto();
+
+        List<DatosReporteEstadisticas.Dato> indicadores = List.of(
+                new DatosReporteEstadisticas.Dato("Ventas del periodo", lblVentasPeriodo.getText(), ""),
+                new DatosReporteEstadisticas.Dato("Número de ventas", lblNumVentas.getText(), ""),
+                new DatosReporteEstadisticas.Dato("Ticket promedio", lblTicketPromedio.getText(), ""),
+                new DatosReporteEstadisticas.Dato("Compras del periodo",
+                        lblComprasPeriodo.getText(), lblSubCompras.getText()),
+                new DatosReporteEstadisticas.Dato("Mermas del periodo",
+                        lblMermasPeriodo.getText(), lblSubMermas.getText())
         );
-        fileChooser.setInitialFileName("Reporte_Estadisticas_LaRoca.txt");
 
-        Stage stage = (Stage) btnExportar.getScene().getWindow();
-        File archivo = fileChooser.showSaveDialog(stage);
+        List<DatosReporteEstadisticas.Seccion> secciones = new ArrayList<>();
 
-        if (archivo != null) {
-            try (PrintWriter pw = new PrintWriter(archivo)) {
-                pw.println("==========================================");
-                pw.println("  SISTEMA ABARROTES 'LA ROCA' - ESTADÍSTICAS");
-                pw.println("==========================================");
-                pw.println("Periodo: " + txtDesde.getText() + " al " + txtHasta.getText());
-                pw.println("Categoría: " + cmbCategoria.getValue());
-                pw.println("------------------------------------------");
-                pw.println("Ventas del Periodo: " + lblVentasPeriodo.getText());
-                pw.println("Número de Ventas: " + lblNumVentas.getText());
-                pw.println("Ticket Promedio: " + lblTicketPromedio.getText());
-                pw.println("Compras del Periodo: " + lblComprasPeriodo.getText());
-                pw.println("Mermas del Periodo: " + lblMermasPeriodo.getText());
-                pw.println("==========================================");
-                pw.println("Reporte generado con éxito.");
-
-                Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-                alerta.setTitle("Exportación Exitosa");
-                alerta.setHeaderText(null);
-                alerta.setContentText("El reporte se ha guardado correctamente en:\n"
-                        + archivo.getAbsolutePath());
-                alerta.showAndWait();
-
-            } catch (Exception e) {
-                e.printStackTrace();
-
-                Alert alerta = new Alert(Alert.AlertType.ERROR);
-                alerta.setTitle("Error de Exportación");
-                alerta.setHeaderText(null);
-                alerta.setContentText("No se pudo guardar el archivo: " + e.getMessage());
-                alerta.showAndWait();
+        List<DatosReporteEstadisticas.Dato> ventasDia = new ArrayList<>();
+        for (XYChart.Series<String, Number> serie : graficoVentasDia.getData()) {
+            for (XYChart.Data<String, Number> dato : serie.getData()) {
+                ventasDia.add(new DatosReporteEstadisticas.Dato(
+                        dato.getXValue(),
+                        Formato.dinero(new BigDecimal(dato.getYValue().toString())),
+                        ""));
             }
         }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Ventas por día", ventasDia));
+
+        List<DatosReporteEstadisticas.Dato> categorias = new ArrayList<>();
+        for (Importe dato : tablaCategoria.getItems()) {
+            categorias.add(new DatosReporteEstadisticas.Dato(
+                    dato.nombre(), Formato.dinero(dato.total()), ""));
+        }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Ventas por categoría", categorias));
+
+        List<DatosReporteEstadisticas.Dato> metodos = new ArrayList<>();
+        for (Importe dato : tablaMetodoPago.getItems()) {
+            metodos.add(new DatosReporteEstadisticas.Dato(
+                    dato.nombre(), Formato.dinero(dato.total()), ""));
+        }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Ventas por método de pago", metodos));
+
+        List<DatosReporteEstadisticas.Dato> proveedores = new ArrayList<>();
+        for (CompraProveedor dato : tablaComprasProveedor.getItems()) {
+            proveedores.add(new DatosReporteEstadisticas.Dato(
+                    dato.nombre(), Formato.dinero(dato.total()),
+                    dato.compras() + (dato.compras() == 1 ? " compra" : " compras")));
+        }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Compras por proveedor", proveedores));
+
+        List<DatosReporteEstadisticas.Dato> mermas = new ArrayList<>();
+        for (MermaProducto dato : tablaMermasProducto.getItems()) {
+            mermas.add(new DatosReporteEstadisticas.Dato(
+                    dato.nombre(), Formato.dinero(dato.total()), dato.cantidad() + " unidades"));
+        }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Mermas por producto", mermas));
+
+        List<DatosReporteEstadisticas.Dato> masVendidos = new ArrayList<>();
+        int posicion = 1;
+        for (TopProducto dato : tablaTopProductos.getItems()) {
+            masVendidos.add(new DatosReporteEstadisticas.Dato(
+                    posicion++ + ". " + dato.nombre(), dato.cantidad() + " unidades", ""));
+        }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Productos más vendidos", masVendidos));
+
+        List<DatosReporteEstadisticas.Dato> stockBajo = new ArrayList<>();
+        for (StockBajo dato : tablaStockBajo.getItems()) {
+            stockBajo.add(new DatosReporteEstadisticas.Dato(
+                    dato.nombre(),
+                    "Stock: " + dato.stock(),
+                    "Punto de reorden: " + dato.puntoReorden() + " · " + dato.estado()));
+        }
+        secciones.add(new DatosReporteEstadisticas.Seccion("Productos a reordenar", stockBajo));
+
+        return new DatosReporteEstadisticas(
+                desde, hasta, categoria, LocalDate.now(),
+                indicadores, secciones);
     }
 
     @FXML
     private void volverAlMenu() {
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/com/laroca/vista/menu.fxml")
-            );
-
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/laroca/vista/menu.fxml"));
             Parent vista = loader.load();
             Stage ventana = (Stage) btnVolver.getScene().getWindow();
-
-            Navegacion.mostrar(ventana, vista, "La Roca - Menú Principal");
-
-        } catch (Exception e) {
+            Navegacion.mostrar(ventana, vista, Navegacion.TITULO_MENU);
+        } catch (IOException | IllegalStateException e) {
             e.printStackTrace();
-
-            if (lblEstado != null) {
-                lblEstado.setText("Error al volver al menú principal.");
-            }
+            mostrarError("Error de navegación", "No se pudo regresar al menú principal.\n" + e.getMessage());
         }
     }
 
+    // ------------------------------------------------------------------
+    // Datos
+    // ------------------------------------------------------------------
+
     private void cargarDatosDashboard() {
-        String desde = txtDesde.getText();
-        String hasta = txtHasta.getText();
-        String categoriaSeleccionada = cmbCategoria.getValue();
+        LocalDate desde = leerFecha(dpDesde);
+        LocalDate hasta = leerFecha(dpHasta);
 
-        try (Connection conn = Conexion.conectar()) {
+        if (desde == null || hasta == null) {
+            lblEstado.setText("Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
+            alertaDiferida("Fecha no válida", "Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
+            return;
+        }
 
-            if (conn == null) {
-                if (lblEstado != null) {
-                    lblEstado.setText("No se pudo conectar a la base de datos.");
-                }
+        if (hasta.isBefore(desde)) {
+            lblEstado.setText("La fecha Desde no puede ser posterior a la fecha Hasta.");
+            alertaDiferida("Periodo no válido", "La fecha Desde no puede ser posterior a la fecha Hasta.");
+            return;
+        }
+
+        Integer idCategoria = cmbCategoria.getValue() == null ? null : cmbCategoria.getValue().idCategoria();
+        Filtro filtro = new Filtro(desde, hasta, idCategoria);
+
+        try (Connection conexion = Conexion.conectar()) {
+            if (conexion == null) {
+                lblEstado.setText("No se pudo conectar con la base de datos.");
                 return;
             }
 
-            // 1. Cargar KPIs de Ventas filtrando por fechas y categoría
-            String qVentas;
-            PreparedStatement pstVentas;
+            // 1. Ventas (importe del detalle, para poder filtrar por categoría).
+            String sqlVentas = "SELECT COUNT(DISTINCT v.id_venta) AS ventas, "
+                    + "COALESCE(SUM(dv.cantidad * dv.precio_unitario), 0) AS importe "
+                    + filtro.desdeVentas();
+            int numVentas = 0;
+            BigDecimal importeVentas = BigDecimal.ZERO;
 
-            if (categoriaSeleccionada == null || categoriaSeleccionada.equals("Todas")) {
-                qVentas = "SELECT COUNT(DISTINCT v.id_venta), SUM(v.total) "
-                        + "FROM Ventas v WHERE v.fecha BETWEEN ? AND ?";
-
-                pstVentas = conn.prepareStatement(qVentas);
-                pstVentas.setString(1, desde);
-                pstVentas.setString(2, hasta);
-
-            } else {
-                qVentas = "SELECT COUNT(DISTINCT v.id_venta), "
-                        + "SUM(dv.cantidad * dv.precio_unitario) "
-                        + "FROM Ventas v "
-                        + "JOIN detalle_ventas dv ON v.id_venta = dv.id_venta "
-                        + "JOIN Productos p ON dv.id_producto = p.id_producto "
-                        + "JOIN Categoria c ON p.id_categoria = c.id_categoria "
-                        + "WHERE v.fecha BETWEEN ? AND ? AND c.nombre = ?";
-
-                pstVentas = conn.prepareStatement(qVentas);
-                pstVentas.setString(1, desde);
-                pstVentas.setString(2, hasta);
-                pstVentas.setString(3, categoriaSeleccionada);
-            }
-
-            try (PreparedStatement pst = pstVentas;
-                 ResultSet rs = pst.executeQuery()) {
-
-                if (rs.next()) {
-                    int numVentas = rs.getInt(1);
-                    double sumVentas = rs.getDouble(2);
-                    double ticketProm = numVentas > 0 ? sumVentas / numVentas : 0.0;
-
-                    lblNumVentas.setText(String.valueOf(numVentas));
-                    lblVentasPeriodo.setText(String.format("$%,.2f", sumVentas));
-                    lblTicketPromedio.setText(String.format("$%,.2f", ticketProm));
-
-                } else {
-                    lblNumVentas.setText("0");
-                    lblVentasPeriodo.setText("$0.00");
-                    lblTicketPromedio.setText("$0.00");
-                }
-            }
-
-            // 2. Cargar KPIs de Compras
-            String qCompras =
-                    "SELECT COUNT(*), SUM(total) FROM Compras WHERE fecha BETWEEN ? AND ?";
-
-            try (PreparedStatement pst = conn.prepareStatement(qCompras)) {
-                pst.setString(1, desde);
-                pst.setString(2, hasta);
-
-                try (ResultSet rs = pst.executeQuery()) {
+            try (PreparedStatement ps = conexion.prepareStatement(sqlVentas)) {
+                filtro.parametrosVentas(ps);
+                try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        int numCom = rs.getInt(1);
-                        double sumCom = rs.getDouble(2);
-
-                        lblComprasPeriodo.setText(String.format("$%,.2f", sumCom));
-                        lblSubCompras.setText(numCom + " compras");
-                    } else {
-                        lblComprasPeriodo.setText("$0.00");
-                        lblSubCompras.setText("0 compras");
+                        numVentas = rs.getInt("ventas");
+                        importeVentas = rs.getBigDecimal("importe");
                     }
                 }
             }
 
-            // 3. Cargar KPIs de Mermas
-            try {
-                String qMermas = "SELECT COALESCE(SUM(dm.cantidad * dm.precio), 0) "
-                        + "FROM detalle_mermas dm "
-                        + "JOIN Mermas m ON dm.id_merma = m.id_merma "
-                        + "WHERE m.fecha BETWEEN ? AND ?";
+            lblNumVentas.setText(Formato.entero(numVentas));
+            lblVentasPeriodo.setText(Formato.dinero(importeVentas));
+            lblTicketPromedio.setText(Formato.dinero(numVentas == 0
+                    ? BigDecimal.ZERO
+                    : importeVentas.divide(BigDecimal.valueOf(numVentas), 2, RoundingMode.HALF_UP)));
 
-                try (PreparedStatement pst = conn.prepareStatement(qMermas)) {
-                    pst.setString(1, desde);
-                    pst.setString(2, hasta);
+            // 2. Compras.
+            String sqlCompras = "SELECT COUNT(DISTINCT c.id_compras) AS compras, "
+                    + "COALESCE(SUM(d.cantidad * d.precio_compra), 0) AS importe "
+                    + "FROM Compras c "
+                    + "INNER JOIN detalle_compras d ON d.id_compras = c.id_compras "
+                    + "INNER JOIN Productos p ON p.id_producto = d.id_producto "
+                    + "WHERE c.fecha >= ? AND c.fecha < ? AND " + activo("c")
+                    + filtro.condicionCategoria();
 
-                    try (ResultSet rs = pst.executeQuery()) {
-                        if (rs.next()) {
-                            lblMermasPeriodo.setText(String.format("$%,.2f", rs.getDouble(1)));
-                        }
-                    }
+            try (PreparedStatement ps = conexion.prepareStatement(sqlCompras)) {
+                filtro.parametrosFecha(ps);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    int numCompras = rs.getInt("compras");
+                    lblComprasPeriodo.setText(Formato.dinero(rs.getBigDecimal("importe")));
+                    lblSubCompras.setText(numCompras + (numCompras == 1 ? " compra" : " compras"));
                 }
-            } catch (Exception e) {
-                lblMermasPeriodo.setText("$0.00");
             }
 
-            // 4. Cargar Gráfica de Ventas por Día
-            graficoVentasDia.getData().clear();
-            XYChart.Series<String, Number> serie = new XYChart.Series<>();
+            // 3. Compras desglosadas por proveedor.
+            String sqlComprasProveedor = "SELECT COALESCE(NULLIF(TRIM(pr.nombre), ''), 'Sin proveedor') AS nombre, "
+                    + "COUNT(DISTINCT c.id_compras) AS compras, "
+                    + "COALESCE(SUM(d.cantidad * d.precio_compra), 0) AS importe "
+                    + "FROM Compras c "
+                    + "INNER JOIN Proveedores pr ON pr.id_proveedor = c.id_proveedor "
+                    + "INNER JOIN detalle_compras d ON d.id_compras = c.id_compras "
+                    + "INNER JOIN Productos p ON p.id_producto = d.id_producto "
+                    + "WHERE c.fecha >= ? AND c.fecha < ? AND " + activo("c")
+                    + filtro.condicionCategoria()
+                    + " GROUP BY pr.id_proveedor, pr.nombre ORDER BY importe DESC, nombre";
+            List<CompraProveedor> comprasProveedor = new ArrayList<>();
 
-            String qGrafico =
-                    "SELECT fecha, SUM(total) FROM Ventas "
-                    + "WHERE fecha BETWEEN ? AND ? GROUP BY fecha ORDER BY fecha";
-
-            try (PreparedStatement pst = conn.prepareStatement(qGrafico)) {
-                pst.setString(1, desde);
-                pst.setString(2, hasta);
-
-                try (ResultSet rs = pst.executeQuery()) {
+            try (PreparedStatement ps = conexion.prepareStatement(sqlComprasProveedor)) {
+                filtro.parametrosFecha(ps);
+                try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        serie.getData().add(
-                                new XYChart.Data<>(rs.getString(1), rs.getDouble(2))
-                        );
+                        comprasProveedor.add(new CompraProveedor(
+                                rs.getString("nombre"), rs.getInt("compras"),
+                                rs.getBigDecimal("importe")));
                     }
                 }
             }
+            tablaComprasProveedor.getItems().setAll(comprasProveedor);
 
-            graficoVentasDia.getData().add(serie);
+            // 4. Mermas.
+            String sqlMermas = "SELECT COALESCE(SUM(d.cantidad * d.precio), 0) AS importe "
+                    + "FROM Mermas m "
+                    + "INNER JOIN detalle_mermas d ON d.id_merma = m.id_merma "
+                    + "INNER JOIN Productos p ON p.id_producto = d.id_producto "
+                    + "WHERE m.fecha >= ? AND m.fecha < ? AND " + activo("m")
+                    + filtro.condicionCategoria();
 
-            // 5. Cargar Top Productos Más Vendidos
-            ObservableList<TopProducto> topProds =
-                    FXCollections.observableArrayList();
+            try (PreparedStatement ps = conexion.prepareStatement(sqlMermas)) {
+                filtro.parametrosFecha(ps);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    BigDecimal mermas = rs.getBigDecimal("importe");
+                    lblMermasPeriodo.setText(Formato.dinero(mermas));
+                    lblSubMermas.setText(importeVentas.signum() == 0
+                            ? "— de ventas"
+                            : mermas.multiply(BigDecimal.valueOf(100))
+                                    .divide(importeVentas, 1, RoundingMode.HALF_UP) + "% de ventas");
+                }
+            }
 
-            String qTop = "SELECT p.nombre, SUM(dv.cantidad) as total_cant "
-                    + "FROM detalle_ventas dv "
-                    + "JOIN Ventas v ON dv.id_venta = v.id_venta "
-                    + "JOIN Productos p ON dv.id_producto = p.id_producto "
-                    + "WHERE v.fecha BETWEEN ? AND ? "
-                    + "GROUP BY p.id_producto ORDER BY total_cant DESC LIMIT 5";
+            // 5. Mermas desglosadas por producto.
+            String sqlMermasProducto = "SELECT p.id_producto, p.nombre, "
+                    + "COALESCE(SUM(d.cantidad), 0) AS unidades, "
+                    + "COALESCE(SUM(d.cantidad * d.precio), 0) AS importe "
+                    + "FROM Mermas m "
+                    + "INNER JOIN detalle_mermas d ON d.id_merma = m.id_merma "
+                    + "INNER JOIN Productos p ON p.id_producto = d.id_producto "
+                    + "WHERE m.fecha >= ? AND m.fecha < ? AND " + activo("m")
+                    + filtro.condicionCategoria()
+                    + " GROUP BY p.id_producto, p.nombre ORDER BY importe DESC, p.nombre";
+            List<MermaProducto> mermasProducto = new ArrayList<>();
 
-            try (PreparedStatement pst = conn.prepareStatement(qTop)) {
-                pst.setString(1, desde);
-                pst.setString(2, hasta);
-
-                try (ResultSet rs = pst.executeQuery()) {
+            try (PreparedStatement ps = conexion.prepareStatement(sqlMermasProducto)) {
+                filtro.parametrosFecha(ps);
+                try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        topProds.add(new TopProducto(rs.getString(1), rs.getInt(2)));
+                        mermasProducto.add(new MermaProducto(
+                                rs.getString("nombre"), rs.getInt("unidades"),
+                                rs.getBigDecimal("importe")));
                     }
                 }
             }
+            tablaMermasProducto.getItems().setAll(mermasProducto);
 
-            tablaTopProductos.setItems(topProds);
+            // 6. Ventas por día (por día de calendario, no por hora).
+            cargarGrafica(conexion, filtro);
 
-            // 6. Cargar Ventas por Categoría
-            ObservableList<CategoriaItem> cats =
-                    FXCollections.observableArrayList();
+            // 7. Productos más vendidos.
+            String sqlTop = "SELECT p.id_producto, p.nombre, SUM(dv.cantidad) AS unidades "
+                    + filtro.desdeVentas()
+                    + "GROUP BY p.id_producto, p.nombre "
+                    + "ORDER BY unidades DESC, p.nombre LIMIT 5";
+            List<TopProducto> top = new ArrayList<>();
 
-            String qCat = "SELECT c.nombre, SUM(dv.cantidad * dv.precio_unitario) as importe "
-                    + "FROM detalle_ventas dv "
-                    + "JOIN Ventas v ON dv.id_venta = v.id_venta "
-                    + "JOIN Productos p ON dv.id_producto = p.id_producto "
-                    + "JOIN Categoria c ON p.id_categoria = c.id_categoria "
-                    + "WHERE v.fecha BETWEEN ? AND ? GROUP BY c.id_categoria";
-
-            try (PreparedStatement pst = conn.prepareStatement(qCat)) {
-                pst.setString(1, desde);
-                pst.setString(2, hasta);
-
-                try (ResultSet rs = pst.executeQuery()) {
+            try (PreparedStatement ps = conexion.prepareStatement(sqlTop)) {
+                filtro.parametrosVentas(ps);
+                try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        cats.add(new CategoriaItem(rs.getString(1), rs.getDouble(2)));
+                        top.add(new TopProducto(rs.getString("nombre"), rs.getInt("unidades")));
                     }
                 }
             }
+            tablaTopProductos.getItems().setAll(top);
 
-            tablaCategoria.setItems(cats);
+            // 8. Ventas por categoría.
+            String sqlCategorias = "SELECT c.id_categoria, c.nombre, "
+                    + "SUM(dv.cantidad * dv.precio_unitario) AS importe "
+                    + filtro.desdeVentas("INNER JOIN Categoria c ON c.id_categoria = p.id_categoria ")
+                    + "GROUP BY c.id_categoria, c.nombre ORDER BY importe DESC, c.nombre";
+            tablaCategoria.getItems().setAll(importes(conexion, sqlCategorias, filtro));
 
-            // 7. Cargar Métodos de Pago
-            ObservableList<MetodoPagoItem> metodos =
-                    FXCollections.observableArrayList();
+            // 9. Métodos de pago.
+            String sqlMetodos = "SELECT mp.id_metodo, mp.nombre, "
+                    + "SUM(dv.cantidad * dv.precio_unitario) AS importe "
+                    + filtro.desdeVentas("INNER JOIN Metodos_Pago mp ON mp.id_metodo = v.id_metodo ")
+                    + "GROUP BY mp.id_metodo, mp.nombre ORDER BY importe DESC, mp.nombre";
+            tablaMetodoPago.getItems().setAll(importes(conexion, sqlMetodos, filtro));
 
-            String qMet = "SELECT mp.nombre, SUM(v.total) "
-                    + "FROM Ventas v "
-                    + "JOIN Metodos_Pago mp ON v.id_metodo = mp.id_metodo "
-                    + "WHERE v.fecha BETWEEN ? AND ? GROUP BY mp.id_metodo";
+            // 10. Productos a reordenar: mismo stock que el Reporte de Inventario.
+            String sqlStock = "SELECT p.nombre, p.existencia, p.punto_reorden "
+                    + "FROM Productos p "
+                    + "WHERE " + activo("p") + " "
+                    + "AND p.punto_reorden IS NOT NULL "
+                    + "AND p.existencia <= p.punto_reorden"
+                    + filtro.condicionCategoria()
+                    + " ORDER BY p.existencia - CAST(p.punto_reorden AS SIGNED), p.nombre";
+            List<StockBajo> stock = new ArrayList<>();
 
-            try (PreparedStatement pst = conn.prepareStatement(qMet)) {
-                pst.setString(1, desde);
-                pst.setString(2, hasta);
-
-                try (ResultSet rs = pst.executeQuery()) {
+            try (PreparedStatement ps = conexion.prepareStatement(sqlStock)) {
+                if (idCategoria != null) {
+                    ps.setInt(1, idCategoria);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        metodos.add(new MetodoPagoItem(rs.getString(1), rs.getDouble(2)));
+                        stock.add(new StockBajo(rs.getString("nombre"),
+                                rs.getInt("existencia"), rs.getInt("punto_reorden")));
                     }
                 }
             }
+            tablaStockBajo.getItems().setAll(stock);
 
-            tablaMetodoPago.setItems(metodos);
-
-            // 8. Cargar Productos con Stock Bajo
-            ObservableList<StockBajoItem> stockBajo =
-                    FXCollections.observableArrayList();
-
-            String qStock = "SELECT p.nombre, p.punto_reorden, "
-                    + "COALESCE((SELECT SUM(dc.cantidad) FROM detalle_compras dc "
-                    + "WHERE dc.id_producto = p.id_producto), 0) - "
-                    + "COALESCE((SELECT SUM(dv.cantidad) FROM detalle_ventas dv "
-                    + "WHERE dv.id_producto = p.id_producto), 0) as stock_act "
-                    + "FROM Productos p HAVING stock_act <= p.punto_reorden";
-
-            try (Statement st = conn.createStatement();
-                 ResultSet rs = st.executeQuery(qStock)) {
-
-                while (rs.next()) {
-                    String nombre = rs.getString(1);
-                    int reorden = rs.getInt(2);
-                    int actual = rs.getInt(3);
-
-                    String estado = actual <= 3 ? "Stock bajo" : "Por agotarse";
-
-                    stockBajo.add(new StockBajoItem(nombre, actual, reorden, estado));
-                }
-            }
-
-            tablaStockBajo.setItems(stockBajo);
+            lblEstado.setText("Estadísticas del " + Formato.fecha(desde) + " al " + Formato.fecha(hasta)
+                    + " · " + numVentas + (numVentas == 1 ? " venta" : " ventas")
+                    + " · " + stock.size() + " por reordenar");
 
         } catch (SQLException e) {
             e.printStackTrace();
+            lblEstado.setText("Error al cargar estadísticas: " + e.getMessage());
+            alertaDiferida("Error al cargar estadísticas", e.getMessage());
+        }
+    }
 
-            if (lblEstado != null) {
-                lblEstado.setText("Error al cargar estadísticas: " + e.getMessage());
+    private void cargarGrafica(Connection conexion, Filtro filtro) throws SQLException {
+        String sql = "SELECT DATE(v.fecha) AS dia, SUM(dv.cantidad * dv.precio_unitario) AS importe "
+                + filtro.desdeVentas()
+                + "GROUP BY DATE(v.fecha) ORDER BY dia";
+
+        XYChart.Series<String, Number> serie = new XYChart.Series<>();
+        XYChart.Data<String, Number> mayor = null;
+        BigDecimal importeMayor = null;
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            filtro.parametrosVentas(ps);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate dia = rs.getDate("dia").toLocalDate();
+                    BigDecimal importe = rs.getBigDecimal("importe");
+                    XYChart.Data<String, Number> dato = new XYChart.Data<>(dia.format(DIA_GRAFICA), importe);
+                    serie.getData().add(dato);
+
+                    if (importeMayor == null || importe.compareTo(importeMayor) > 0) {
+                        importeMayor = importe;
+                        mayor = dato;
+                    }
+                }
+            }
+        }
+
+        graficoVentasDia.getData().setAll(List.of(serie));
+
+        int dias = serie.getData().size();
+        lblSubVentas.setText(dias + (dias == 1 ? " día con ventas" : " días con ventas"));
+
+        String rango = Formato.fecha(filtro.desde()) + " – " + Formato.fecha(filtro.hasta());
+
+        if (mayor == null) {
+            lblSubGrafico.setText(rango + " · sin ventas en el periodo");
+        } else {
+            lblSubGrafico.setText(rango + " · el día más alto está resaltado ("
+                    + mayor.getXValue() + ": " + Formato.dinero(importeMayor) + ")");
+
+            if (mayor.getNode() != null) {
+                mayor.getNode().getStyleClass().add("barra-destacada");
             }
         }
     }
 
-    // Clases modelo auxiliares para las tablas
-    public static class TopProducto {
-        private String nombre;
-        private int cantidad;
+    private List<Importe> importes(Connection conexion, String sql, Filtro filtro) throws SQLException {
+        List<Importe> lista = new ArrayList<>();
 
-        public TopProducto(String n, int c) {
-            this.nombre = n;
-            this.cantidad = c;
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            filtro.parametrosVentas(ps);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(new Importe(rs.getString("nombre"), rs.getBigDecimal("importe")));
+                }
+            }
         }
 
-        public String getNombre() { return nombre; }
-        public int getCantidad() { return cantidad; }
+        return lista;
     }
 
-    public static class CategoriaItem {
-        private String categoria;
-        private double total;
+    // Periodo y categoría de una consulta.
+    private record Filtro(LocalDate desde, LocalDate hasta, Integer idCategoria) {
 
-        public CategoriaItem(String c, double t) {
-            this.categoria = c;
-            this.total = t;
+        // FROM y WHERE comunes de las consultas sobre ventas activas.
+        String desdeVentas() {
+            return desdeVentas("");
         }
 
-        public String getCategoria() { return categoria; }
-        public double getTotal() { return total; }
+        // uniones: INNER JOIN adicionales (Categoria, Metodos_Pago).
+        String desdeVentas(String uniones) {
+            return "FROM Ventas v "
+                    + "INNER JOIN detalle_ventas dv ON dv.id_venta = v.id_venta "
+                    + "INNER JOIN Productos p ON p.id_producto = dv.id_producto "
+                    + uniones
+                    + "WHERE v.fecha >= ? AND v.fecha < ? AND " + activo("v")
+                    + condicionCategoria() + " ";
+        }
+
+        String condicionCategoria() {
+            return idCategoria == null ? "" : " AND p.id_categoria = ?";
+        }
+
+        // Ventas.fecha es DATETIME.
+        void parametrosVentas(PreparedStatement ps) throws SQLException {
+            ps.setTimestamp(1, Timestamp.valueOf(desde.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(hasta.plusDays(1).atStartOfDay()));
+            if (idCategoria != null) {
+                ps.setInt(3, idCategoria);
+            }
+        }
+
+        // Compras.fecha y Mermas.fecha son DATE.
+        void parametrosFecha(PreparedStatement ps) throws SQLException {
+            ps.setDate(1, Date.valueOf(desde));
+            ps.setDate(2, Date.valueOf(hasta.plusDays(1)));
+            if (idCategoria != null) {
+                ps.setInt(3, idCategoria);
+            }
+        }
     }
 
-    public static class MetodoPagoItem {
-        private String metodo;
-        private double total;
+    // ------------------------------------------------------------------
+    // Mensajes
+    // ------------------------------------------------------------------
 
-        public MetodoPagoItem(String m, double t) {
-            this.metodo = m;
-            this.total = t;
-        }
-
-        public String getMetodo() { return metodo; }
-        public double getTotal() { return total; }
+    // Al abrir la pantalla la ventana aún no está visible: el aviso espera.
+    private void alertaDiferida(String titulo, String mensaje) {
+        Platform.runLater(() -> mostrarError(titulo, mensaje));
     }
 
-    public static class StockBajoItem {
-        private String nombre;
-        private int stockActual;
-        private int puntoReorden;
-        private String estado;
+    private void mostrarError(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.ERROR);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje == null || mensaje.isBlank() ? "Ocurrió un error inesperado." : mensaje);
 
-        public StockBajoItem(String n, int s, int p, String e) {
-            this.nombre = n;
-            this.stockActual = s;
-            this.puntoReorden = p;
-            this.estado = e;
+        if (btnGenerar.getScene() != null && btnGenerar.getScene().getWindow() != null) {
+            alerta.initOwner(btnGenerar.getScene().getWindow());
         }
 
-        public String getNombre() { return nombre; }
-        public int getStockActual() { return stockActual; }
-        public int getPuntoReorden() { return puntoReorden; }
-        public String getEstado() { return estado; }
+        alerta.showAndWait();
     }
 }
