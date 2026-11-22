@@ -2,12 +2,18 @@ package com.laroca.controlador;
 
 import java.io.IOException;
 
+import javafx.event.ActionEvent;
+
 import com.laroca.modelo.Sesion;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 
@@ -27,6 +33,50 @@ public class MenuController {
     @FXML private Button btnDevolucionesProveedores;
     @FXML private Button btnEstadisticasGenerales;
     @FXML private Button btnConsultarInventario;
+
+    // Cierra la sesión actual y regresa al inicio de sesión sin cerrar la aplicación.
+    @FXML
+    private void cerrarSesion(ActionEvent event) {
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Cerrar sesión");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Estás seguro de que deseas cerrar tu sesión?");
+        ButtonType botonSi = new ButtonType("Sí", ButtonBar.ButtonData.YES);
+        ButtonType botonNo = new ButtonType("No", ButtonBar.ButtonData.NO);
+        confirmacion.getButtonTypes().setAll(botonSi, botonNo);
+
+        if (confirmacion.showAndWait().orElse(botonNo) != botonSi) {
+            return;
+        }
+
+        try {
+            Parent login = new FXMLLoader(
+                    getClass().getResource("/com/laroca/vista/login.fxml")
+            ).load();
+
+            Stage ventana = (Stage) ((Node) event.getSource())
+                    .getScene().getWindow();
+
+            // Se limpia la sesión únicamente cuando el login ya se cargó correctamente.
+            Sesion.cerrar();
+
+            ventana.setScene(new Scene(login));
+            ventana.setTitle("Sistema Abarrotes \"La Roca\" — Inicio de Sesión");
+            ventana.setResizable(false);
+            ventana.sizeToScene();
+            ventana.centerOnScreen();
+            ventana.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+
+            Alert error = new Alert(Alert.AlertType.ERROR);
+            error.setTitle("Error");
+            error.setHeaderText(null);
+            error.setContentText("No se pudo regresar al inicio de sesión.");
+            error.showAndWait();
+        }
+    }
 
     @FXML
     public void initialize() {

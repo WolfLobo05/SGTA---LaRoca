@@ -9,6 +9,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
@@ -67,14 +68,51 @@ public class LoginController {
                 stage.centerOnScreen();
                 stage.show();
 
+                mostrarBienvenida(stage);
+
             } catch (IOException e) {
                 e.printStackTrace();
+                Sesion.cerrar();
                 lblMensaje.setText("Error al cargar la pantalla del menú.");
             }
 
         } else {
             lblMensaje.setText("Usuario o contraseña incorrectos.");
         }
+    }
+
+    // Informa al usuario con qué rol ha iniciado sesión.
+    private void mostrarBienvenida(Stage stage) {
+        String rol;
+
+        switch (Sesion.getRol() == null ? "" : Sesion.getRol()) {
+            case "ADMINISTRADOR":
+            case "ADMIN":
+            case "ADMINISTRATIVE":
+            case "ADMINISTRATOR":
+                rol = "Administrador";
+                break;
+            case "AUXILIAR":
+                rol = "Auxiliar";
+                break;
+            case "CAJERO":
+                rol = "Cajero";
+                break;
+            default:
+                rol = "Usuario";
+                break;
+        }
+
+        Alert bienvenida = new Alert(Alert.AlertType.INFORMATION);
+        bienvenida.initOwner(stage);
+        bienvenida.setTitle("Inicio de sesión");
+        bienvenida.setHeaderText(
+                "¡Bienvenido, " + Sesion.getNombreParaMostrar() + "!"
+        );
+        bienvenida.setContentText(
+                "Has iniciado sesión como " + rol + "."
+        );
+        bienvenida.showAndWait();
     }
 
     @FXML

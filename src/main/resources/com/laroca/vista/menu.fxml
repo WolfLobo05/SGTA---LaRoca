@@ -26,6 +26,13 @@
 
             <Region HBox.hgrow="ALWAYS"/>
 
+            <Button fx:id="btnCerrarSesion"
+                    text="Cerrar sesión"
+                    onAction="#cerrarSesion"
+                    mnemonicParsing="false"
+                    prefHeight="28.0"
+                    styleClass="boton-principal"/>
+
             <HBox styleClass="botones-ventana">
                 <Region styleClass="boton-ventana"/>
                 <Region styleClass="boton-ventana"/>
