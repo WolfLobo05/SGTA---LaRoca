@@ -36,11 +36,9 @@ public final class DisenoReporte {
     // Columnas de la tabla. Los anchos suman ANCHO_CONTENIDO (756).
     public enum Columna {
         CODIGO("Código", 94, false),
-        PRODUCTO("Producto", 126, false),
-        CATEGORIA("Categoría", 100, false),
+        PRODUCTO("Producto", 206, false),
+        CATEGORIA("Categoría", 130, false),
         UNIDAD("Unidad", 46, false),
-        ENTRADAS("Entradas", 58, true),
-        SALIDAS("Salidas", 52, true),
         STOCK("Stock", 48, true),
         PRECIO("Precio", 60, true),
         VALOR("Valor", 72, true),

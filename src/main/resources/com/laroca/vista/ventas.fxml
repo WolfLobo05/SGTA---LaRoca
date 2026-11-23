@@ -4,6 +4,7 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
@@ -13,10 +14,9 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Gestión de Ventas: misma estructura que las pantallas CRUD (900x600). -->
+<!-- Gestión de Ventas: misma estructura que las pantallas CRUD (mínimo 900x600, redimensionable). -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
-            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"
@@ -53,10 +53,6 @@
                         styleClass="boton-eliminar"
                         disable="true"/>
 
-                <Button fx:id="btnVolverMenu" text="Volver al menú"
-                        onAction="#volverAlMenu"
-                        styleClass="boton-secundario"/>
-
                 <CheckBox fx:id="chkMostrarCanceladas"
                           text="Mostrar canceladas"
                           onAction="#cambiarMostrarCanceladas"
@@ -65,6 +61,11 @@
                 <Region HBox.hgrow="ALWAYS"/>
 
                 <Label fx:id="lblFechaActual" styleClass="fecha"/>
+                <Separator orientation="VERTICAL" styleClass="separador-barra"/>
+
+                <Button fx:id="btnVolverMenu" text="Volver al menú"
+                        onAction="#volverAlMenu"
+                        styleClass="boton-secundario"/>
             </HBox>
         </VBox>
     </top>

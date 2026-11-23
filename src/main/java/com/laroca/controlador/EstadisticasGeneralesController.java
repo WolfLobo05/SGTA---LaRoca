@@ -31,6 +31,8 @@ import com.laroca.reporte.DatosReporteEstadisticas;
 import com.laroca.reporte.ExportadorEstadisticasPdf;
 import com.laroca.reporte.ExportadorEstadisticasExcel;
 
+import javafx.animation.Animation;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -48,6 +50,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 // Estadísticas generales del periodo.
@@ -114,8 +117,6 @@ public class EstadisticasGeneralesController {
     @FXML private DatePicker dpDesde;
     @FXML private DatePicker dpHasta;
     @FXML private Button btnVolver;
-    @FXML private Button btnGenerar;
-    @FXML private Button btnActualizar;
     @FXML private Button btnExportar;
 
     @FXML private Label lblFecha;
@@ -165,6 +166,9 @@ public class EstadisticasGeneralesController {
     // Evita recargar mientras se llenan los combos por código.
     private boolean cargandoFiltros;
 
+    // Espera breve antes de consultar, para no hacerlo en cada tecla.
+    private final PauseTransition recarga = new PauseTransition(Duration.millis(300));
+
     @FXML
     public void initialize() {
         if (!Navegacion.verificarPermiso(btnVolver, "ESTADISTICAS_GENERALES")) {
@@ -198,17 +202,20 @@ public class EstadisticasGeneralesController {
         configurarFecha(dpDesde);
         configurarFecha(dpHasta);
 
+        recarga.setOnFinished(e -> cargarDatosDashboard());
+
+        // Cualquier cambio de filtro actualiza las estadísticas.
         cmbPeriodo.valueProperty().addListener((obs, antes, periodo) -> {
             if (periodo != null && !cargandoFiltros) {
                 dpDesde.setValue(periodo.desde());
                 dpHasta.setValue(periodo.hasta());
-                cargarDatosDashboard();
+                programarRecarga();
             }
         });
 
         cmbCategoria.valueProperty().addListener((obs, antes, ahora) -> {
-            if (ahora != null && !cargandoFiltros) {
-                cargarDatosDashboard();
+            if (ahora != null) {
+                programarRecarga();
             }
         });
 
@@ -216,7 +223,23 @@ public class EstadisticasGeneralesController {
         cargarDatosDashboard();
     }
 
+    private void programarRecarga() {
+        if (!cargandoFiltros) {
+            recarga.playFromStart();
+        }
+    }
+
     private void configurarFecha(DatePicker selector) {
+        selector.valueProperty().addListener((obs, antes, ahora) -> programarRecarga());
+        selector.getEditor().textProperty().addListener((obs, antes, ahora) -> programarRecarga());
+
+        // Confirma lo escrito al salir del campo.
+        selector.focusedProperty().addListener((obs, antes, enfocado) -> {
+            if (!enfocado) {
+                leerFecha(selector);
+            }
+        });
+
         selector.setConverter(new StringConverter<>() {
             @Override
             public String toString(LocalDate fecha) {
@@ -389,26 +412,15 @@ public class EstadisticasGeneralesController {
     // ------------------------------------------------------------------
 
     @FXML
-    private void handleGenerar() {
-        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
-            return;
-        }
-        cargarDatosDashboard();
-    }
-
-    @FXML
-    private void handleActualizar() {
-        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
-            return;
-        }
-        cargarFiltrosDinamicos();
-        cargarDatosDashboard();
-    }
-
-    @FXML
     private void handleExportar() {
         if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
             return;
+        }
+
+        // Si hay una actualización pendiente, se aplica antes de exportar.
+        if (recarga.getStatus() == Animation.Status.RUNNING) {
+            recarga.stop();
+            cargarDatosDashboard();
         }
 
         // Validar el mismo rango que se utilizará en el reporte.
@@ -573,19 +585,22 @@ public class EstadisticasGeneralesController {
     // Datos
     // ------------------------------------------------------------------
 
+    // Con un rango no válido solo se avisa en la barra de estado y se
+    // conservan los últimos resultados válidos.
     private void cargarDatosDashboard() {
         LocalDate desde = leerFecha(dpDesde);
         LocalDate hasta = leerFecha(dpHasta);
 
+        // leerFecha puede confirmar la fecha y volver a programar la recarga.
+        recarga.stop();
+
         if (desde == null || hasta == null) {
             lblEstado.setText("Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
-            alertaDiferida("Fecha no válida", "Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
             return;
         }
 
         if (hasta.isBefore(desde)) {
             lblEstado.setText("La fecha Desde no puede ser posterior a la fecha Hasta.");
-            alertaDiferida("Periodo no válido", "La fecha Desde no puede ser posterior a la fecha Hasta.");
             return;
         }
 
@@ -894,8 +909,8 @@ public class EstadisticasGeneralesController {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje == null || mensaje.isBlank() ? "Ocurrió un error inesperado." : mensaje);
 
-        if (btnGenerar.getScene() != null && btnGenerar.getScene().getWindow() != null) {
-            alerta.initOwner(btnGenerar.getScene().getWindow());
+        if (btnVolver.getScene() != null && btnVolver.getScene().getWindow() != null) {
+            alerta.initOwner(btnVolver.getScene().getWindow());
         }
 
         alerta.showAndWait();

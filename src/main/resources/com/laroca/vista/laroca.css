@@ -652,40 +652,181 @@
    ===================================================================== */
 
 .menu-contenido {
-    -fx-spacing: 12px;
-    -fx-alignment: CENTER;
-    -fx-padding: 18px 16px 18px 16px;
+    -fx-background-color: #ececec;
+    -fx-spacing: 14px;
 }
 
 .menu-titulo {
     -fx-text-fill: #333333;
-    -fx-font-size: 20px;
+    -fx-font-size: 22px;
     -fx-font-weight: bold;
 }
 
-.menu-subtitulo {
-    -fx-text-fill: #666666;
-    -fx-font-size: 13px;
+.menu-saludo {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 12px;
 }
 
 .menu-seccion {
-    -fx-text-fill: #333333;
-    -fx-font-size: 13px;
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
-/* Botones contenidos dentro de las tarjetas del menú */
-.menu-contenido .boton-menu {
-    -fx-font-size: 12px;
-    -fx-min-width: 0;
+.boton-cerrar-sesion {
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+    -fx-graphic-text-gap: 6px;
+}
+
+/* Íconos de trazo (SVGPath en una cuadrícula de 24x24, ver MenuController). */
+.icono-menu {
+    -fx-fill: transparent;
+    -fx-stroke: #2f6fa8;
+    -fx-stroke-width: 1.8px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.boton-cerrar-sesion .icono-menu {
+    -fx-stroke: #262626;
+}
+
+/* ---------- Tarjetas de operaciones ---------- */
+
+/* Tamaño preferido 0: la cuadrícula reparte el espacio por porcentajes. */
+.tarjeta-menu {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 14px 16px 14px 16px;
     -fx-pref-width: 0;
-    -fx-max-width: Infinity;
-    -fx-min-height: 36px;
-    -fx-pref-height: 36px;
-    -fx-max-height: 36px;
-    -fx-padding: 5px 8px 5px 8px;
+    -fx-pref-height: 0;
+}
+
+.tarjeta-menu:hover {
+    -fx-background-color: #f5f5f5;
+}
+
+.tarjeta-menu:focused {
+    -fx-border-color: #2f6fa8;
+}
+
+.tarjeta-menu-titulo {
+    -fx-text-fill: #262626;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.tarjeta-menu-subtitulo {
+    -fx-text-fill: #5c5c5c;
+    -fx-font-size: 11px;
+}
+
+/* Ventas: tarjeta principal. */
+.tarjeta-hero {
+    -fx-background-color: #2f6fa8;
+    -fx-border-color: #24567f;
+}
+
+.tarjeta-hero:hover {
+    -fx-background-color: #285f91;
+}
+
+.tarjeta-hero:focused {
+    -fx-border-color: #173a57;
+}
+
+.tarjeta-hero .tarjeta-menu-titulo {
+    -fx-text-fill: white;
+    -fx-font-size: 30px;
+}
+
+.tarjeta-hero .tarjeta-menu-subtitulo {
+    -fx-text-fill: #e6eff7;
+    -fx-font-size: 13px;
+}
+
+.tarjeta-hero .icono-menu {
+    -fx-stroke: white;
+}
+
+/* ---------- Devoluciones ---------- */
+
+.boton-operacion {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-text-fill: #262626;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-graphic-text-gap: 8px;
+    -fx-min-height: 44px;
+    -fx-pref-height: 44px;
+    -fx-max-height: 44px;
+}
+
+.boton-operacion:hover {
+    -fx-background-color: #f5f5f5;
+}
+
+.boton-operacion:focused {
+    -fx-border-color: #2f6fa8;
+}
+
+/* ---------- Catálogos y administración ---------- */
+
+.menu-panel-catalogos {
+    -fx-background-color: #f5f5f5;
+    -fx-border-color: #d6d6d6;
+    -fx-padding: 12px 14px 12px 14px;
+    -fx-spacing: 8px;
+}
+
+.chip-menu {
+    -fx-background-color: white;
+    -fx-border-color: #b5b5b5;
     -fx-background-radius: 3px;
     -fx-border-radius: 3px;
+    -fx-text-fill: #262626;
+    -fx-font-size: 12px;
+    -fx-padding: 0 12px 0 12px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-max-height: 30px;
+}
+
+.chip-menu:hover {
+    -fx-background-color: #f5f5f5;
+}
+
+.chip-menu:focused {
+    -fx-border-color: #2f6fa8;
+}
+
+/* ---------- Módulos sin permiso para el rol ----------
+   Se muestran en gris (no se ocultan) con colores propios en lugar de
+   la opacidad que JavaFX aplica a los controles deshabilitados. */
+
+.menu-contenido .sin-permiso,
+.menu-contenido .sin-permiso:disabled {
+    -fx-background-color: #e7e7e7;
+    -fx-border-color: #d6d6d6;
+    -fx-text-fill: #8c8c8c;
+    -fx-opacity: 1;
+}
+
+.menu-contenido .sin-permiso .label,
+.menu-contenido .sin-permiso .label:disabled {
+    -fx-text-fill: #8c8c8c;
+    -fx-opacity: 1;
+}
+
+.menu-contenido .sin-permiso .icono-menu {
+    -fx-stroke: #b5b5b5;
 }
 
 
@@ -741,4 +882,14 @@
 .boton-ancho {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
+}
+
+
+/* =====================================================================
+   Barra de herramientas de reportes: separador antes de "Volver al menú"
+   ===================================================================== */
+
+.separador-barra {
+    -fx-max-height: 28px;
+    -fx-padding: 0 2px 0 2px;
 }

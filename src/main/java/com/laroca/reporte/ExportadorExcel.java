@@ -59,7 +59,6 @@ public final class ExportadorExcel {
     private final CellStyle encabezado;
     private final CellStyle encabezadoDerecha;
     private final CellStyle textoCelda;
-    private final CellStyle enteroCelda;
     private final CellStyle stockCelda;
     private final CellStyle dineroCelda;
     private final CellStyle pastillaOk;
@@ -102,9 +101,6 @@ public final class ExportadorExcel {
 
         textoCelda = estilo(fuente(10, false, 0x222222), null);
         lineaInferior(textoCelda);
-        enteroCelda = estilo(fuente(10, false, 0x222222), null);
-        enteroCelda.setDataFormat(entero);
-        lineaInferior(enteroCelda);
         stockCelda = estilo(fuente(10, true, 0x222222), null);
         stockCelda.setDataFormat(entero);
         lineaInferior(stockCelda);
@@ -147,7 +143,7 @@ public final class ExportadorExcel {
         Sheet hoja = libro.createSheet("Inventario");
         hoja.setDisplayGridlines(false);
 
-        int[] anchos = {16, 26, 20, 8, 10, 10, 9, 12, 14, 16};
+        int[] anchos = {16, 34, 22, 8, 9, 12, 14, 16};
         for (int i = 0; i < anchos.length; i++) {
             hoja.setColumnWidth(i, anchos[i] * 256);
         }
@@ -199,18 +195,16 @@ public final class ExportadorExcel {
             celdaTexto(row, 1, fila.getProducto(), textoCelda);
             celdaTexto(row, 2, fila.getCategoria(), textoCelda);
             celdaTexto(row, 3, fila.getUnidad(), textoCelda);
-            celdaNumero(row, 4, fila.getEntradas(), enteroCelda);
-            celdaNumero(row, 5, fila.getSalidas(), enteroCelda);
-            celdaNumero(row, 6, fila.getStock(), stockCelda);
+            celdaNumero(row, 4, fila.getStock(), stockCelda);
 
             if (fila.getPrecio() == null) {
-                celdaTexto(row, 7, "", dineroCelda);
+                celdaTexto(row, 5, "", dineroCelda);
             } else {
-                celdaNumero(row, 7, fila.getPrecio().doubleValue(), dineroCelda);
+                celdaNumero(row, 5, fila.getPrecio().doubleValue(), dineroCelda);
             }
 
-            celdaNumero(row, 8, fila.getValor().doubleValue(), dineroCelda);
-            celdaTexto(row, 9, TextosReporte.pastilla(fila.isReordenar()),
+            celdaNumero(row, 6, fila.getValor().doubleValue(), dineroCelda);
+            celdaTexto(row, 7, TextosReporte.pastilla(fila.isReordenar()),
                     fila.isReordenar() ? pastillaAlerta : pastillaOk);
         }
 
@@ -224,10 +218,8 @@ public final class ExportadorExcel {
         for (int c = 1; c < columnas.length; c++) {
             celdaTexto(totales, c, "", totalTexto);
         }
-        sumaOValor(totales, 4, primeraFila, ultimaFila, hayDatos, reporte.getTotalEntradas(), totalEntero);
-        sumaOValor(totales, 5, primeraFila, ultimaFila, hayDatos, reporte.getTotalSalidas(), totalEntero);
-        sumaOValor(totales, 6, primeraFila, ultimaFila, hayDatos, reporte.getTotalStock(), totalEntero);
-        sumaOValor(totales, 8, primeraFila, ultimaFila, hayDatos,
+        sumaOValor(totales, 4, primeraFila, ultimaFila, hayDatos, reporte.getTotalStock(), totalEntero);
+        sumaOValor(totales, 6, primeraFila, ultimaFila, hayDatos,
                 reporte.getTotalValor().doubleValue(), totalDinero);
 
         // Tarjetas (fórmulas sobre la tabla, así cuadran siempre con ella).
@@ -238,7 +230,7 @@ public final class ExportadorExcel {
         String[] nombres = {
             "Productos", "Unidades en existencia", "Valor del inventario", "Productos a reordenar"
         };
-        int[][] rangos = {{0, 1}, {2, 3}, {4, 6}, {7, 9}};
+        int[][] rangos = {{0, 1}, {2, 3}, {4, 5}, {6, 7}};
 
         for (int i = 0; i < 4; i++) {
             int desde = rangos[i][0];
@@ -255,12 +247,12 @@ public final class ExportadorExcel {
 
         tarjeta(valores, 0, 1, hayDatos ? "COUNTA(" + rango(0, primeraFila, ultimaFila) + ")" : null,
                 reporte.getTotalProductos(), tarjetaEntero);
-        tarjeta(valores, 2, 3, hayDatos ? "SUM(" + rango(6, primeraFila, ultimaFila) + ")" : null,
+        tarjeta(valores, 2, 3, hayDatos ? "SUM(" + rango(4, primeraFila, ultimaFila) + ")" : null,
                 reporte.getTotalStock(), tarjetaEntero);
-        tarjeta(valores, 4, 6, hayDatos ? "SUM(" + rango(8, primeraFila, ultimaFila) + ")" : null,
+        tarjeta(valores, 4, 5, hayDatos ? "SUM(" + rango(6, primeraFila, ultimaFila) + ")" : null,
                 reporte.getTotalValor().doubleValue(), tarjetaDinero);
-        tarjeta(valores, 7, 9, hayDatos
-                        ? "COUNTIF(" + rango(9, primeraFila, ultimaFila) + ",\"Reordenar\")" : null,
+        tarjeta(valores, 6, 7, hayDatos
+                        ? "COUNTIF(" + rango(7, primeraFila, ultimaFila) + ",\"Reordenar\")" : null,
                 reporte.getProductosReordenar(), estiloReorden);
 
         // Notas del pie.

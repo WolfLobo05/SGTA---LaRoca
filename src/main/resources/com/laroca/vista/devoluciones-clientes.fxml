@@ -3,6 +3,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
@@ -13,7 +14,6 @@
 
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
-            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"
@@ -56,10 +56,6 @@
                         styleClass="boton-eliminar"
                         disable="true"/>
 
-                <Button text="Volver al menú"
-                        onAction="#volverAlMenu"
-                        styleClass="boton-secundario"/>
-
                 <CheckBox fx:id="chkMostrarCanceladas"
                           text="Mostrar canceladas"
                           onAction="#cambiarMostrarCanceladas"
@@ -69,6 +65,11 @@
 
                 <Label fx:id="lblFechaActual"
                        styleClass="fecha"/>
+                <Separator orientation="VERTICAL" styleClass="separador-barra"/>
+
+                <Button text="Volver al menú"
+                        onAction="#volverAlMenu"
+                        styleClass="boton-secundario"/>
 
             </HBox>
         </VBox>

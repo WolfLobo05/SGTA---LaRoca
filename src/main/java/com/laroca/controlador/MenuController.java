@@ -2,22 +2,62 @@ package com.laroca.controlador;
 
 import java.io.IOException;
 
+import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 
 import com.laroca.modelo.Sesion;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Label;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.SVGPath;
+import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 
 public class MenuController {
+
+    // Íconos de trazo en una cuadrícula de 24x24.
+    private static final String ICONO_CARRITO =
+            "M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6.2"
+            + " M10.25 19.5a1.25 1.25 0 1 1-2.5 0a1.25 1.25 0 1 1 2.5 0z"
+            + " M18.25 19.5a1.25 1.25 0 1 1-2.5 0a1.25 1.25 0 1 1 2.5 0z";
+
+    private static final String ICONO_CAMION =
+            "M3 6h11v9H3z M14 9h4l3 3v3h-7z"
+            + " M8.5 17.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 1 1 3 0z"
+            + " M18.5 17.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 1 1 3 0z";
+
+    private static final String ICONO_CAJA =
+            "M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z M3 7.5 12 12l9-4.5M12 12v9";
+
+    private static final String ICONO_ADVERTENCIA =
+            "M12 3 2.5 20h19z M12 10v4 M12 17h.01";
+
+    private static final String ICONO_GRAFICA =
+            "M4 20V4M4 20h16 M8 16v-4M12 16V8M16 16v-6";
+
+    private static final String ICONO_DEVOLUCION =
+            "M9 14 4 9l5-5 M4 9h10a6 6 0 0 1 0 12h-3";
+
+    private static final String ICONO_SALIR =
+            "M15 4h4v16h-4 M10 8l-4 4 4 4M6 12h10";
+
+    private static final String SIN_ACCESO = "Sin acceso para tu rol";
 
     @FXML private Button btnUnidades;
     @FXML private Button btnCategorias;
@@ -33,6 +73,9 @@ public class MenuController {
     @FXML private Button btnDevolucionesProveedores;
     @FXML private Button btnEstadisticasGenerales;
     @FXML private Button btnConsultarInventario;
+    @FXML private Button btnCerrarSesion;
+
+    @FXML private Label lblSaludo;
 
     // Cierra la sesión actual y regresa al inicio de sesión sin cerrar la aplicación.
     @FXML
@@ -60,11 +103,7 @@ public class MenuController {
             // Se limpia la sesión únicamente cuando el login ya se cargó correctamente.
             Sesion.cerrar();
 
-            ventana.setScene(new Scene(login));
-            ventana.setTitle("Sistema Abarrotes \"La Roca\" — Inicio de Sesión");
-            ventana.setResizable(false);
-            ventana.sizeToScene();
-            ventana.centerOnScreen();
+            Navegacion.mostrarLogin(ventana, login);
             ventana.show();
 
         } catch (IOException e) {
@@ -84,10 +123,24 @@ public class MenuController {
             return;
         }
 
+        lblSaludo.setText("Hola, " + Sesion.getNombreParaMostrar()
+                + " · " + Sesion.getRolParaMostrar());
+
+        armarTarjeta(btnVentas, ICONO_CARRITO, 44,
+                "Registrar una venta y consultar el historial");
+        armarTarjeta(btnCompras, ICONO_CAMION, 28, "Entrada de mercancía");
+        armarTarjeta(btnConsultarInventario, ICONO_CAJA, 28, "Existencias y reorden");
+        armarTarjeta(btnMermas, ICONO_ADVERTENCIA, 28, "Producto dañado o caducado");
+        armarTarjeta(btnEstadisticasGenerales, ICONO_GRAFICA, 28, "Resumen general");
+
+        btnDevolucionesClientes.setGraphic(icono(ICONO_DEVOLUCION, 16));
+        btnDevolucionesProveedores.setGraphic(icono(ICONO_DEVOLUCION, 16));
+        btnCerrarSesion.setGraphic(icono(ICONO_SALIR, 16));
+
         aplicarPermisos();
     }
 
-    // Muestra únicamente los módulos permitidos para cada rol.
+    // Los módulos sin permiso se muestran deshabilitados (nunca se ocultan).
     private void aplicarPermisos() {
         configurar(btnUnidades, "UNIDADES");
         configurar(btnCategorias, "CATEGORIAS");
@@ -105,12 +158,77 @@ public class MenuController {
         configurar(btnConsultarInventario, "CONSULTAR_INVENTARIO");
     }
 
-    // Oculta el botón y elimina el espacio que ocupaba.
     private void configurar(Button boton, String permiso) {
-        boolean permitido = Sesion.tienePermiso(permiso);
+        if (Sesion.tienePermiso(permiso)) {
+            return;
+        }
 
-        boton.setVisible(permitido);
-        boton.setManaged(permitido);
+        boton.setDisable(true);
+        boton.getStyleClass().add("sin-permiso");
+
+        if (boton.getGraphic() != null) {
+            Node subtitulo = boton.getGraphic().lookup(".tarjeta-menu-subtitulo");
+
+            if (subtitulo instanceof Label etiqueta) {
+                etiqueta.setText(SIN_ACCESO);
+            }
+        }
+    }
+
+    // Tarjeta: ícono arriba a la izquierda; título y subtítulo abajo.
+    private static void armarTarjeta(Button boton, String trazo,
+            double tamanoIcono, String textoSubtitulo) {
+
+        Label titulo = new Label(boton.getText());
+        titulo.getStyleClass().add("tarjeta-menu-titulo");
+
+        Label subtitulo = new Label(textoSubtitulo);
+        subtitulo.getStyleClass().add("tarjeta-menu-subtitulo");
+
+        Region espacio = new Region();
+        VBox.setVgrow(espacio, Priority.ALWAYS);
+
+        VBox contenido = new VBox(icono(trazo, tamanoIcono), espacio, titulo, subtitulo);
+        contenido.setAlignment(Pos.TOP_LEFT);
+        contenido.setMinSize(0, 0);
+
+        // El botón coloca el gráfico a su tamaño preferido: se iguala al
+        // espacio interior del botón para que el contenido lo llene.
+        contenido.prefWidthProperty().bind(Bindings.createDoubleBinding(
+                () -> Math.max(0, boton.getWidth() - ancho(boton.getInsets())),
+                boton.widthProperty(), boton.insetsProperty()));
+
+        contenido.prefHeightProperty().bind(Bindings.createDoubleBinding(
+                () -> Math.max(0, boton.getHeight() - alto(boton.getInsets())),
+                boton.heightProperty(), boton.insetsProperty()));
+
+        boton.setGraphic(contenido);
+        boton.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        boton.setAlignment(Pos.TOP_LEFT);
+    }
+
+    private static double ancho(Insets margen) {
+        return margen.getLeft() + margen.getRight();
+    }
+
+    private static double alto(Insets margen) {
+        return margen.getTop() + margen.getBottom();
+    }
+
+    // Ícono de trazo escalado desde la cuadrícula de 24x24. El Group
+    // exterior hace que el diseño ocupe el tamaño ya escalado.
+    private static Node icono(String trazo, double tamano) {
+        SVGPath figura = new SVGPath();
+        figura.setContent(trazo);
+        figura.getStyleClass().add("icono-menu");
+
+        Rectangle marco = new Rectangle(24, 24, Color.TRANSPARENT);
+
+        Group dibujo = new Group(marco, figura);
+        double escala = tamano / 24;
+        dibujo.getTransforms().add(new Scale(escala, escala, 0, 0));
+
+        return new Group(dibujo);
     }
 
     // Comprueba nuevamente el permiso antes de abrir una pantalla.

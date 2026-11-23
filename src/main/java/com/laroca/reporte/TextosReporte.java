@@ -21,9 +21,8 @@ public final class TextosReporte {
 
     }
 
-    public static String periodo(ReporteInventario reporte) {
-        return "Periodo: " + Formato.fecha(reporte.getDesde())
-                + " – " + Formato.fecha(reporte.getHasta());
+    public static String existencias(ReporteInventario reporte) {
+        return "Existencias al: " + Formato.fecha(reporte.getFechaExistencias());
     }
 
     public static String generado(ReporteInventario reporte) {
@@ -36,7 +35,7 @@ public final class TextosReporte {
     // Líneas de la esquina superior derecha.
     public static List<String> metadatos(ReporteInventario reporte) {
         List<String> lineas = new ArrayList<>();
-        lineas.add(periodo(reporte));
+        lineas.add(existencias(reporte));
         lineas.add("Categoría: " + reporte.getCategoria());
 
         if (reporte.getFiltroReorden() != null) {
@@ -50,8 +49,8 @@ public final class TextosReporte {
     // Notas del pie de cada página (hasta 3 líneas).
     public static List<String> notas(ReporteInventario reporte) {
         List<String> notas = new ArrayList<>();
-        notas.add(ReporteInventario.NOTA_FORMULA);
         notas.add(ReporteInventario.NOTA_STOCK);
+        notas.add(ReporteInventario.NOTA_REORDEN);
 
         int negativos = reporte.getProductosNegativos();
 
@@ -78,8 +77,6 @@ public final class TextosReporte {
             case PRODUCTO -> texto(fila.getProducto());
             case CATEGORIA -> texto(fila.getCategoria());
             case UNIDAD -> texto(fila.getUnidad());
-            case ENTRADAS -> Formato.entero(fila.getEntradas());
-            case SALIDAS -> Formato.entero(fila.getSalidas());
             case STOCK -> Formato.entero(fila.getStock());
             case PRECIO -> fila.getPrecio() == null ? "—" : Formato.dinero(fila.getPrecio());
             case VALOR -> Formato.dinero(fila.getValor());
@@ -90,8 +87,6 @@ public final class TextosReporte {
     public static String total(ReporteInventario reporte, Columna columna) {
         return switch (columna) {
             case CODIGO -> "Totales";
-            case ENTRADAS -> Formato.entero(reporte.getTotalEntradas());
-            case SALIDAS -> Formato.entero(reporte.getTotalSalidas());
             case STOCK -> Formato.entero(reporte.getTotalStock());
             case VALOR -> Formato.dinero(reporte.getTotalValor());
             default -> "";

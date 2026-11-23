@@ -107,7 +107,7 @@ public final class ExportadorPdf {
         } else {
             double base = y + DisenoReporte.ENCABEZADO_CONTINUACION_ALTO - 6;
             texto(TextosReporte.TITULO + " (continuación)", negrita, 12, TEXTO, x0, base, Alineacion.IZQUIERDA);
-            texto(TextosReporte.periodo(reporte), normal, 10, TEXTO_SUAVE, x0 + ancho, base, Alineacion.DERECHA);
+            texto(TextosReporte.existencias(reporte), normal, 10, TEXTO_SUAVE, x0 + ancho, base, Alineacion.DERECHA);
             y += DisenoReporte.ENCABEZADO_CONTINUACION_ALTO;
         }
 

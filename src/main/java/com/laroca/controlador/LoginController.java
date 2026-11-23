@@ -83,25 +83,7 @@ public class LoginController {
 
     // Informa al usuario con qué rol ha iniciado sesión.
     private void mostrarBienvenida(Stage stage) {
-        String rol;
-
-        switch (Sesion.getRol() == null ? "" : Sesion.getRol()) {
-            case "ADMINISTRADOR":
-            case "ADMIN":
-            case "ADMINISTRATIVE":
-            case "ADMINISTRATOR":
-                rol = "Administrador";
-                break;
-            case "AUXILIAR":
-                rol = "Auxiliar";
-                break;
-            case "CAJERO":
-                rol = "Cajero";
-                break;
-            default:
-                rol = "Usuario";
-                break;
-        }
+        String rol = Sesion.getRolParaMostrar();
 
         Alert bienvenida = new Alert(Alert.AlertType.INFORMATION);
         bienvenida.initOwner(stage);

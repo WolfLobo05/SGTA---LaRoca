@@ -7,7 +7,6 @@ import java.math.RoundingMode;
 //
 // stock es Productos.existencia: la existencia actual que mantienen
 // compras, ventas, mermas y devoluciones (y sus cancelaciones).
-// entradas y salidas son solo los movimientos del periodo consultado.
 public class FilaInventario {
 
     private final int idProducto;
@@ -16,20 +15,12 @@ public class FilaInventario {
     private final String categoria;
     private final String unidad;
 
-    private final int compras;
-    private final int devolucionesClientes;
-    private final int ventas;
-    private final int mermas;
-    private final int devolucionesProveedores;
-
     private final int stock;
     private final BigDecimal precio;
     private final Integer puntoReorden;
 
     public FilaInventario(int idProducto, String codigo, String producto,
             String categoria, String unidad,
-            int compras, int devolucionesClientes,
-            int ventas, int mermas, int devolucionesProveedores,
             int stock, BigDecimal precio, Integer puntoReorden) {
 
         this.idProducto = idProducto;
@@ -37,11 +28,6 @@ public class FilaInventario {
         this.producto = producto;
         this.categoria = categoria;
         this.unidad = unidad;
-        this.compras = compras;
-        this.devolucionesClientes = devolucionesClientes;
-        this.ventas = ventas;
-        this.mermas = mermas;
-        this.devolucionesProveedores = devolucionesProveedores;
         this.stock = stock;
         this.precio = precio;
         this.puntoReorden = puntoReorden;
@@ -65,36 +51,6 @@ public class FilaInventario {
 
     public String getUnidad() {
         return unidad;
-    }
-
-    public int getCompras() {
-        return compras;
-    }
-
-    public int getDevolucionesClientes() {
-        return devolucionesClientes;
-    }
-
-    public int getVentas() {
-        return ventas;
-    }
-
-    public int getMermas() {
-        return mermas;
-    }
-
-    public int getDevolucionesProveedores() {
-        return devolucionesProveedores;
-    }
-
-    // Entradas = compras + devoluciones de clientes.
-    public int getEntradas() {
-        return compras + devolucionesClientes;
-    }
-
-    // Salidas = ventas + mermas + devoluciones a proveedores.
-    public int getSalidas() {
-        return ventas + mermas + devolucionesProveedores;
     }
 
     public int getStock() {

@@ -12,7 +12,6 @@
 
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
-            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"

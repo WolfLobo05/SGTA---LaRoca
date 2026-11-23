@@ -14,20 +14,63 @@ import javafx.stage.Stage;
 
 public final class Navegacion {
 
+    // Tamaño inicial y mínimo del área de contenido después del login.
     public static final double ANCHO = 900;
     public static final double ALTO = 600;
 
     public static final String TITULO_MENU =
             "Sistema Abarrotes \"La Roca\" — Menú Principal";
 
+    public static final String TITULO_LOGIN =
+            "Sistema Abarrotes \"La Roca\" — Inicio de Sesión";
+
+    // Marca la escena principal (la que se reutiliza entre pantallas).
+    private static final String ESCENA_PRINCIPAL = "laroca.escenaPrincipal";
+
     private Navegacion() {
     }
 
+    // Cambia de pantalla dentro de la ventana principal. La escena se
+    // reutiliza, así el tamaño y el estado maximizado se conservan.
     public static void mostrar(Stage ventana, Parent vista, String titulo) {
-        ventana.setScene(new Scene(vista, ANCHO, ALTO));
+        Scene actual = ventana.getScene();
+
+        if (actual != null && actual.getProperties().containsKey(ESCENA_PRINCIPAL)) {
+            actual.setRoot(vista);
+            ventana.setTitle(titulo);
+            return;
+        }
+
+        // Primera pantalla después del login: escena nueva y ventana redimensionable.
+        double bordeAncho = 0;
+        double bordeAlto = 0;
+
+        if (actual != null && ventana.isShowing()) {
+            bordeAncho = Math.max(0, ventana.getWidth() - actual.getWidth());
+            bordeAlto = Math.max(0, ventana.getHeight() - actual.getHeight());
+        }
+
+        Scene escena = new Scene(vista, ANCHO, ALTO);
+        escena.getProperties().put(ESCENA_PRINCIPAL, Boolean.TRUE);
+
+        ventana.setScene(escena);
         ventana.setTitle(titulo);
+        ventana.setResizable(true);
+        ventana.setMinWidth(ANCHO + bordeAncho);
+        ventana.setMinHeight(ALTO + bordeAlto);
+        ventana.sizeToScene();
+    }
+
+    // Regresa al inicio de sesión: ventana chica y de tamaño fijo.
+    public static void mostrarLogin(Stage ventana, Parent login) {
+        ventana.setMaximized(false);
+        ventana.setMinWidth(0);
+        ventana.setMinHeight(0);
+        ventana.setScene(new Scene(login));
+        ventana.setTitle(TITULO_LOGIN);
         ventana.setResizable(false);
         ventana.sizeToScene();
+        ventana.centerOnScreen();
     }
 
     // Comprueba que exista una sesión y que el rol tenga permiso.
@@ -61,7 +104,6 @@ public final class Navegacion {
                 Stage ventana = (Stage) nodo.getScene().getWindow();
 
                 mostrar(ventana, menu, TITULO_MENU);
-                ventana.centerOnScreen();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -96,13 +138,7 @@ public final class Navegacion {
 
                 Stage ventana = (Stage) nodo.getScene().getWindow();
 
-                ventana.setScene(new Scene(login));
-                ventana.setTitle(
-                        "Sistema Abarrotes \"La Roca\" — Inicio de Sesión"
-                );
-                ventana.setResizable(false);
-                ventana.sizeToScene();
-                ventana.centerOnScreen();
+                mostrarLogin(ventana, login);
 
             } catch (IOException e) {
                 e.printStackTrace();

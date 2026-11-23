@@ -4,10 +4,16 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
+<!-- Menú principal. Los íconos y el contenido de las tarjetas se arman en
+     MenuController; aquí quedan los botones, sus textos y sus acciones. -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
             styleClass="ventana"
@@ -36,188 +42,137 @@
 
     <!-- CONTENIDO -->
     <center>
-        <VBox spacing="17.0"
-              alignment="TOP_CENTER"
-              style="-fx-background-color: #EEEEEE;">
+        <VBox styleClass="menu-contenido">
 
             <padding>
-                <Insets top="23" right="16" bottom="16" left="16"/>
+                <Insets top="18" right="24" bottom="16" left="24"/>
             </padding>
 
-            <!-- PRESENTACIÓN -->
-            <VBox alignment="CENTER" spacing="5.0">
-                <Label text="MENÚ PRINCIPAL"
-                       style="-fx-font-size: 23px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
-
-                <Label text="Selecciona el módulo que deseas administrar"
-                       style="-fx-font-size: 12px; -fx-text-fill: #666666;"/>
-            </VBox>
-
-            <!-- PANELES DE MÓDULOS -->
-            <HBox spacing="12.0"
-                  alignment="TOP_CENTER">
-
-                <!-- CATÁLOGOS -->
-                <VBox spacing="8.0"
-                      prefWidth="265.0"
-                      minWidth="0"
-                      HBox.hgrow="ALWAYS"
-                      style="-fx-background-color: #FFFFFF; -fx-border-color: #D0D0D0; -fx-border-radius: 3; -fx-background-radius: 3; -fx-padding: 12;">
-
-                    <Label text="CATÁLOGOS"
-                           style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
-
-                    <Label text="Administración de registros"
-                           style="-fx-font-size: 10px; -fx-text-fill: #777777;"/>
-
-                    <Region prefHeight="1"
-                            style="-fx-background-color: #337AB7;"/>
-
-                    <Button fx:id="btnUnidades"
-                            text="Unidades de Medida"
-                            onAction="#abrirUnidades"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnCategorias"
-                            text="Categorías de Productos"
-                            onAction="#abrirCategorias"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnRoles"
-                            text="Roles"
-                            onAction="#abrirRoles"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnProveedores"
-                            text="Proveedores"
-                            onAction="#abrirProveedores"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnProductos"
-                            text="Productos"
-                            onAction="#abrirProductos"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnUsuarios"
-                            text="Usuarios"
-                            onAction="#abrirUsuarios"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnClientes"
-                            text="Clientes"
-                            onAction="#abrirClientes"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
+            <!-- ENCABEZADO -->
+            <HBox alignment="CENTER_LEFT">
+                <VBox spacing="2.0">
+                    <Label text="Menú principal" styleClass="menu-titulo"/>
+                    <Label fx:id="lblSaludo" styleClass="menu-saludo"/>
                 </VBox>
 
-                <!-- OPERACIONES -->
-                <VBox spacing="8.0"
-                      prefWidth="265.0"
-                      minWidth="0"
-                      HBox.hgrow="ALWAYS"
-                      style="-fx-background-color: #FFFFFF; -fx-border-color: #D0D0D0; -fx-border-radius: 3; -fx-background-radius: 3; -fx-padding: 12;">
+                <Region HBox.hgrow="ALWAYS"/>
 
-                    <Label text="OPERACIONES"
-                           style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
-
-                    <Label text="Movimientos del negocio"
-                           style="-fx-font-size: 10px; -fx-text-fill: #777777;"/>
-
-                    <Region prefHeight="1"
-                            style="-fx-background-color: #337AB7;"/>
-
-                    <Button fx:id="btnVentas"
-                            text="Ventas"
-                            onAction="#abrirVentas"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnCompras"
-                            text="Compras"
-                            onAction="#abrirCompras"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnMermas"
-                            text="Mermas"
-                            onAction="#abrirMermas"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnDevolucionesClientes"
-                            text="Devoluciones de Clientes"
-                            onAction="#abrirDevolucionesClientes"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnDevolucionesProveedores"
-                            text="Devoluciones a Proveedores"
-                            onAction="#abrirDevolucionesProveedores"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-                </VBox>
-
-                <!-- ESTADÍSTICAS -->
-                <VBox spacing="8.0"
-                      prefWidth="265.0"
-                      minWidth="0"
-                      HBox.hgrow="ALWAYS"
-                      style="-fx-background-color: #FFFFFF; -fx-border-color: #D0D0D0; -fx-border-radius: 3; -fx-background-radius: 3; -fx-padding: 12;">
-
-                    <Label text="ESTADÍSTICAS"
-                           style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
-
-                    <Label text="Consultas y reportes"
-                           style="-fx-font-size: 10px; -fx-text-fill: #777777;"/>
-
-                    <Region prefHeight="1"
-                            style="-fx-background-color: #337AB7;"/>
-
-                    <Button fx:id="btnEstadisticasGenerales"
-                            text="Estadísticas Generales"
-                            onAction="#abrirEstadisticasGenerales"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-
-                    <Button fx:id="btnConsultarInventario"
-                            text="Consultar Inventario"
-                            onAction="#abrirEstadisticasStock"
-                            maxWidth="Infinity"
-                            prefHeight="34"
-                            styleClass="boton-principal, boton-menu"/>
-                </VBox>
-
-            </HBox>
-
-            <!-- CERRAR SESIÓN -->
-            <HBox alignment="CENTER_RIGHT" maxWidth="Infinity">
                 <Button fx:id="btnCerrarSesion"
                         text="Cerrar sesión"
                         onAction="#cerrarSesion"
                         mnemonicParsing="false"
-                        prefWidth="150.0"
-                        prefHeight="34.0"
-                        styleClass="boton-principal"/>
+                        styleClass="boton-secundario, boton-cerrar-sesion"/>
             </HBox>
+
+            <!-- OPERACIONES DEL DÍA -->
+            <Label text="OPERACIONES DEL DÍA" styleClass="menu-seccion"/>
+
+            <GridPane hgap="12.0" vgap="12.0" VBox.vgrow="ALWAYS">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="25.0"/>
+                    <ColumnConstraints percentWidth="25.0"/>
+                    <ColumnConstraints percentWidth="25.0"/>
+                    <ColumnConstraints percentWidth="25.0"/>
+                </columnConstraints>
+                <rowConstraints>
+                    <RowConstraints percentHeight="50.0" vgrow="ALWAYS"/>
+                    <RowConstraints percentHeight="50.0" vgrow="ALWAYS"/>
+                </rowConstraints>
+
+                <Button fx:id="btnVentas"
+                        text="Ventas"
+                        onAction="#abrirVentas"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity" maxHeight="Infinity"
+                        GridPane.columnIndex="0" GridPane.rowIndex="0"
+                        GridPane.columnSpan="2" GridPane.rowSpan="2"
+                        styleClass="tarjeta-menu, tarjeta-hero"/>
+
+                <Button fx:id="btnCompras"
+                        text="Compras"
+                        onAction="#abrirCompras"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity" maxHeight="Infinity"
+                        GridPane.columnIndex="2" GridPane.rowIndex="0"
+                        styleClass="tarjeta-menu"/>
+
+                <Button fx:id="btnConsultarInventario"
+                        text="Consultar Inventario"
+                        onAction="#abrirEstadisticasStock"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity" maxHeight="Infinity"
+                        GridPane.columnIndex="3" GridPane.rowIndex="0"
+                        styleClass="tarjeta-menu"/>
+
+                <Button fx:id="btnMermas"
+                        text="Mermas"
+                        onAction="#abrirMermas"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity" maxHeight="Infinity"
+                        GridPane.columnIndex="2" GridPane.rowIndex="1"
+                        styleClass="tarjeta-menu"/>
+
+                <Button fx:id="btnEstadisticasGenerales"
+                        text="Estadísticas"
+                        onAction="#abrirEstadisticasGenerales"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity" maxHeight="Infinity"
+                        GridPane.columnIndex="3" GridPane.rowIndex="1"
+                        styleClass="tarjeta-menu"/>
+            </GridPane>
+
+            <!-- DEVOLUCIONES -->
+            <GridPane hgap="12.0">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="50.0"/>
+                    <ColumnConstraints percentWidth="50.0"/>
+                </columnConstraints>
+
+                <Button fx:id="btnDevolucionesClientes"
+                        text="Devoluciones de Clientes"
+                        onAction="#abrirDevolucionesClientes"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity"
+                        GridPane.columnIndex="0"
+                        styleClass="boton-operacion"/>
+
+                <Button fx:id="btnDevolucionesProveedores"
+                        text="Devoluciones a Proveedores"
+                        onAction="#abrirDevolucionesProveedores"
+                        mnemonicParsing="false"
+                        maxWidth="Infinity"
+                        GridPane.columnIndex="1"
+                        styleClass="boton-operacion"/>
+            </GridPane>
+
+            <!-- CATÁLOGOS Y ADMINISTRACIÓN -->
+            <VBox styleClass="menu-panel-catalogos">
+                <Label text="CATÁLOGOS Y ADMINISTRACIÓN" styleClass="menu-seccion"/>
+
+                <FlowPane hgap="8.0" vgap="8.0">
+                    <Button fx:id="btnProductos" text="Productos"
+                            onAction="#abrirProductos" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                    <Button fx:id="btnClientes" text="Clientes"
+                            onAction="#abrirClientes" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                    <Button fx:id="btnProveedores" text="Proveedores"
+                            onAction="#abrirProveedores" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                    <Button fx:id="btnCategorias" text="Categorías"
+                            onAction="#abrirCategorias" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                    <Button fx:id="btnUnidades" text="Unidades de Medida"
+                            onAction="#abrirUnidades" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                    <Button fx:id="btnUsuarios" text="Usuarios"
+                            onAction="#abrirUsuarios" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                    <Button fx:id="btnRoles" text="Roles"
+                            onAction="#abrirRoles" mnemonicParsing="false"
+                            styleClass="chip-menu"/>
+                </FlowPane>
+            </VBox>
         </VBox>
     </center>
 

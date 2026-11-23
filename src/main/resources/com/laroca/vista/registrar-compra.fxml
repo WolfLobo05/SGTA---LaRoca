@@ -11,10 +11,9 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Registrar Compra: misma estructura que Nueva Venta (900x600). -->
+<!-- Registrar Compra: misma estructura que Nueva Venta (mínimo 900x600, redimensionable). -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
-            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"

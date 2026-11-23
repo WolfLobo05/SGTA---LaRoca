@@ -12,55 +12,43 @@ import com.laroca.modelo.FilaInventario;
 // así todos muestran exactamente los mismos números.
 public final class ReporteInventario {
 
-    public static final String NOTA_FORMULA =
-            "Entradas = compras + devoluciones de clientes · "
-          + "Salidas = ventas + mermas + devoluciones a proveedores";
-
     public static final String NOTA_STOCK =
-            "Stock = existencia actual registrada al generar el reporte; "
-          + "entradas y salidas son solo del periodo.";
+            "Stock = existencia actual registrada al generar el reporte.";
+
+    public static final String NOTA_REORDEN =
+            "Reordenar = stock igual o menor que el punto de reorden del producto.";
 
     private final String tipo;
-    private final LocalDate desde;
-    private final LocalDate hasta;
     private final String categoria;
     private final String filtroReorden;
     private final LocalDateTime generadoEn;
     private final String generadoPor;
     private final List<FilaInventario> filas;
 
-    private final int totalEntradas;
-    private final int totalSalidas;
     private final int totalStock;
     private final BigDecimal totalValor;
     private final int productosReordenar;
     private final int productosNegativos;
 
     // filtroReorden: null cuando es "Todos".
-    public ReporteInventario(String tipo, LocalDate desde, LocalDate hasta,
+    public ReporteInventario(String tipo,
             String categoria, String filtroReorden,
             LocalDateTime generadoEn, String generadoPor,
             List<FilaInventario> filas) {
 
         this.tipo = tipo;
-        this.desde = desde;
-        this.hasta = hasta;
         this.categoria = categoria;
         this.filtroReorden = filtroReorden;
         this.generadoEn = generadoEn;
         this.generadoPor = generadoPor;
         this.filas = List.copyOf(filas);
 
-        int entradas = 0;
-        int salidas = 0;
         int stock = 0;
         int reordenar = 0;
         int negativos = 0;
         BigDecimal valor = BigDecimal.ZERO.setScale(2);
 
         for (FilaInventario fila : this.filas) {
-            entradas += fila.getEntradas();
-            salidas += fila.getSalidas();
             stock += fila.getStock();
             valor = valor.add(fila.getValor());
 
@@ -72,8 +60,6 @@ public final class ReporteInventario {
             }
         }
 
-        totalEntradas = entradas;
-        totalSalidas = salidas;
         totalStock = stock;
         totalValor = valor;
         productosReordenar = reordenar;
@@ -84,12 +70,9 @@ public final class ReporteInventario {
         return tipo;
     }
 
-    public LocalDate getDesde() {
-        return desde;
-    }
-
-    public LocalDate getHasta() {
-        return hasta;
+    // Día al que corresponden las existencias (el día en que se generó).
+    public LocalDate getFechaExistencias() {
+        return generadoEn.toLocalDate();
     }
 
     public String getCategoria() {
@@ -115,14 +98,6 @@ public final class ReporteInventario {
     // Tarjeta "Productos".
     public int getTotalProductos() {
         return filas.size();
-    }
-
-    public int getTotalEntradas() {
-        return totalEntradas;
-    }
-
-    public int getTotalSalidas() {
-        return totalSalidas;
     }
 
     // Tarjeta "Unidades en existencia" y total de la columna Stock.

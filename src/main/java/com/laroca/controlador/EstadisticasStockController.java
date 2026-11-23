@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,20 +32,16 @@ import javafx.print.PrinterJob;
 import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.transform.Scale;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import javafx.util.StringConverter;
 
 public class EstadisticasStockController {
 
@@ -56,10 +50,6 @@ public class EstadisticasStockController {
 
     private static final String HOJA_ESTILOS =
             "/com/laroca/vista/laroca.css";
-
-    private static final DateTimeFormatter FECHA_CAPTURA =
-            DateTimeFormatter.ofPattern("d/M/uuuu")
-                    .withResolverStyle(ResolverStyle.STRICT);
 
     private static final DateTimeFormatter FECHA_ARCHIVO =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -100,7 +90,6 @@ public class EstadisticasStockController {
         }
     }
 
-    @FXML private Button btnGenerar;
     @FXML private Button btnImprimir;
     @FXML private Button btnExportarPdf;
     @FXML private Button btnExportarExcel;
@@ -108,8 +97,6 @@ public class EstadisticasStockController {
 
     @FXML private ComboBox<String> cmbTipoReporte;
     @FXML private ComboBox<OpcionCategoria> cmbCategoria;
-    @FXML private DatePicker dpDesde;
-    @FXML private DatePicker dpHasta;
     @FXML private ComboBox<FiltroReorden> cmbReordenar;
 
     @FXML private Label lblFecha;
@@ -143,72 +130,19 @@ public class EstadisticasStockController {
         cmbReordenar.getItems().setAll(FiltroReorden.values());
         cmbReordenar.setValue(FiltroReorden.TODOS);
 
-        configurarFecha(dpDesde);
-        configurarFecha(dpHasta);
-
-        // Desde el primer movimiento histórico hasta hoy.
-        LocalDate primerMovimiento =
-                reporteDAO.obtenerFechaPrimerMovimiento();
-
-        if (primerMovimiento == null) {
-
-            if (reporteDAO.getMensajeError() != null) {
-                lblEstado.setText(
-                        "No se pudo obtener el primer movimiento histórico.");
-
-                Platform.runLater(() -> mostrarError(
-                        "Error al consultar el historial",
-                        reporteDAO.getMensajeError()));
-            }
-
-            // Si todavía no hay movimientos, comienza hoy.
-            primerMovimiento = hoy;
-        }
-
-        dpDesde.setValue(primerMovimiento);
-        dpHasta.setValue(hoy);
-
         cargarCategorias();
 
+        // El reporte se vuelve a generar al cambiar cualquier filtro.
         cmbCategoria.valueProperty().addListener(
-                (obs, antes, ahora) -> filtrosCambiados());
+                (obs, antes, ahora) -> filtroCambiado(ahora));
 
         cmbReordenar.valueProperty().addListener(
-                (obs, antes, ahora) -> filtrosCambiados());
+                (obs, antes, ahora) -> filtroCambiado(ahora));
 
-        dpDesde.valueProperty().addListener(
-                (obs, antes, ahora) -> filtrosCambiados());
-
-        dpHasta.valueProperty().addListener(
-                (obs, antes, ahora) -> filtrosCambiados());
+        cmbTipoReporte.valueProperty().addListener(
+                (obs, antes, ahora) -> filtroCambiado(ahora));
 
         generar(false);
-    }
-
-    private void configurarFecha(DatePicker selector) {
-        selector.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(LocalDate fecha) {
-                return Formato.fecha(fecha);
-            }
-
-            @Override
-            public LocalDate fromString(String texto) {
-                return interpretarFecha(texto);
-            }
-        });
-    }
-
-    private static LocalDate interpretarFecha(String texto) {
-        if (texto == null || texto.isBlank()) {
-            return null;
-        }
-
-        try {
-            return LocalDate.parse(texto.trim(), FECHA_CAPTURA);
-        } catch (DateTimeParseException e) {
-            return null;
-        }
     }
 
     private void cargarCategorias() {
@@ -245,16 +179,10 @@ public class EstadisticasStockController {
                 inactiva ? nombre + " (inactiva)" : nombre);
     }
 
-    private void filtrosCambiados() {
-        if (reporteActual != null) {
-            lblEstado.setText(
-                    "Los filtros cambiaron · presiona «Generar reporte» para actualizar");
+    private void filtroCambiado(Object valor) {
+        if (valor != null) {
+            generar(true);
         }
-    }
-
-    @FXML
-    private void generarReporte() {
-        generar(true);
     }
 
     private void generar(boolean conAlertas) {
@@ -263,26 +191,12 @@ public class EstadisticasStockController {
             return;
         }
 
-        LocalDate desde = leerFecha(dpDesde);
-        LocalDate hasta = leerFecha(dpHasta);
-
-        if (desde == null || hasta == null) {
-            error(conAlertas, "Fecha no válida",
-                    "Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
-            return;
-        }
-
-        if (hasta.isBefore(desde)) {
-            error(conAlertas, "Periodo no válido",
-                    "La fecha Desde no puede ser posterior a la fecha Hasta.");
-            return;
-        }
-
         OpcionCategoria categoria = cmbCategoria.getValue();
 
+        // Al volver a "Todas", el listener genera el reporte.
         if (categoria == null) {
-            categoria = cmbCategoria.getItems().get(0);
-            cmbCategoria.setValue(categoria);
+            cmbCategoria.setValue(cmbCategoria.getItems().get(0));
+            return;
         }
 
         FiltroReorden filtro = cmbReordenar.getValue() == null
@@ -290,7 +204,7 @@ public class EstadisticasStockController {
                 : cmbReordenar.getValue();
 
         List<FilaInventario> filas =
-                reporteDAO.consultar(desde, hasta, categoria.idCategoria());
+                reporteDAO.consultar(categoria.idCategoria());
 
         if (filas == null) {
             error(conAlertas, "No se pudo generar el reporte",
@@ -307,8 +221,6 @@ public class EstadisticasStockController {
 
         reporteActual = new ReporteInventario(
                 tipo,
-                desde,
-                hasta,
                 categoria.nombre(),
                 filtro == FiltroReorden.TODOS ? null : filtro.toString(),
                 LocalDateTime.now().withSecond(0).withNano(0),
@@ -319,53 +231,8 @@ public class EstadisticasStockController {
         lblEstado.setText(TextosReporte.resumen(reporteActual));
     }
 
-    private static LocalDate leerFecha(DatePicker selector) {
-        String texto = selector.getEditor().getText();
-
-        if (texto != null && !texto.isBlank()) {
-            LocalDate fecha = interpretarFecha(texto);
-
-            if (fecha != null && !fecha.equals(selector.getValue())) {
-                selector.setValue(fecha);
-            }
-
-            return fecha;
-        }
-
-        return selector.getValue();
-    }
-
-    // Oculta las columnas Entradas y Salidas exclusivamente
-    // en Estadísticas de Stock.
-    private void ocultarEntradasYSalidas(List<VBox> paginas) {
-
-        for (VBox pagina : paginas) {
-            for (Node nodo : pagina.getChildren()) {
-
-                if (!(nodo instanceof HBox fila)) {
-                    continue;
-                }
-
-                boolean esFilaTabla =
-                        fila.getStyleClass().contains("reporte-encabezado-tabla")
-                        || fila.getStyleClass().contains("reporte-fila")
-                        || fila.getStyleClass().contains("fila-totales");
-
-                if (esFilaTabla && fila.getChildren().size() >= 6) {
-                    fila.getChildren().remove(5);
-                    fila.getChildren().remove(4);
-                }
-            }
-        }
-    }
-
     private List<VBox> construirPaginas(double altoPagina) {
-        List<VBox> paginas =
-                PaginasReporteFx.construir(reporteActual, altoPagina);
-
-        ocultarEntradasYSalidas(paginas);
-
-        return paginas;
+        return PaginasReporteFx.construir(reporteActual, altoPagina);
     }
 
     private void mostrarReporte() {
@@ -522,9 +389,7 @@ public class EstadisticasStockController {
 
         selector.setInitialFileName(
                 "Reporte_Inventario_"
-                + reporteActual.getDesde().format(FECHA_ARCHIVO)
-                + "_"
-                + reporteActual.getHasta().format(FECHA_ARCHIVO)
+                + reporteActual.getFechaExistencias().format(FECHA_ARCHIVO)
                 + "." + extension);
 
         File archivo = selector.showSaveDialog(ventana());
@@ -599,8 +464,8 @@ public class EstadisticasStockController {
     }
 
     private Window ventana() {
-        return btnGenerar.getScene() == null
+        return btnVolverMenu.getScene() == null
                 ? null
-                : btnGenerar.getScene().getWindow();
+                : btnVolverMenu.getScene().getWindow();
     }
 }

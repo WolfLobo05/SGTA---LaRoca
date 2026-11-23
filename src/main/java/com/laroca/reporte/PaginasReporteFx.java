@@ -124,12 +124,12 @@ public final class PaginasReporteFx {
 
     private static HBox encabezadoContinuacion(ReporteInventario reporte) {
         Label titulo = etiqueta(TextosReporte.TITULO + " (continuación)", "reporte-titulo-chico");
-        Label periodo = etiqueta(TextosReporte.periodo(reporte), "reporte-meta");
+        Label existencias = etiqueta(TextosReporte.existencias(reporte), "reporte-meta");
 
         Region espacio = new Region();
         HBox.setHgrow(espacio, Priority.ALWAYS);
 
-        HBox encabezado = new HBox(titulo, espacio, periodo);
+        HBox encabezado = new HBox(titulo, espacio, existencias);
         encabezado.setAlignment(Pos.BOTTOM_LEFT);
         encabezado.setPadding(new Insets(0, 0, 4, 0));
         fijarAlto(encabezado, DisenoReporte.ENCABEZADO_CONTINUACION_ALTO);

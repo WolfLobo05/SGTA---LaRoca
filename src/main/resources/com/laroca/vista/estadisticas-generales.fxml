@@ -8,6 +8,7 @@
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.BorderPane?>
@@ -15,10 +16,9 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Estadísticas generales. -->
+<!-- Estadísticas generales: se actualizan solas al cambiar cualquier filtro. -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
-            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"
@@ -38,12 +38,16 @@
             </HBox>
 
             <HBox styleClass="barra-herramientas">
-                <Button fx:id="btnGenerar" text="Generar estadísticas" onAction="#handleGenerar" styleClass="boton-principal"/>
-                <Button fx:id="btnActualizar" text="Actualizar" onAction="#handleActualizar" styleClass="boton-secundario"/>
+                <!-- Acciones del reporte -->
                 <Button fx:id="btnExportar" text="Exportar" onAction="#handleExportar" styleClass="boton-secundario"/>
-                <Button fx:id="btnVolver" text="Volver al menú" onAction="#volverAlMenu" styleClass="boton-secundario"/>
+
                 <Region HBox.hgrow="ALWAYS"/>
+
                 <Label fx:id="lblFecha" styleClass="fecha"/>
+                <Separator orientation="VERTICAL" styleClass="separador-barra"/>
+
+                <!-- Salida, separada de las acciones -->
+                <Button fx:id="btnVolver" text="Volver al menú" onAction="#volverAlMenu" styleClass="boton-secundario"/>
             </HBox>
 
             <HBox styleClass="barra-filtros">
@@ -68,7 +72,7 @@
     </top>
 
     <center>
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="fondo-desplazable">
+        <ScrollPane fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER" styleClass="fondo-desplazable">
             <VBox styleClass="contenido-estadisticas">
 
                 <HBox styleClass="fila-tarjetas">
@@ -99,11 +103,11 @@
                     </VBox>
                 </HBox>
 
-                <HBox styleClass="fila-paneles">
+                <HBox styleClass="fila-paneles" VBox.vgrow="ALWAYS">
                     <VBox styleClass="panel-seccion" HBox.hgrow="ALWAYS" prefWidth="500.0">
                         <Label text="Ventas por día" styleClass="titulo-seccion"/>
                         <Label fx:id="lblSubGrafico" text="Sin ventas en el periodo" styleClass="subtitulo-seccion"/>
-                        <BarChart fx:id="graficoVentasDia" legendVisible="false" animated="false" prefHeight="210.0" styleClass="grafico-ventas">
+                        <BarChart fx:id="graficoVentasDia" legendVisible="false" animated="false" minHeight="210.0" prefHeight="210.0" VBox.vgrow="ALWAYS" styleClass="grafico-ventas">
                             <xAxis><CategoryAxis side="BOTTOM" animated="false"/></xAxis>
                             <yAxis><NumberAxis side="LEFT" animated="false"/></yAxis>
                         </BarChart>
@@ -111,7 +115,7 @@
                     <VBox styleClass="panel-seccion" prefWidth="320.0" minWidth="320.0">
                         <Label text="Productos más vendidos" styleClass="titulo-seccion"/>
                         <Label text="Unidades vendidas en el periodo" styleClass="subtitulo-seccion"/>
-                        <TableView fx:id="tablaTopProductos" prefHeight="210.0" styleClass="tabla, tabla-chica">
+                        <TableView fx:id="tablaTopProductos" minHeight="210.0" prefHeight="210.0" VBox.vgrow="ALWAYS" styleClass="tabla, tabla-chica">
                             <columns>
                                 <TableColumn fx:id="colTopNombre" text="Producto" prefWidth="205.0"/>
                                 <TableColumn fx:id="colTopCantidad" text="Unidades" prefWidth="65.0" styleClass="columna-numero"/>
@@ -120,11 +124,11 @@
                     </VBox>
                 </HBox>
 
-                <HBox styleClass="fila-paneles">
+                <HBox styleClass="fila-paneles" VBox.vgrow="ALWAYS">
                     <VBox styleClass="panel-seccion" HBox.hgrow="ALWAYS" prefWidth="260.0">
                         <Label text="Ventas por categoría" styleClass="titulo-seccion"/>
                         <Label text="Importe vendido en el periodo" styleClass="subtitulo-seccion"/>
-                        <TableView fx:id="tablaCategoria" prefHeight="170.0" styleClass="tabla, tabla-chica">
+                        <TableView fx:id="tablaCategoria" minHeight="170.0" prefHeight="170.0" VBox.vgrow="ALWAYS" styleClass="tabla, tabla-chica">
                             <columns>
                                 <TableColumn fx:id="colCatNombre" text="Categoría" prefWidth="135.0"/>
                                 <TableColumn fx:id="colCatTotal" text="Importe" prefWidth="85.0" styleClass="columna-numero"/>
@@ -134,7 +138,7 @@
                     <VBox styleClass="panel-seccion" HBox.hgrow="ALWAYS" prefWidth="240.0">
                         <Label text="Método de pago" styleClass="titulo-seccion"/>
                         <Label text="Importe vendido en el periodo" styleClass="subtitulo-seccion"/>
-                        <TableView fx:id="tablaMetodoPago" prefHeight="170.0" styleClass="tabla, tabla-chica">
+                        <TableView fx:id="tablaMetodoPago" minHeight="170.0" prefHeight="170.0" VBox.vgrow="ALWAYS" styleClass="tabla, tabla-chica">
                             <columns>
                                 <TableColumn fx:id="colMetodoNombre" text="Método" prefWidth="115.0"/>
                                 <TableColumn fx:id="colMetodoTotal" text="Importe" prefWidth="85.0" styleClass="columna-numero"/>
@@ -144,7 +148,7 @@
                     <VBox styleClass="panel-seccion" HBox.hgrow="ALWAYS" prefWidth="300.0">
                         <Label text="Productos a reordenar" styleClass="titulo-seccion"/>
                         <Label text="Existencia actual contra punto de reorden" styleClass="subtitulo-seccion"/>
-                        <TableView fx:id="tablaStockBajo" prefHeight="170.0" styleClass="tabla, tabla-chica">
+                        <TableView fx:id="tablaStockBajo" minHeight="170.0" prefHeight="170.0" VBox.vgrow="ALWAYS" styleClass="tabla, tabla-chica">
                             <columns>
                                 <TableColumn fx:id="colStockProd" text="Producto" prefWidth="110.0"/>
                                 <TableColumn fx:id="colStockActual" text="Stock" prefWidth="45.0" styleClass="columna-numero"/>
@@ -156,11 +160,11 @@
                 </HBox>
 
                 <!-- NUEVO: compras desglosadas por proveedor -->
-                <HBox styleClass="fila-paneles">
+                <HBox styleClass="fila-paneles" VBox.vgrow="ALWAYS">
                     <VBox styleClass="panel-seccion" HBox.hgrow="ALWAYS" prefWidth="430.0">
                         <Label text="Compras por proveedor" styleClass="titulo-seccion"/>
                         <Label text="Número de compras e importe comprado en el periodo" styleClass="subtitulo-seccion"/>
-                        <TableView fx:id="tablaComprasProveedor" prefHeight="190.0" styleClass="tabla, tabla-chica">
+                        <TableView fx:id="tablaComprasProveedor" minHeight="190.0" prefHeight="190.0" VBox.vgrow="ALWAYS" styleClass="tabla, tabla-chica">
                             <columns>
                                 <TableColumn fx:id="colProveedorNombre" text="Proveedor" prefWidth="190.0"/>
                                 <TableColumn fx:id="colProveedorCompras" text="Compras" prefWidth="75.0" styleClass="columna-numero"/>
@@ -173,7 +177,7 @@
                     <VBox styleClass="panel-seccion" HBox.hgrow="ALWAYS" prefWidth="430.0">
                         <Label text="Mermas por producto" styleClass="titulo-seccion"/>
                         <Label text="Unidades perdidas e importe de las mermas" styleClass="subtitulo-seccion"/>
-                        <TableView fx:id="tablaMermasProducto" prefHeight="190.0" styleClass="tabla, tabla-chica">
+                        <TableView fx:id="tablaMermasProducto" minHeight="190.0" prefHeight="190.0" VBox.vgrow="ALWAYS" styleClass="tabla, tabla-chica">
                             <columns>
                                 <TableColumn fx:id="colMermaProducto" text="Producto" prefWidth="190.0"/>
                                 <TableColumn fx:id="colMermaCantidad" text="Unidades" prefWidth="75.0" styleClass="columna-numero"/>
@@ -189,7 +193,7 @@
 
     <bottom>
         <HBox styleClass="pie">
-            <Label fx:id="lblEstado" text="Genera las estadísticas para ver el periodo." styleClass="texto-pie"/>
+            <Label fx:id="lblEstado" text="Cargando estadísticas…" styleClass="texto-pie"/>
         </HBox>
     </bottom>
 </BorderPane>

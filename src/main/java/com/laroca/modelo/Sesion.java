@@ -51,6 +51,23 @@ public final class Sesion {
         return nombreCompleto != null ? nombreCompleto : usuario;
     }
 
+    // Nombre del rol para mostrar en pantalla (menú y bienvenida).
+    public static String getRolParaMostrar() {
+        if (esAdministrador()) {
+            return "Administrador";
+        }
+
+        if ("AUXILIAR".equals(rol)) {
+            return "Auxiliar";
+        }
+
+        if ("CAJERO".equals(rol)) {
+            return "Cajero";
+        }
+
+        return "Usuario";
+    }
+
     public static boolean haySesion() {
         return idEmpleado > 0;
     }

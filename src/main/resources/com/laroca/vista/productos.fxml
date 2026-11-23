@@ -5,6 +5,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
@@ -13,10 +14,9 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Pantalla CRUD estándar: 900x600, mismo diseño en los 7 módulos. -->
+<!-- Pantalla CRUD estándar (mínimo 900x600, redimensionable), mismo diseño en los 7 módulos. -->
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
-            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"
@@ -48,10 +48,6 @@
                         styleClass="boton-eliminar"
                         disable="true"/>
 
-                <Button text="Volver al menú"
-                        onAction="#volverAlMenu"
-                        styleClass="boton-secundario"/>
-
                 <CheckBox fx:id="chkMostrarInactivos"
                           text="Mostrar inactivos"
                           onAction="#cambiarMostrarInactivos"
@@ -60,6 +56,11 @@
                 <Region HBox.hgrow="ALWAYS"/>
 
                 <Label fx:id="lblFecha" styleClass="fecha"/>
+                <Separator orientation="VERTICAL" styleClass="separador-barra"/>
+
+                <Button text="Volver al menú"
+                        onAction="#volverAlMenu"
+                        styleClass="boton-secundario"/>
             </HBox>
         </VBox>
     </top>
