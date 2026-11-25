@@ -146,7 +146,7 @@ public class DevolucionClienteDAO {
 
         List<ProductoVentaDevolucion> productos = new ArrayList<>();
 
-        String sql = "SELECT dv.id_producto, p.nombre, "
+        String sql = "SELECT dv.id_producto, p.nombre, p.codigo_barras, "
                 + "SUM(dv.cantidad) AS cantidad_vendida, "
                 + "COALESCE(r.cantidad_devuelta, 0) AS cantidad_devuelta, "
                 + "SUM(dv.cantidad) - COALESCE(r.cantidad_devuelta, 0) "
@@ -164,7 +164,7 @@ public class DevolucionClienteDAO {
                 + "GROUP BY dd.id_producto "
                 + ") r ON dv.id_producto = r.id_producto "
                 + "WHERE dv.id_venta = ? "
-                + "GROUP BY dv.id_producto, p.nombre, r.cantidad_devuelta "
+                + "GROUP BY dv.id_producto, p.nombre, p.codigo_barras, r.cantidad_devuelta "
                 + "ORDER BY p.nombre";
 
         try (Connection conexion = Conexion.conectar()) {
@@ -185,6 +185,7 @@ public class DevolucionClienteDAO {
                         productos.add(new ProductoVentaDevolucion(
                                 rs.getInt("id_producto"),
                                 rs.getString("nombre"),
+                                rs.getString("codigo_barras"),
                                 rs.getInt("cantidad_vendida"),
                                 rs.getInt("cantidad_devuelta"),
                                 rs.getInt("cantidad_disponible"),

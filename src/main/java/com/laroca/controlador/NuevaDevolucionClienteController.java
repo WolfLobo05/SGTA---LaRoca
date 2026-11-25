@@ -74,6 +74,8 @@ public class NuevaDevolucionClienteController {
     private TableColumn<ProductoVentaDevolucion, String> colPrecio;
 
     @FXML
+    private TextField txtCodigoProducto;
+    @FXML
     private TextField txtCantidad;
     @FXML
     private TextField txtMotivo;
@@ -154,6 +156,7 @@ public class NuevaDevolucionClienteController {
         tableCarrito.setItems(carrito);
 
         configurarBuscadorVentas();
+        configurarLectorProductos();
 
         tableProductosVenta.setPlaceholder(
                 new Label("Busca una venta para consultar sus productos."));
@@ -704,8 +707,12 @@ public class NuevaDevolucionClienteController {
 
         carrito.add(detalle);
 
+        // El código se conserva durante la captura y se limpia
+        // únicamente cuando el producto ya fue agregado al carrito.
+        txtCodigoProducto.clear();
         txtCantidad.setText("1");
         txtMotivo.clear();
+        txtCodigoProducto.requestFocus();
 
         tableProductosVenta.refresh();
 
@@ -713,6 +720,72 @@ public class NuevaDevolucionClienteController {
         tableCarrito.scrollTo(detalle);
 
         actualizarResumen();
+    }
+
+    /**
+     * El lector USB-HID escribe el código como teclado y termina con Enter.
+     * Solo se procesa el código completo; no se consulta la BD por carácter.
+     */
+    private void configurarLectorProductos() {
+
+        txtCodigoProducto.setOnAction(event -> seleccionarProductoEscaneado());
+    }
+
+    private void seleccionarProductoEscaneado() {
+
+        String codigo = txtCodigoProducto.getText() == null
+                ? "" : txtCodigoProducto.getText().trim();
+
+        if (codigo.isEmpty()) {
+            return;
+        }
+
+        // No limpiar aquí: el código debe permanecer visible mientras
+        // se captura la cantidad y el motivo de la devolución.
+        if (ventaSeleccionada == null) {
+            mostrarAlerta(
+                    "Venta no seleccionada",
+                    "Primero busca la venta original y después escanea el producto.");
+            txtFolioVenta.requestFocus();
+            return;
+        }
+
+        if (!ventaDentroDelPlazo(ventaSeleccionada)) {
+            limpiarVenta();
+            mostrarAlerta(
+                    "Plazo vencido",
+                    "La venta ya superó el plazo de 24 horas para devoluciones.");
+            return;
+        }
+
+        ProductoVentaDevolucion encontrado = productosVenta.stream()
+                .filter(producto -> producto.getCodigoBarras() != null
+                        && producto.getCodigoBarras().trim().equalsIgnoreCase(codigo))
+                .findFirst()
+                .orElse(null);
+
+        if (encontrado == null) {
+            mostrarAlerta(
+                    "Producto no pertenece a la venta",
+                    "El código escaneado no corresponde a ningún producto de la venta original.");
+            txtCodigoProducto.requestFocus();
+            return;
+        }
+
+        if (encontrado.getCantidadDisponible() <= 0) {
+            tableProductosVenta.getSelectionModel().select(encontrado);
+            mostrarAlerta(
+                    "Producto sin unidades disponibles",
+                    "Este producto ya fue devuelto en su totalidad para esta venta.");
+            txtCodigoProducto.requestFocus();
+            return;
+        }
+
+        tableProductosVenta.getSelectionModel().select(encontrado);
+        tableProductosVenta.scrollTo(encontrado);
+        txtCantidad.setText("1");
+        txtCantidad.requestFocus();
+        txtCantidad.selectAll();
     }
 
     private void actualizarResumen() {

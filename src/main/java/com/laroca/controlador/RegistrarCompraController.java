@@ -99,7 +99,8 @@ public class RegistrarCompraController {
     private final ProductoDAO productoDAO = new ProductoDAO();
     private final ProveedorDAO proveedorDAO = new ProveedorDAO();
 
-    private final ObservableList<DetalleCompra> carrito = FXCollections.observableArrayList();
+    private final ObservableList<DetalleCompra> carrito =
+            FXCollections.observableArrayList();
 
     // Producto identificado por código o mediante Buscar.
     private Producto productoElegido;
@@ -145,7 +146,8 @@ public class RegistrarCompraController {
         // Supr quita el renglón seleccionado.
         tableCarrito.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.DELETE) {
-                DetalleCompra linea = tableCarrito.getSelectionModel().getSelectedItem();
+                DetalleCompra linea =
+                        tableCarrito.getSelectionModel().getSelectedItem();
 
                 if (linea != null) {
                     carrito.remove(linea);
@@ -155,15 +157,24 @@ public class RegistrarCompraController {
 
         // Cantidad: solo enteros de 1 a 9999.
         txtCantidad.setTextFormatter(
-                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
-                        ? cambio
-                        : null));
+                new TextFormatter<String>(cambio ->
+                        cambio.getControlNewText().matches("([1-9]\\d{0,3})?")
+                                ? cambio
+                                : null));
 
         // Precio de compra: hasta 7 enteros y 2 decimales.
         txtPrecio.setTextFormatter(
-                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("^\\d{0,7}(\\.\\d{0,2})?$")
-                        ? cambio
-                        : null));
+                new TextFormatter<String>(cambio ->
+                        cambio.getControlNewText().matches("^\\d{0,7}(\\.\\d{0,2})?$")
+                                ? cambio
+                                : null));
+
+        /*
+         * LECTOR DE CÓDIGOS DE BARRAS:
+         * El lector envía Enter después de cada lectura.
+         * Se procesa automáticamente el producto escaneado.
+         */
+        txtCodigo.setOnAction(event -> procesarEntradaCodigo());
 
         cmbProveedor.setConverter(new StringConverter<Proveedor>() {
             @Override
@@ -191,7 +202,8 @@ public class RegistrarCompraController {
                 : "Sin sesión iniciada");
 
         carrito.addListener(
-                (ListChangeListener<DetalleCompra>) cambio -> actualizarResumen());
+                (ListChangeListener<DetalleCompra>) cambio ->
+                        actualizarResumen());
 
         iniciarCompra();
     }
@@ -205,7 +217,8 @@ public class RegistrarCompraController {
         tableCarrito.setEditable(true);
         colCantidad.setEditable(true);
 
-        colCantidad.setCellFactory(columna -> new TableCell<DetalleCompra, Integer>() {
+        colCantidad.setCellFactory(columna ->
+                new TableCell<DetalleCompra, Integer>() {
 
             private final TextField txtEditar = new TextField();
 
@@ -356,6 +369,65 @@ public class RegistrarCompraController {
     }
 
     // =========================================================
+    // LECTOR DE CÓDIGOS DE BARRAS
+    // =========================================================
+
+    /**
+     * Procesa la lectura del código de barras.
+     *
+     * Si encuentra el producto y tiene un último precio de compra,
+     * agrega automáticamente una unidad al carrito.
+     *
+     * Si no tiene precio registrado, permite capturarlo manualmente.
+     */
+    private void procesarEntradaCodigo() {
+
+        String texto = txtCodigo.getText() == null
+                ? ""
+                : txtCodigo.getText().trim();
+
+        if (texto.isEmpty()) {
+            return;
+        }
+
+        // Primero se busca una coincidencia exacta del código.
+        Producto producto = productoDAO.buscarActivoPorCodigo(texto);
+
+        if (producto == null) {
+
+            // Si no existe coincidencia exacta, conserva la búsqueda manual.
+            resolverProducto();
+
+            return;
+        }
+
+        // Seleccionar el producto y recuperar su último precio de compra.
+        elegirProducto(producto);
+
+        // Si no existe un precio anterior, se solicita capturarlo.
+        if (txtPrecio.getText() == null
+                || txtPrecio.getText().trim().isEmpty()) {
+
+            mostrarAlerta(
+                    "Precio de compra pendiente",
+                    "El producto " + producto.getNombre()
+                            + " todavía no tiene un precio de compra registrado."
+                            + "\nCaptura el precio para agregarlo.");
+
+            txtPrecio.requestFocus();
+            txtPrecio.selectAll();
+
+            return;
+        }
+
+        // Cada lectura del escáner representa una unidad.
+        txtCantidad.setText("1");
+
+        // Agregar automáticamente al carrito.
+        agregarProducto();
+    }
+
+    // =========================================================
     // IDENTIFICAR Y BUSCAR PRODUCTOS
     // =========================================================
 
@@ -410,7 +482,8 @@ public class RegistrarCompraController {
 
         txtCodigo.setText(textoProducto(producto));
 
-        BigDecimal ultimoPrecio = compraDAO.ultimoPrecioCompra(producto.getIdProducto());
+        BigDecimal ultimoPrecio =
+                compraDAO.ultimoPrecioCompra(producto.getIdProducto());
 
         txtPrecio.setText(
                 ultimoPrecio == null
@@ -453,14 +526,18 @@ public class RegistrarCompraController {
                 return;
             }
 
-            if (precioCapturado.isEmpty()) {
+            if (precioCapturado.isEmpty()
+                    && txtPrecio.getText().trim().isEmpty()) {
+
                 txtPrecio.requestFocus();
                 txtPrecio.selectAll();
 
                 return;
             }
 
-            txtPrecio.setText(precioCapturado);
+            if (!precioCapturado.isEmpty()) {
+                txtPrecio.setText(precioCapturado);
+            }
         }
 
         if (txtCantidad.getText().isEmpty()) {

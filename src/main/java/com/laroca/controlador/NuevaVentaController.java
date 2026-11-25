@@ -47,7 +47,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.event.ActionEvent;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.geometry.Side;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -380,22 +382,23 @@ public class NuevaVentaController {
 
             productoElegido = null;
 
-            mostrarSugerencias(actual);
-        });
+            String filtro = actual == null ? "" : actual.trim();
 
-        // Si se presiona Enter con sugerencias disponibles,
-        // selecciona la primera coincidencia.
-        txtCodigo.setOnAction(event -> {
-
-            if (menuSugerencias.isShowing()
-                    && !menuSugerencias.getItems().isEmpty()) {
-
-                menuSugerencias.getItems().get(0).fire();
-                event.consume();
-            } else {
-                agregarProducto();
+            // IMPORTANTE: el lector escribe el código carácter por carácter.
+            // No consultar la BD por cada dígito: Compras solo consulta una
+            // vez cuando recibe Enter. Las sugerencias quedan para texto.
+            if (filtro.isEmpty() || filtro.matches("\\d+")) {
+                menuSugerencias.hide();
+                menuSugerencias.getItems().clear();
+                return;
             }
+
+            mostrarSugerencias(filtro);
         });
+
+        // Igual que en RegistrarCompraController: procesar una sola vez
+        // cuando el lector termina la lectura enviando Enter.
+        txtCodigo.setOnAction(event -> procesarEntradaCodigo());
 
         // Ocultar sugerencias al perder el foco.
         txtCodigo.focusedProperty().addListener(
@@ -404,6 +407,77 @@ public class NuevaVentaController {
                         Platform.runLater(() -> menuSugerencias.hide());
                     }
                 });
+    }
+
+    /**
+     * Procesa Enter en el campo de código.
+     * Si el texto coincide exactamente con un código de barras, agrega
+     * el producto al carrito. Si es texto de búsqueda manual, conserva
+     * la selección de sugerencias y el flujo de búsqueda existente.
+     */
+    @FXML
+    private void procesarEntradaCodigo() {
+
+        String texto = txtCodigo.getText() == null
+                ? ""
+                : txtCodigo.getText().trim();
+
+        if (texto.isEmpty()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        menuSugerencias.hide();
+
+        // Prioridad: coincidencia exacta por código de barras.
+        Producto producto = productoDAO.buscarActivoPorCodigo(texto);
+
+        if (producto != null) {
+            // El lector representa una unidad por cada lectura.
+            // Se agrega directamente al carrito, sin pasar por el botón
+            // ni por el flujo de captura/búsqueda manual.
+            txtCantidad.setText("1");
+
+            try {
+                agregarAlCarrito(producto, 1);
+            } finally {
+                menuSugerencias.hide();
+                actualizandoCodigo = true;
+                txtCodigo.clear();
+                actualizandoCodigo = false;
+                productoElegido = null;
+                txtCantidad.setText("1");
+
+                // Esperar al siguiente ciclo de JavaFX para devolver el foco
+                // al campo del lector antes de la siguiente lectura.
+                Platform.runLater(() -> txtCodigo.requestFocus());
+            }
+            return;
+        }
+
+        // Los códigos numéricos escaneados no deben seleccionar por error
+        // una sugerencia parcial ni abrir el buscador de nombres.
+        if (texto.matches("\\d{6,18}")) {
+            productoElegido = null;
+            txtCodigo.clear();
+            txtCantidad.setText("1");
+            txtCodigo.requestFocus();
+
+            mostrarAlerta(
+                    "Producto no encontrado",
+                    "No existe un producto activo con el código de barras: "
+                            + texto
+                            + ". Regístralo primero en Gestión de Productos.");
+            return;
+        }
+
+        // Para búsquedas manuales por nombre se conserva el comportamiento
+        // anterior: seleccionar la primera sugerencia disponible.
+        if (!menuSugerencias.getItems().isEmpty()) {
+            menuSugerencias.getItems().get(0).fire();
+        } else {
+            agregarProducto();
+        }
     }
 
     private void mostrarSugerencias(String texto) {
@@ -446,7 +520,9 @@ public class NuevaVentaController {
 
             MenuItem sugerencia = new MenuItem(descripcion);
 
-            sugerencia.setOnAction(event -> seleccionarSugerencia(producto));
+            // Al elegir una sugerencia del menú, se agrega directamente
+            // al carrito. Así no es necesario pulsar el botón Agregar.
+            sugerencia.setOnAction(event -> agregarSugerenciaAlCarrito(producto));
 
             menuSugerencias.getItems().add(sugerencia);
         }
@@ -456,6 +532,36 @@ public class NuevaVentaController {
                 && txtCodigo.isFocused()) {
 
             menuSugerencias.show(txtCodigo, Side.BOTTOM, 0, 0);
+        }
+    }
+
+    private void agregarSugerenciaAlCarrito(Producto producto) {
+
+        if (producto == null) {
+            return;
+        }
+
+        menuSugerencias.hide();
+
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(txtCantidad.getText().trim());
+        } catch (NumberFormatException e) {
+            mostrarAlerta(
+                    "Cantidad inválida",
+                    "Ingresa una cantidad válida antes de agregar el producto.");
+            txtCantidad.requestFocus();
+            txtCantidad.selectAll();
+            return;
+        }
+
+        if (agregarAlCarrito(producto, cantidad)) {
+            actualizandoCodigo = true;
+            txtCodigo.clear();
+            actualizandoCodigo = false;
+            txtCantidad.setText("1");
+            productoElegido = null;
+            txtCodigo.requestFocus();
         }
     }
 

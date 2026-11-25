@@ -122,6 +122,15 @@
                           styleClass="formulario-compacto">
 
                         <VBox styleClass="campo"
+                              minWidth="150.0"
+                              prefWidth="180.0">
+                            <Label text="Código de barras"
+                                   styleClass="etiqueta"/>
+                            <TextField fx:id="txtCodigoProducto"
+                                       promptText="Escanea el producto"/>
+                        </VBox>
+
+                        <VBox styleClass="campo"
                               minWidth="75.0"
                               prefWidth="75.0">
                             <Label text="Cantidad"

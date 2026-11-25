@@ -69,8 +69,7 @@
                         <VBox styleClass="campo" HBox.hgrow="ALWAYS">
                             <Label text="Código de barras / Producto" styleClass="etiqueta"/>
                             <TextField fx:id="txtCodigo"
-                                       promptText="Escanea o escribe el código"
-                                       onAction="#agregarProducto"/>
+                                       promptText="Escanea o escribe el código"/>
                         </VBox>
 
                         <VBox styleClass="campo" minWidth="64.0" prefWidth="64.0" maxWidth="64.0">

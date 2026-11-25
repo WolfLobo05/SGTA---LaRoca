@@ -6,6 +6,7 @@ public class ProductoVentaDevolucion {
 
     private int idProducto;
     private String nombreProducto;
+    private String codigoBarras;
     private int cantidadVendida;
     private int cantidadDevuelta;
     private int cantidadDisponible;
@@ -14,6 +15,7 @@ public class ProductoVentaDevolucion {
     public ProductoVentaDevolucion(
             int idProducto,
             String nombreProducto,
+            String codigoBarras,
             int cantidadVendida,
             int cantidadDevuelta,
             int cantidadDisponible,
@@ -21,33 +23,18 @@ public class ProductoVentaDevolucion {
 
         this.idProducto = idProducto;
         this.nombreProducto = nombreProducto;
+        this.codigoBarras = codigoBarras;
         this.cantidadVendida = cantidadVendida;
         this.cantidadDevuelta = cantidadDevuelta;
         this.cantidadDisponible = cantidadDisponible;
         this.precioUnitario = precioUnitario;
     }
 
-    public int getIdProducto() {
-        return idProducto;
-    }
-
-    public String getNombreProducto() {
-        return nombreProducto;
-    }
-
-    public int getCantidadVendida() {
-        return cantidadVendida;
-    }
-
-    public int getCantidadDevuelta() {
-        return cantidadDevuelta;
-    }
-
-    public int getCantidadDisponible() {
-        return cantidadDisponible;
-    }
-
-    public BigDecimal getPrecioUnitario() {
-        return precioUnitario;
-    }
+    public int getIdProducto() { return idProducto; }
+    public String getNombreProducto() { return nombreProducto; }
+    public String getCodigoBarras() { return codigoBarras; }
+    public int getCantidadVendida() { return cantidadVendida; }
+    public int getCantidadDevuelta() { return cantidadDevuelta; }
+    public int getCantidadDisponible() { return cantidadDisponible; }
+    public BigDecimal getPrecioUnitario() { return precioUnitario; }
 }

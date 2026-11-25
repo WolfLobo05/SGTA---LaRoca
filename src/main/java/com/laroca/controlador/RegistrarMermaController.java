@@ -19,6 +19,7 @@ import com.laroca.modelo.Merma;
 import com.laroca.modelo.Producto;
 import com.laroca.modelo.Sesion;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -42,6 +43,7 @@ import javafx.scene.input.KeyCode;
 import javafx.geometry.Side;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 public class RegistrarMermaController {
 
@@ -102,6 +104,8 @@ public class RegistrarMermaController {
     private final ObservableList<DetalleMerma> carrito = FXCollections.observableArrayList();
     private final Map<Integer, Integer> existencias = new HashMap<>();
     private final ContextMenu menuSugerencias = new ContextMenu();
+    // Agrupa las pulsaciones rápidas del lector para consultar sugerencias una sola vez.
+    private final PauseTransition pausaBusqueda = new PauseTransition(Duration.millis(450));
 
     private Producto productoElegido;
     private boolean actualizandoCodigo;
@@ -248,22 +252,42 @@ public class RegistrarMermaController {
     }
 
     private void configurarBusquedaDinamica() {
+        pausaBusqueda.setOnFinished(event -> mostrarSugerencias(txtCodigo.getText()));
+
         txtCodigo.textProperty().addListener((obs, anterior, actual) -> {
             if (actualizandoCodigo)
                 return;
+
             productoElegido = null;
-            mostrarSugerencias(actual);
+            pausaBusqueda.stop();
+            menuSugerencias.hide();
+
+            // El lector envía todos los caracteres seguidos y termina con Enter.
+            // La pausa evita consultar la base de datos por cada carácter leído.
+            if (actual == null || actual.isBlank())
+                return;
+
+            pausaBusqueda.playFromStart();
         });
+
         txtCodigo.setOnAction(event -> {
+            pausaBusqueda.stop();
+
             if (menuSugerencias.isShowing() && !menuSugerencias.getItems().isEmpty()) {
                 menuSugerencias.getItems().get(0).fire();
                 event.consume();
-            } else
+            } else {
+                // Si el texto proviene del lector, se busca el código completo.
                 agregarProducto();
+                event.consume();
+            }
         });
+
         txtCodigo.focusedProperty().addListener((obs, anterior, enfocado) -> {
-            if (!enfocado)
+            if (!enfocado) {
+                pausaBusqueda.stop();
                 Platform.runLater(menuSugerencias::hide);
+            }
         });
     }
 
@@ -353,7 +377,7 @@ public class RegistrarMermaController {
             menuSugerencias.hide();
             txtCodigo.clear();
             txtCantidad.setText("1");
-            txtMotivo.clear();
+            // Se conserva el motivo para registrar varias mermas consecutivas.
             productoElegido = null;
             txtCodigo.requestFocus();
         }
@@ -397,11 +421,29 @@ public class RegistrarMermaController {
                     + "\" y ya tienes " + (acumulada - cantidad) + " en la merma.");
             return false;
         }
-        carrito.add(new DetalleMerma(producto.getIdProducto(), producto.getNombre(),
-                cantidad, precio, motivo));
-        DetalleMerma agregada = carrito.get(carrito.size() - 1);
+        // Si coinciden el producto y el motivo, se acumula en la misma línea.
+        // Un mismo producto con motivos distintos conserva líneas separadas.
+        DetalleMerma agregada = null;
+        for (DetalleMerma linea : carrito) {
+            if (linea.getIdProducto() == producto.getIdProducto()
+                    && linea.getMotivo() != null
+                    && linea.getMotivo().trim().equalsIgnoreCase(motivo.trim())) {
+                linea.setCantidad(linea.getCantidad() + cantidad);
+                agregada = linea;
+                break;
+            }
+        }
+
+        if (agregada == null) {
+            agregada = new DetalleMerma(producto.getIdProducto(), producto.getNombre(),
+                    cantidad, precio, motivo.trim());
+            carrito.add(agregada);
+        }
+
+        tableCarrito.refresh();
         tableCarrito.getSelectionModel().select(agregada);
         tableCarrito.scrollTo(agregada);
+        actualizarResumen();
         return true;
     }
 
