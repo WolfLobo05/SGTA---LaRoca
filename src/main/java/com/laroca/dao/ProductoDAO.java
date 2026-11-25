@@ -25,6 +25,7 @@ public class ProductoDAO {
 
         String sql = "SELECT p.id_producto, p.id_unidad, p.id_categoria, "
                    + "p.codigo_barras, p.nombre, p.precio, p.estado, p.existencia, "
+                   + "COALESCE(p.punto_reorden, 0) AS punto_reorden, "
                    + "u.nombre AS nombre_unidad, c.nombre AS nombre_categoria "
                    + "FROM Productos p "
                    + "INNER JOIN Unidad_Medida u ON p.id_unidad = u.id_unidad "
@@ -49,6 +50,7 @@ public class ProductoDAO {
                     producto.setPrecio(rs.getBigDecimal("precio"));
                     producto.setEstado(rs.getString("estado"));
                     producto.setExistencia(rs.getInt("existencia"));
+                    producto.setPuntoReorden(rs.getInt("punto_reorden"));
                     producto.setNombreUnidad(rs.getString("nombre_unidad"));
                     producto.setNombreCategoria(rs.getString("nombre_categoria"));
                     productos.add(producto);
@@ -85,8 +87,7 @@ public class ProductoDAO {
         return -1;
     }
 
-    // Comprueba si existe el código de barras, ignorando
-    // espacios al inicio o al final.
+    // Comprueba si existe el código de barras, ignorando espacios al inicio o al final.
     public boolean existeCodigoBarras(String codigo, int idExcluir) {
         String sql = "SELECT COUNT(*) FROM Productos "
                    + "WHERE TRIM(codigo_barras) = TRIM(?) "
@@ -94,7 +95,7 @@ public class ProductoDAO {
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
-                return true; // No permitir guardar si falla la conexión.
+                return true;
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
@@ -110,7 +111,7 @@ public class ProductoDAO {
         } catch (SQLException e) {
             System.err.println("Error al verificar el código de barras:");
             e.printStackTrace();
-            return true; // Por seguridad, impedir el guardado.
+            return true;
         }
 
         return false;
@@ -137,7 +138,7 @@ public class ProductoDAO {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error al comprobar el estado de el producto:");
+            System.err.println("Error al comprobar el estado del producto:");
             e.printStackTrace();
             return false;
         }
@@ -218,11 +219,11 @@ public class ProductoDAO {
         return producto;
     }
 
-    // punto_reorden no se maneja en esta pantalla; queda en NULL.
+    // Todo producto nuevo inicia con punto de reorden 0, salvo que se indique otro valor.
     public boolean insertar(Producto producto) {
         String sql = "INSERT INTO Productos "
-                   + "(id_producto, id_unidad, id_categoria, codigo_barras, nombre, precio, estado) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                   + "(id_producto, id_unidad, id_categoria, codigo_barras, nombre, precio, estado, punto_reorden) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conexion = Conexion.conectar()) {
             if (conexion == null) {
@@ -237,6 +238,7 @@ public class ProductoDAO {
                 ps.setString(5, producto.getNombre());
                 ps.setBigDecimal(6, producto.getPrecio());
                 ps.setString(7, producto.getEstado());
+                ps.setInt(8, producto.getPuntoReorden());
 
                 return ps.executeUpdate() > 0;
             }
@@ -247,11 +249,11 @@ public class ProductoDAO {
         }
     }
 
-    // punto_reorden y estado no se modifican aquí.
+    // El punto de reorden se actualiza junto con los demás datos del producto.
     public boolean actualizar(Producto producto) {
         String sql = "UPDATE Productos "
                    + "SET id_unidad = ?, id_categoria = ?, codigo_barras = ?, "
-                   + "nombre = ?, precio = ? "
+                   + "nombre = ?, precio = ?, punto_reorden = ? "
                    + "WHERE id_producto = ?";
 
         try (Connection conexion = Conexion.conectar()) {
@@ -265,7 +267,8 @@ public class ProductoDAO {
                 ps.setString(3, producto.getCodigoBarras());
                 ps.setString(4, producto.getNombre());
                 ps.setBigDecimal(5, producto.getPrecio());
-                ps.setInt(6, producto.getIdProducto());
+                ps.setInt(6, producto.getPuntoReorden());
+                ps.setInt(7, producto.getIdProducto());
 
                 return ps.executeUpdate() > 0;
             }
@@ -299,7 +302,7 @@ public class ProductoDAO {
                 return ps.executeUpdate() > 0;
             }
         } catch (Exception e) {
-            System.err.println("Error al cambiar el estado de el producto:");
+            System.err.println("Error al cambiar el estado del producto:");
             e.printStackTrace();
             return false;
         }

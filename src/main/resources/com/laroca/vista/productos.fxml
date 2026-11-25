@@ -108,26 +108,37 @@
                             <TextField fx:id="txtCodigo" maxWidth="Infinity"
                                        promptText="Código de barras"/>
                         </VBox>
+
                         <VBox styleClass="campo">
                             <Label text="Nombre del producto" styleClass="etiqueta"/>
                             <TextField fx:id="txtNombre" maxWidth="Infinity"
                                        promptText="Nombre del producto"/>
                         </VBox>
+
                         <VBox styleClass="campo">
                             <Label text="Categoría" styleClass="etiqueta"/>
                             <ComboBox fx:id="cmbCategoria" maxWidth="Infinity"
                                       promptText="Selecciona una categoría"/>
                         </VBox>
+
                         <VBox styleClass="campo">
                             <Label text="Unidad de medida" styleClass="etiqueta"/>
                             <ComboBox fx:id="cmbUnidad" maxWidth="Infinity"
                                       promptText="Selecciona una unidad"/>
                         </VBox>
+
                         <VBox styleClass="campo">
                             <Label text="Precio" styleClass="etiqueta"/>
                             <TextField fx:id="txtPrecio" maxWidth="Infinity"
                                        promptText="0.00"/>
                         </VBox>
+
+                        <VBox styleClass="campo">
+                            <Label text="Punto de reorden" styleClass="etiqueta"/>
+                            <TextField fx:id="txtPuntoReorden" maxWidth="Infinity"
+                                       promptText="0"/>
+                        </VBox>
+
                         <VBox styleClass="campo">
                             <Label text="Estado" styleClass="etiqueta"/>
                             <!-- El estado solo se muestra; no se edita -->

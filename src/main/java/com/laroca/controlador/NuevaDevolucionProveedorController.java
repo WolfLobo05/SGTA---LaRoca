@@ -143,8 +143,7 @@ public class NuevaDevolucionProveedorController {
     @FXML
     public void initialize() {
 
-        // Verificar que el usuario tenga permiso para registrar devoluciones a
-        // proveedores.
+        // Verificar que el usuario tenga permiso para registrar devoluciones a proveedores.
         if (!Navegacion.verificarPermiso(tableCarrito, "DEVOLUCIONES_PROVEEDORES")) {
             return;
         }
@@ -292,7 +291,9 @@ public class NuevaDevolucionProveedorController {
         listaSugerencias.setOnMouseClicked(event -> {
             if (event.getClickCount() == 1) {
                 Compra seleccionada = listaSugerencias
-                        .getSelectionModel().getSelectedItem();
+                        .getSelectionModel()
+                        .getSelectedItem();
+
                 if (seleccionada != null)
                     seleccionarCompraSugerida(seleccionada);
             }
@@ -301,7 +302,9 @@ public class NuevaDevolucionProveedorController {
         listaSugerencias.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 Compra seleccionada = listaSugerencias
-                        .getSelectionModel().getSelectedItem();
+                        .getSelectionModel()
+                        .getSelectedItem();
+
                 if (seleccionada != null)
                     seleccionarCompraSugerida(seleccionada);
             }
@@ -381,6 +384,7 @@ public class NuevaDevolucionProveedorController {
         }
 
         Matcher matcher = Pattern.compile("^(?:C-)?(\\d+)$").matcher(folio);
+
         if (!matcher.matches()) {
             mostrarAlerta("Compra no seleccionada",
                     "Escribe un folio válido o selecciona una compra de las sugerencias.");
@@ -388,6 +392,7 @@ public class NuevaDevolucionProveedorController {
         }
 
         int idCompra;
+
         try {
             idCompra = Integer.parseInt(matcher.group(1));
         } catch (NumberFormatException e) {
@@ -424,7 +429,32 @@ public class NuevaDevolucionProveedorController {
             return;
         }
 
-        List<ProductoCompraDevolucion> productos = devolucionDAO.listarProductosCompra(compra.getIdCompra());
+        // =====================================================
+        // VALIDAR PLAZO DE UN MES PARA DEVOLUCIONES A PROVEEDORES
+        // =====================================================
+
+        if (compra.getFecha() == null) {
+            limpiarCompra();
+            mostrarAlerta(
+                    "Fecha no disponible",
+                    "No se puede comprobar el plazo de devolución porque la compra no tiene una fecha válida.");
+            return;
+        }
+
+        LocalDate fechaLimite = compra.getFecha().plusMonths(1);
+
+        if (LocalDate.now().isAfter(fechaLimite)) {
+            limpiarCompra();
+            mostrarAlerta(
+                    "Plazo de devolución vencido",
+                    "Esta compra superó el plazo máximo de un mes para devolver productos al proveedor.\n\n"
+                            + "Fecha de compra: " + Formato.fecha(compra.getFecha()) + "\n"
+                            + "Fecha límite: " + Formato.fecha(fechaLimite));
+            return;
+        }
+
+        List<ProductoCompraDevolucion> productos = devolucionDAO.listarProductosCompra(
+                compra.getIdCompra());
 
         if (productos == null || productos.isEmpty()) {
             limpiarCompra();
@@ -468,7 +498,9 @@ public class NuevaDevolucionProveedorController {
             return;
         }
 
-        ProductoCompraDevolucion producto = tableProductosCompra.getSelectionModel().getSelectedItem();
+        ProductoCompraDevolucion producto = tableProductosCompra
+                .getSelectionModel()
+                .getSelectedItem();
 
         if (producto == null) {
             mostrarAlerta("Producto no seleccionado",
@@ -484,6 +516,7 @@ public class NuevaDevolucionProveedorController {
         }
 
         int cantidad;
+
         try {
             cantidad = Integer.parseInt(txtCantidad.getText().trim());
         } catch (NumberFormatException e) {
@@ -499,6 +532,7 @@ public class NuevaDevolucionProveedorController {
         }
 
         String motivo = txtMotivo.getText().trim();
+
         if (motivo.isEmpty()) {
             mostrarAlerta("Motivo obligatorio",
                     "Escribe el motivo de devolución del producto.");
@@ -556,11 +590,13 @@ public class NuevaDevolucionProveedorController {
 
     private void actualizarResumen() {
         int articulos = 0;
+
         for (DetalleDevolucionProveedor detalle : carrito) {
             articulos += detalle.getCantidad();
         }
 
         int productos = carrito.size();
+
         lblNumProductos.setText(String.valueOf(productos));
         lblArticulos.setText(String.valueOf(articulos));
         lblTotal.setText(Formato.dinero(calcularTotal()));
@@ -580,9 +616,11 @@ public class NuevaDevolucionProveedorController {
 
     private BigDecimal calcularTotal() {
         BigDecimal total = BigDecimal.ZERO;
+
         for (DetalleDevolucionProveedor detalle : carrito) {
             total = total.add(detalle.getSubtotal());
         }
+
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -613,6 +651,7 @@ public class NuevaDevolucionProveedorController {
         }
 
         DevolucionProveedor devolucion = new DevolucionProveedor();
+
         devolucion.setIdCompra(compraSeleccionada.getIdCompra());
         devolucion.setIdEmpleado(Sesion.getIdEmpleado());
         devolucion.setFecha(LocalDate.now());
@@ -622,7 +661,8 @@ public class NuevaDevolucionProveedorController {
                 devolucion, new ArrayList<>(carrito));
 
         if (idDevolucion <= 0) {
-            mostrarAlerta("No se pudo registrar la devolución",
+            mostrarAlerta(
+                    "No se pudo registrar la devolución",
                     devolucionDAO.getMensajeError() == null
                             ? "Ocurrió un error al guardar la devolución."
                             : devolucionDAO.getMensajeError());
@@ -676,7 +716,8 @@ public class NuevaDevolucionProveedorController {
 
         } catch (IOException | RuntimeException e) {
             e.printStackTrace();
-            mostrarAlerta("Error",
+            mostrarAlerta(
+                    "Error",
                     "La devolución se registró, pero no se pudo abrir la gestión. "
                             + "Verifica la ruta del FXML y el controlador de devoluciones.");
         }
@@ -707,6 +748,7 @@ public class NuevaDevolucionProveedorController {
 
     private void mostrarAlerta(String titulo, String mensaje) {
         Alert alerta = new Alert(Alert.AlertType.WARNING);
+
         alerta.initOwner(ventana());
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
@@ -716,6 +758,7 @@ public class NuevaDevolucionProveedorController {
 
     private void mostrarInformacion(String titulo, String mensaje) {
         Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+
         alerta.initOwner(ventana());
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);

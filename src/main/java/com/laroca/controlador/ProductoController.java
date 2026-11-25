@@ -80,6 +80,9 @@ public class ProductoController {
     private TextField txtPrecio;
 
     @FXML
+    private TextField txtPuntoReorden;
+
+    @FXML
     private TextField txtEstado;
 
     @FXML
@@ -211,6 +214,19 @@ public class ProductoController {
                     actualizarEstadoGuardar();
                 });
 
+        // Punto de reorden: únicamente números enteros no negativos.
+        // Se limita a 10 dígitos y después se valida el rango de int.
+        txtPuntoReorden.textProperty().addListener(
+                (observable, anterior, actual) -> {
+
+                    if (!actual.matches("\\d{0,10}")) {
+                        txtPuntoReorden.setText(anterior);
+                        return;
+                    }
+
+                    actualizarEstadoGuardar();
+                });
+
         // Categoría obligatoria.
         cmbCategoria.valueProperty().addListener(
                 (observable, anterior, actual) -> actualizarEstadoGuardar());
@@ -259,6 +275,7 @@ public class ProductoController {
         String codigo = txtCodigo.getText().trim();
         String nombre = txtNombre.getText().trim();
         String textoPrecio = txtPrecio.getText().trim();
+        String textoPuntoReorden = txtPuntoReorden.getText().trim();
 
         Categoria categoria = cmbCategoria.getValue();
         UnidadMedida unidad = cmbUnidad.getValue();
@@ -285,11 +302,21 @@ public class ProductoController {
             precioValido = false;
         }
 
+        boolean puntoReordenValido = false;
+
+        try {
+            int puntoReorden = Integer.parseInt(textoPuntoReorden);
+            puntoReordenValido = puntoReorden >= 0;
+        } catch (NumberFormatException e) {
+            puntoReordenValido = false;
+        }
+
         boolean formularioValido = codigoValido
                 && nombreValido
                 && categoriaValida
                 && unidadValida
-                && precioValido;
+                && precioValido
+                && puntoReordenValido;
 
         btnGuardar.setDisable(!formularioValido);
     }
@@ -346,6 +373,7 @@ public class ProductoController {
         txtCodigo.setText(Objects.toString(producto.getCodigoBarras(), ""));
         txtNombre.setText(Objects.toString(producto.getNombre(), ""));
         txtPrecio.setText(Objects.toString(producto.getPrecio(), ""));
+        txtPuntoReorden.setText(String.valueOf(producto.getPuntoReorden()));
         txtEstado.setText(Estados.mostrar(producto.getEstado()));
 
         seleccionarCategoria(producto.getIdCategoria(), producto.getNombreCategoria());
@@ -416,6 +444,8 @@ public class ProductoController {
         String codigo = txtCodigo.getText().trim();
         String nombre = txtNombre.getText().trim();
         String textoPrecio = txtPrecio.getText().trim();
+        String textoPuntoReorden = txtPuntoReorden.getText().trim();
+
         Categoria categoria = cmbCategoria.getValue();
         UnidadMedida unidad = cmbUnidad.getValue();
 
@@ -503,6 +533,24 @@ public class ProductoController {
             return;
         }
 
+        int puntoReorden;
+
+        try {
+            puntoReorden = Integer.parseInt(textoPuntoReorden);
+
+            if (puntoReorden < 0) {
+                throw new NumberFormatException();
+            }
+
+        } catch (NumberFormatException e) {
+            mostrarAlerta(
+                    Alert.AlertType.WARNING,
+                    "Punto de reorden no válido",
+                    "El punto de reorden debe ser un número entero mayor o igual a 0.");
+            txtPuntoReorden.requestFocus();
+            return;
+        }
+
         int idExcluir = 0;
 
         if (modoEdicion && productoSeleccionado != null) {
@@ -542,6 +590,7 @@ public class ProductoController {
             productoSeleccionado.setIdCategoria(categoria.getIdCategoria());
             productoSeleccionado.setIdUnidad(unidad.getIdUnidadMedida());
             productoSeleccionado.setPrecio(precio);
+            productoSeleccionado.setPuntoReorden(puntoReorden);
 
             if (dao.actualizar(productoSeleccionado)) {
                 finalizarOperacion();
@@ -573,6 +622,10 @@ public class ProductoController {
 
             // Todo producto nuevo se registra como Activo.
             producto.setEstado(Estados.ACTIVO);
+
+            // El punto de reorden se guarda con el valor capturado.
+            // Por defecto, el formulario proporciona 0.
+            producto.setPuntoReorden(puntoReorden);
 
             if (dao.insertar(producto)) {
                 finalizarOperacion();
@@ -677,6 +730,7 @@ public class ProductoController {
         txtCodigo.clear();
         txtNombre.clear();
         txtPrecio.clear();
+        txtPuntoReorden.setText("0");
         cmbCategoria.setValue(null);
         cmbUnidad.setValue(null);
         txtEstado.clear();
@@ -688,6 +742,7 @@ public class ProductoController {
         cmbCategoria.setDisable(bloquear);
         cmbUnidad.setDisable(bloquear);
         txtPrecio.setDisable(bloquear);
+        txtPuntoReorden.setDisable(bloquear);
 
         // Guardar siempre empieza deshabilitado.
         btnGuardar.setDisable(true);

@@ -39,12 +39,13 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.chart.BarChart;
+import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.DateCell;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -131,7 +132,7 @@ public class EstadisticasGeneralesController {
     @FXML private Label lblSubGrafico;
     @FXML private Label lblEstado;
 
-    @FXML private BarChart<String, Number> graficoVentasDia;
+    @FXML private LineChart<String, Number> graficoVentasDia;
 
     @FXML private TableView<TopProducto> tablaTopProductos;
     @FXML private TableColumn<TopProducto, String> colTopNombre;
@@ -165,6 +166,12 @@ public class EstadisticasGeneralesController {
 
     // Evita recargar mientras se llenan los combos por código.
     private boolean cargandoFiltros;
+    private boolean actualizandoFechas;
+    // Límites reales del historial disponibles para los selectores de fecha.
+    private LocalDate primeraFechaHistorica;
+
+    private static final String PERIODO_HISTORICO = "Histórico completo";
+    private static final String PERIODO_PERSONALIZADO = "Rango personalizado";
 
     // Espera breve antes de consultar, para no hacerlo en cada tecla.
     private final PauseTransition recarga = new PauseTransition(Duration.millis(300));
@@ -204,11 +211,19 @@ public class EstadisticasGeneralesController {
 
         recarga.setOnFinished(e -> cargarDatosDashboard());
 
-        // Cualquier cambio de filtro actualiza las estadísticas.
+        // Al elegir un mes o el histórico, se aplican sus fechas.
+        // "Rango personalizado" conserva las fechas que escribió el usuario.
         cmbPeriodo.valueProperty().addListener((obs, antes, periodo) -> {
             if (periodo != null && !cargandoFiltros) {
-                dpDesde.setValue(periodo.desde());
-                dpHasta.setValue(periodo.hasta());
+                if (periodo.desde() != null && periodo.hasta() != null) {
+                    actualizandoFechas = true;
+                    try {
+                        dpDesde.setValue(periodo.desde());
+                        dpHasta.setValue(periodo.hasta());
+                    } finally {
+                        actualizandoFechas = false;
+                    }
+                }
                 programarRecarga();
             }
         });
@@ -230,8 +245,24 @@ public class EstadisticasGeneralesController {
     }
 
     private void configurarFecha(DatePicker selector) {
-        selector.valueProperty().addListener((obs, antes, ahora) -> programarRecarga());
-        selector.getEditor().textProperty().addListener((obs, antes, ahora) -> programarRecarga());
+        selector.valueProperty().addListener((obs, antes, ahora) -> {
+            if (!actualizandoFechas && !cargandoFiltros) {
+                marcarRangoPersonalizado();
+                programarRecarga();
+            }
+        });
+        selector.getEditor().textProperty().addListener((obs, antes, ahora) -> {
+            if (!actualizandoFechas && !cargandoFiltros) {
+                LocalDate escrita = interpretarFecha(ahora);
+                // Solo cambiar a personalizado cuando el texto sea una fecha válida.
+                if (escrita != null && !escrita.equals(selector.getValue())) {
+                    // Solo se considera personalizado si la fecha realmente cambió.
+                    // JavaFX también actualiza el texto del editor al cargar un periodo;
+                    // ese refresco visual no debe cambiar el periodo seleccionado.
+                    selector.setValue(escrita);
+                }
+            }
+        });
 
         // Confirma lo escrito al salir del campo.
         selector.focusedProperty().addListener((obs, antes, enfocado) -> {
@@ -251,6 +282,22 @@ public class EstadisticasGeneralesController {
                 return interpretarFecha(texto);
             }
         });
+    }
+
+    private void marcarRangoPersonalizado() {
+        if (cmbPeriodo == null || cargandoFiltros || actualizandoFechas) {
+            return;
+        }
+        Periodo seleccionado = cmbPeriodo.getValue();
+        if (seleccionado == null || !PERIODO_PERSONALIZADO.equals(seleccionado.etiqueta())) {
+            for (Periodo opcion : cmbPeriodo.getItems()) {
+                if (PERIODO_PERSONALIZADO.equals(opcion.etiqueta())) {
+                    cmbPeriodo.setValue(opcion);
+                    return;
+                }
+            }
+            cmbPeriodo.setValue(new Periodo(PERIODO_PERSONALIZADO, null, null));
+        }
     }
 
     private static LocalDate interpretarFecha(String texto) {
@@ -281,8 +328,8 @@ public class EstadisticasGeneralesController {
         return selector.getValue();
     }
 
-    // Meses con ventas activas (más el mes actual) y el histórico;
-    // categorías de la tabla Categoria.
+    // Meses disponibles desde el primer movimiento histórico hasta el actual.
+    // Al abrir el dashboard se selecciona siempre el mes actual.
     private void cargarFiltrosDinamicos() {
         cargandoFiltros = true;
 
@@ -290,18 +337,9 @@ public class EstadisticasGeneralesController {
             Periodo previo = cmbPeriodo.getValue();
             List<Periodo> periodos = new ArrayList<>();
             YearMonth actual = YearMonth.now();
-            periodos.add(mes(actual));
-
             LocalDate primeraFecha = null;
 
-            String sqlMeses = "SELECT DISTINCT YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes "
-                    + "FROM Ventas v WHERE v.fecha IS NOT NULL AND " + activo("v") + " "
-                    + "ORDER BY anio DESC, mes DESC";
-
-            // Mismo criterio que Estadísticas de Stock: primer movimiento
-            // histórico activo entre ventas, compras, mermas y devoluciones.
-            // Las devoluciones solo determinan el inicio del historial;
-            // no se agregan como indicadores nuevos en este dashboard.
+            // Primer movimiento activo entre ventas, compras, mermas y devoluciones.
             String sqlPrimera = "SELECT MIN(f) FROM ("
                     + "SELECT MIN(DATE(v.fecha)) AS f FROM Ventas v "
                     + "WHERE v.fecha IS NOT NULL AND " + activo("v") + " "
@@ -318,16 +356,6 @@ public class EstadisticasGeneralesController {
                 if (conexion == null) {
                     lblEstado.setText("No se pudo conectar con la base de datos.");
                 } else {
-                    try (PreparedStatement ps = conexion.prepareStatement(sqlMeses);
-                         ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            YearMonth ym = YearMonth.of(rs.getInt("anio"), rs.getInt("mes"));
-                            if (!ym.equals(actual)) {
-                                periodos.add(mes(ym));
-                            }
-                        }
-                    }
-
                     try (PreparedStatement ps = conexion.prepareStatement(sqlPrimera);
                          ResultSet rs = ps.executeQuery()) {
                         if (rs.next() && rs.getDate(1) != null) {
@@ -340,51 +368,78 @@ public class EstadisticasGeneralesController {
                 lblEstado.setText("Error al cargar los periodos: " + e.getMessage());
             }
 
+            primeraFechaHistorica = primeraFecha == null || primeraFecha.isAfter(LocalDate.now())
+                    ? LocalDate.now() : primeraFecha;
+            aplicarLimitesFechas();
+
+            YearMonth primerMes = primeraFechaHistorica == null
+                    ? actual : YearMonth.from(primeraFechaHistorica);
+
+            // Mes actual primero, seguido de los meses anteriores.
+            for (YearMonth ym = actual; !ym.isBefore(primerMes); ym = ym.minusMonths(1)) {
+                periodos.add(mes(ym, primeraFechaHistorica));
+            }
+
+            // Evita dejar vacío el selector si no hay movimientos históricos.
+            if (periodos.isEmpty()) {
+                periodos.add(mes(actual, primeraFechaHistorica));
+            }
+
             LocalDate hoy = LocalDate.now();
-            LocalDate inicio = primeraFecha == null || primeraFecha.isAfter(hoy) ? hoy : primeraFecha;
-            periodos.add(new Periodo("Histórico (general)", inicio, hoy));
+            LocalDate inicioHistorico = primeraFechaHistorica == null ? hoy : primeraFechaHistorica;
+            periodos.add(new Periodo(PERIODO_HISTORICO, inicioHistorico, hoy));
+            periodos.add(new Periodo(PERIODO_PERSONALIZADO, null, null));
 
             cmbPeriodo.getItems().setAll(periodos);
-            // Al abrir, mostrar el historial completo; los meses siguen disponibles.
-            Periodo seleccion = previo == null
-                    ? periodos.get(periodos.size() - 1)
-                    : periodos.get(0);
+
+            // Al abrir por primera vez, el mes actual es el predeterminado.
+            // Si se recargan filtros, se conserva el mes que estaba seleccionado.
+            Periodo seleccion = periodos.get(0);
             if (previo != null) {
                 for (Periodo p : periodos) {
                     if (p.etiqueta().equals(previo.etiqueta())) {
                         seleccion = p;
+                        break;
                     }
                 }
             }
-            cmbPeriodo.setValue(seleccion);
 
-            if (previo == null) {
-                dpDesde.setValue(seleccion.desde());
-                dpHasta.setValue(seleccion.hasta());
+            cmbPeriodo.setValue(seleccion);
+            if (seleccion.desde() != null && seleccion.hasta() != null) {
+                actualizandoFechas = true;
+                try {
+                    dpDesde.setValue(seleccion.desde());
+                    dpHasta.setValue(seleccion.hasta());
+                } finally {
+                    actualizandoFechas = false;
+                }
             }
 
             // Categorías: activas y, al final, inactivas.
             OpcionCategoria previa = cmbCategoria.getValue();
             List<OpcionCategoria> categorias = new ArrayList<>();
-            categorias.add(new OpcionCategoria(null, "Todas"));
             List<OpcionCategoria> inactivas = new ArrayList<>();
+            categorias.add(new OpcionCategoria(null, "Todas"));
 
             for (Categoria categoria : categoriaDAO.listar()) {
                 if (Estados.esActivo(categoria.getEstado())) {
-                    categorias.add(new OpcionCategoria(categoria.getIdCategoria(), categoria.getNombre()));
+                    categorias.add(new OpcionCategoria(
+                            categoria.getIdCategoria(), categoria.getNombre()));
                 } else {
-                    inactivas.add(new OpcionCategoria(categoria.getIdCategoria(),
-                            categoria.getNombre() + " (inactiva)"));
+                    inactivas.add(new OpcionCategoria(
+                            categoria.getIdCategoria(), categoria.getNombre() + " (inactiva)"));
                 }
             }
-            categorias.addAll(inactivas);
 
+            categorias.addAll(inactivas);
             cmbCategoria.getItems().setAll(categorias);
+
             OpcionCategoria elegida = categorias.get(0);
             if (previa != null) {
                 for (OpcionCategoria opcion : categorias) {
                     if (opcion.texto().equals(previa.texto())) {
                         elegida = opcion;
+                        break;
                     }
                 }
             }
@@ -395,12 +450,69 @@ public class EstadisticasGeneralesController {
         }
     }
 
-    private static Periodo mes(YearMonth ym) {
+    private void aplicarLimitesFechas() {
+        LocalDate hoy = LocalDate.now();
+        LocalDate minimo = primeraFechaHistorica == null ? hoy : primeraFechaHistorica;
+
+        // DatePicker no tiene setMin/setMax. Los límites se aplican
+        // deshabilitando las celdas fuera del rango permitido.
+        dpDesde.setDayCellFactory(picker -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate fecha, boolean vacia) {
+                super.updateItem(fecha, vacia);
+                setDisable(vacia || fecha.isBefore(minimo) || fecha.isAfter(hoy));
+            }
+        });
+
+        dpHasta.setDayCellFactory(picker -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate fecha, boolean vacia) {
+                super.updateItem(fecha, vacia);
+                setDisable(vacia || fecha.isBefore(minimo) || fecha.isAfter(hoy));
+            }
+        });
+    }
+
+    private boolean validarRangoFechas(LocalDate desde, LocalDate hasta, boolean mostrarEnBarra) {
+        LocalDate hoy = LocalDate.now();
+        LocalDate minimo = primeraFechaHistorica == null ? hoy : primeraFechaHistorica;
+
+        if (desde == null || hasta == null) {
+            if (mostrarEnBarra) lblEstado.setText("Selecciona las fechas Desde y Hasta.");
+            return false;
+        }
+        if (desde.isBefore(minimo) || hasta.isBefore(minimo)) {
+            if (mostrarEnBarra) lblEstado.setText("No puedes consultar fechas anteriores al primer movimiento registrado ("
+                    + Formato.fecha(minimo) + ").");
+            return false;
+        }
+        if (desde.isAfter(hoy) || hasta.isAfter(hoy)) {
+            if (mostrarEnBarra) lblEstado.setText("No puedes consultar fechas posteriores a hoy.");
+            return false;
+        }
+        if (hasta.isBefore(desde)) {
+            if (mostrarEnBarra) lblEstado.setText("La fecha Desde no puede ser posterior a la fecha Hasta.");
+            return false;
+        }
+        return true;
+    }
+
+    private static Periodo mes(YearMonth ym, LocalDate primeraFechaHistorica) {
         String nombre = ym.getMonth().getDisplayName(TextStyle.FULL, ESPANOL);
         String etiqueta = nombre.substring(0, 1).toUpperCase(ESPANOL) + nombre.substring(1) + " " + ym.getYear();
-        LocalDate fin = ym.atEndOfMonth();
         LocalDate hoy = LocalDate.now();
-        return new Periodo(etiqueta, ym.atDay(1), fin.isAfter(hoy) && !ym.atDay(1).isAfter(hoy) ? hoy : fin);
+        LocalDate inicioMes = ym.atDay(1);
+        LocalDate finMes = ym.atEndOfMonth();
+
+        // En el primer mes con movimientos, el periodo comienza en el primer
+        // movimiento registrado, no en un día anterior al historial disponible.
+        LocalDate desde = primeraFechaHistorica != null
+                && YearMonth.from(primeraFechaHistorica).equals(ym)
+                ? primeraFechaHistorica
+                : inicioMes;
+        LocalDate hasta = finMes.isAfter(hoy) ? hoy : finMes;
+
+        return new Periodo(etiqueta, desde, hasta);
     }
 
     private static String activo(String alias) {
@@ -410,6 +522,29 @@ public class EstadisticasGeneralesController {
     // ------------------------------------------------------------------
     // Acciones
     // ------------------------------------------------------------------
+
+    /** Ejecuta nuevamente las consultas con los filtros seleccionados. */
+    @FXML
+    private void handleGenerar() {
+        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
+            return;
+        }
+
+        recarga.stop();
+        cargarDatosDashboard();
+    }
+
+    /** Actualiza los periodos disponibles y vuelve a consultar los datos. */
+    @FXML
+    private void handleActualizar() {
+        if (!Sesion.tienePermiso("ESTADISTICAS_GENERALES")) {
+            return;
+        }
+
+        recarga.stop();
+        cargarFiltrosDinamicos();
+        cargarDatosDashboard();
+    }
 
     @FXML
     private void handleExportar() {
@@ -427,15 +562,9 @@ public class EstadisticasGeneralesController {
         LocalDate desde = leerFecha(dpDesde);
         LocalDate hasta = leerFecha(dpHasta);
 
-        if (desde == null || hasta == null) {
-            mostrarError("Fechas no válidas",
-                    "Selecciona las fechas Desde y Hasta antes de exportar.");
-            return;
-        }
-
-        if (hasta.isBefore(desde)) {
-            mostrarError("Periodo no válido",
-                    "La fecha Desde no puede ser posterior a la fecha Hasta.");
+        if (!validarRangoFechas(desde, hasta, false)) {
+            mostrarError("Periodo no válido", "El rango debe estar entre el primer movimiento registrado y hoy, "
+                    + "y la fecha Desde no puede ser posterior a Hasta.");
             return;
         }
 
@@ -594,13 +723,7 @@ public class EstadisticasGeneralesController {
         // leerFecha puede confirmar la fecha y volver a programar la recarga.
         recarga.stop();
 
-        if (desde == null || hasta == null) {
-            lblEstado.setText("Escribe las fechas Desde y Hasta con el formato dd/mm/aaaa.");
-            return;
-        }
-
-        if (hasta.isBefore(desde)) {
-            lblEstado.setText("La fecha Desde no puede ser posterior a la fecha Hasta.");
+        if (!validarRangoFechas(desde, hasta, true)) {
             return;
         }
 
@@ -808,7 +931,8 @@ public class EstadisticasGeneralesController {
                 while (rs.next()) {
                     LocalDate dia = rs.getDate("dia").toLocalDate();
                     BigDecimal importe = rs.getBigDecimal("importe");
-                    XYChart.Data<String, Number> dato = new XYChart.Data<>(dia.format(DIA_GRAFICA), importe);
+                    XYChart.Data<String, Number> dato =
+                            new XYChart.Data<>(dia.format(DIA_GRAFICA), importe);
                     serie.getData().add(dato);
 
                     if (importeMayor == null || importe.compareTo(importeMayor) > 0) {
@@ -822,7 +946,8 @@ public class EstadisticasGeneralesController {
         graficoVentasDia.getData().setAll(List.of(serie));
 
         int dias = serie.getData().size();
-        lblSubVentas.setText(dias + (dias == 1 ? " día con ventas" : " días con ventas"));
+        lblSubVentas.setText(dias + (dias == 1
+                ? " día con ventas" : " días con ventas"));
 
         String rango = Formato.fecha(filtro.desde()) + " – " + Formato.fecha(filtro.hasta());
 
@@ -832,9 +957,13 @@ public class EstadisticasGeneralesController {
             lblSubGrafico.setText(rango + " · el día más alto está resaltado ("
                     + mayor.getXValue() + ": " + Formato.dinero(importeMayor) + ")");
 
-            if (mayor.getNode() != null) {
-                mayor.getNode().getStyleClass().add("barra-destacada");
-            }
+            // Espera a que JavaFX cree los nodos de los puntos para resaltarlo.
+            XYChart.Data<String, Number> puntoMayor = mayor;
+            Platform.runLater(() -> {
+                if (puntoMayor.getNode() != null) {
+                    puntoMayor.getNode().getStyleClass().add("punto-destacado");
+                }
+            });
         }
     }
 

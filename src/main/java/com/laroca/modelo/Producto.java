@@ -12,24 +12,24 @@ public class Producto {
     private BigDecimal precio;
     private String estado;
     private int existencia;
+    private int puntoReorden;
 
     // Datos de las tablas relacionadas, solo para mostrar.
     private String nombreUnidad;
     private String nombreCategoria;
 
-    public Producto()
-    {
-
+    public Producto() {
+        this.puntoReorden = 0;
     }
 
-    public Producto(int id, int idUni, int idCat, String cod, String nom, BigDecimal pre)
-    {
+    public Producto(int id, int idUni, int idCat, String cod, String nom, BigDecimal pre) {
         idProducto = id;
         idUnidad = idUni;
         idCategoria = idCat;
         codigoBarras = cod;
         nombre = nom;
         precio = pre;
+        puntoReorden = 0;
     }
 
     public int getIdProducto() {
@@ -94,6 +94,14 @@ public class Producto {
 
     public void setExistencia(int exis) {
         existencia = exis;
+    }
+
+    public int getPuntoReorden() {
+        return puntoReorden;
+    }
+
+    public void setPuntoReorden(int puntoReorden) {
+        this.puntoReorden = puntoReorden;
     }
 
     public String getNombreUnidad() {

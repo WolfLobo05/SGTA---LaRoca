@@ -12,6 +12,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -245,15 +246,20 @@ public class DevolucionProveedorDAO {
             return -1;
         }
 
-        String sqlCompra = "SELECT estado FROM Compras "
+        // Se consulta y bloquea la compra para validar su estado y su fecha
+        // dentro de la misma transacción en la que se registra la devolución.
+        String sqlCompra = "SELECT estado, fecha FROM Compras "
                 + "WHERE id_compras = ? FOR UPDATE";
+
         String sqlEncabezado = "INSERT INTO Devolucion_Proveedores "
                 + "(id_devolucion_proveedor, id_compras, id_empleado, fecha, estado) "
                 + "VALUES (?, ?, ?, ?, ?)";
+
         String sqlDetalle = "INSERT INTO detalle_devolucion_proveedores "
                 + "(id_detalle_devolucion_proveedor, id_producto, "
                 + "id_devolucion_proveedor, cantidad, precio, motivo) "
                 + "VALUES (?, ?, ?, ?, ?, ?)";
+
         String sqlDisponibles = "SELECT "
                 + "COALESCE((SELECT SUM(dc.cantidad) FROM detalle_compras dc "
                 + "WHERE dc.id_compras = ? AND dc.id_producto = ?), 0) "
@@ -264,6 +270,7 @@ public class DevolucionProveedorDAO {
                 + "WHERE dp.id_compras = ? AND dd.id_producto = ? "
                 + "AND UPPER(COALESCE(TRIM(dp.estado), '')) IN ('', 'ACTIVO')), 0) "
                 + "AS disponibles";
+
         String sqlExistencia = "UPDATE Productos "
                 + "SET existencia = existencia - ? "
                 + "WHERE id_producto = ? AND existencia >= ?";
@@ -277,13 +284,38 @@ public class DevolucionProveedorDAO {
             try {
                 conexion.setAutoCommit(false);
 
+                // Validar que la compra exista, esté activa y no haya superado
+                // el plazo de un mes desde su fecha de compra.
                 try (PreparedStatement ps = conexion.prepareStatement(sqlCompra)) {
                     ps.setInt(1, devolucion.getIdCompra());
+
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()
-                                || !Estados.esActivo(rs.getString("estado"))) {
+                        if (!rs.next()) {
                             conexion.rollback();
-                            mensajeError = "La compra no existe o está cancelada.";
+                            mensajeError = "La compra no existe.";
+                            return -1;
+                        }
+
+                        if (!Estados.esActivo(rs.getString("estado"))) {
+                            conexion.rollback();
+                            mensajeError = "La compra está cancelada.";
+                            return -1;
+                        }
+
+                        Date fechaCompra = rs.getDate("fecha");
+
+                        if (fechaCompra == null) {
+                            conexion.rollback();
+                            mensajeError = "La compra no tiene una fecha válida.";
+                            return -1;
+                        }
+
+                        LocalDate fechaLimite = fechaCompra.toLocalDate().plusMonths(1);
+
+                        if (LocalDate.now().isAfter(fechaLimite)) {
+                            conexion.rollback();
+                            mensajeError = "El plazo para devolver productos al proveedor ha vencido. "
+                                    + "Solamente se permiten devoluciones durante el mes posterior a la compra.";
                             return -1;
                         }
                     }
@@ -291,6 +323,7 @@ public class DevolucionProveedorDAO {
 
                 // Agrupar por producto para impedir que varias líneas evadan el límite.
                 java.util.Map<Integer, Integer> cantidades = new java.util.LinkedHashMap<>();
+
                 for (DetalleDevolucionProveedor detalle : detalles) {
                     if (detalle == null || detalle.getIdProducto() <= 0
                             || detalle.getCantidad() <= 0) {
@@ -298,12 +331,14 @@ public class DevolucionProveedorDAO {
                         mensajeError = "Hay un producto o una cantidad inválida.";
                         return -1;
                     }
+
                     if (detalle.getPrecio() == null
                             || detalle.getPrecio().signum() < 0) {
                         conexion.rollback();
                         mensajeError = "Hay un precio de compra inválido.";
                         return -1;
                     }
+
                     if (detalle.getMotivo() == null
                             || detalle.getMotivo().trim().isEmpty()
                             || detalle.getMotivo().trim().length() > 100) {
@@ -311,6 +346,7 @@ public class DevolucionProveedorDAO {
                         mensajeError = "Cada producto debe tener un motivo de hasta 100 caracteres.";
                         return -1;
                     }
+
                     cantidades.merge(
                             detalle.getIdProducto(),
                             detalle.getCantidad(),
@@ -326,6 +362,7 @@ public class DevolucionProveedorDAO {
 
                         try (ResultSet rs = ps.executeQuery()) {
                             int disponibles = rs.next() ? rs.getInt("disponibles") : 0;
+
                             if (entrada.getValue() > disponibles) {
                                 conexion.rollback();
                                 mensajeError = "La cantidad solicitada supera las unidades disponibles "
@@ -340,6 +377,7 @@ public class DevolucionProveedorDAO {
                 int idDevolucion = siguienteId(conexion,
                         "SELECT COALESCE(MAX(id_devolucion_proveedor), 0) + 1 "
                                 + "FROM Devolucion_Proveedores FOR UPDATE");
+
                 int idDetalle = siguienteId(conexion,
                         "SELECT COALESCE(MAX(id_detalle_devolucion_proveedor), 0) + 1 "
                                 + "FROM detalle_devolucion_proveedores FOR UPDATE");
@@ -365,6 +403,7 @@ public class DevolucionProveedorDAO {
                     }
                 }
 
+                // Descontar del inventario las unidades devueltas al proveedor.
                 try (PreparedStatement ps = conexion.prepareStatement(sqlExistencia)) {
                     for (java.util.Map.Entry<Integer, Integer> entrada : cantidades.entrySet()) {
                         ps.setInt(1, entrada.getValue());
@@ -381,8 +420,10 @@ public class DevolucionProveedorDAO {
                 }
 
                 conexion.commit();
+
                 devolucion.setIdDevolucionProveedor(idDevolucion);
                 devolucion.setEstado(Estados.ACTIVO);
+
                 return idDevolucion;
 
             } catch (SQLException e) {
@@ -405,11 +446,14 @@ public class DevolucionProveedorDAO {
 
         String sqlCabecera = "SELECT estado FROM Devolucion_Proveedores "
                 + "WHERE id_devolucion_proveedor = ? FOR UPDATE";
+
         String sqlDetalles = "SELECT id_producto, SUM(cantidad) AS cantidad "
                 + "FROM detalle_devolucion_proveedores "
                 + "WHERE id_devolucion_proveedor = ? GROUP BY id_producto";
+
         String sqlEstado = "UPDATE Devolucion_Proveedores SET estado = ? "
                 + "WHERE id_devolucion_proveedor = ?";
+
         String sqlExistencia = "UPDATE Productos SET existencia = existencia + ? "
                 + "WHERE id_producto = ?";
 
@@ -424,6 +468,7 @@ public class DevolucionProveedorDAO {
 
                 try (PreparedStatement ps = conexion.prepareStatement(sqlCabecera)) {
                     ps.setInt(1, idDevolucion);
+
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()
                                 || !Estados.esActivo(rs.getString("estado"))) {
@@ -436,11 +481,14 @@ public class DevolucionProveedorDAO {
 
                 try (PreparedStatement ps = conexion.prepareStatement(sqlDetalles)) {
                     ps.setInt(1, idDevolucion);
+
                     try (ResultSet rs = ps.executeQuery();
                             PreparedStatement psStock = conexion.prepareStatement(sqlExistencia)) {
+
                         while (rs.next()) {
                             psStock.setInt(1, rs.getInt("cantidad"));
                             psStock.setInt(2, rs.getInt("id_producto"));
+
                             if (psStock.executeUpdate() == 0) {
                                 conexion.rollback();
                                 mensajeError = "No se pudo restaurar la existencia del producto ID "
@@ -489,6 +537,7 @@ public class DevolucionProveedorDAO {
 
     private DevolucionProveedor leerDevolucion(ResultSet rs) throws SQLException {
         DevolucionProveedor devolucion = new DevolucionProveedor();
+
         devolucion.setIdDevolucionProveedor(
                 rs.getInt("id_devolucion_proveedor"));
         devolucion.setIdCompra(rs.getInt("id_compras"));
@@ -501,6 +550,7 @@ public class DevolucionProveedorDAO {
         devolucion.setFolioCompra(rs.getString("folio_compra"));
         devolucion.setNombreProveedor(rs.getString("nombre_proveedor"));
         devolucion.setNombreEmpleado(rs.getString("nombre_empleado"));
+
         return devolucion;
     }
 }

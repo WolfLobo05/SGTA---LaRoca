@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,10 +46,6 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 public class NuevaDevolucionClienteController {
-
-    // =========================================================
-    // COMPONENTES FXML
-    // =========================================================
 
     @FXML
     private Button btnNuevaDevolucion;
@@ -118,35 +115,35 @@ public class NuevaDevolucionClienteController {
     @FXML
     private Label lblEstadoFooter;
 
-    // =========================================================
-    // DAO, LISTAS Y BUSCADOR
-    // =========================================================
+    private final DevolucionClienteDAO devolucionDAO =
+            new DevolucionClienteDAO();
 
-    private final DevolucionClienteDAO devolucionDAO = new DevolucionClienteDAO();
     private final VentaDAO ventaDAO = new VentaDAO();
 
-    private final ObservableList<ProductoVentaDevolucion> productosVenta = FXCollections.observableArrayList();
+    private final ObservableList<ProductoVentaDevolucion> productosVenta =
+            FXCollections.observableArrayList();
 
-    private final ObservableList<DetalleDevolucionCliente> carrito = FXCollections.observableArrayList();
+    private final ObservableList<DetalleDevolucionCliente> carrito =
+            FXCollections.observableArrayList();
 
     private Venta ventaSeleccionada;
 
     private final Popup popupVentas = new Popup();
     private final ListView<Venta> listaSugerencias = new ListView<>();
+
     private boolean seleccionandoSugerencia = false;
 
-    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATO_FECHA =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    // =========================================================
-    // INICIALIZACIÓN
-    // =========================================================
+    private static final DateTimeFormatter FORMATO_FECHA_HORA =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @FXML
     public void initialize() {
 
-        // Verificar que el usuario tenga permiso para registrar devoluciones de
-        // clientes.
-        if (!Navegacion.verificarPermiso(tableCarrito, "DEVOLUCIONES_CLIENTES")) {
+        if (!Navegacion.verificarPermiso(
+                tableCarrito, "DEVOLUCIONES_CLIENTES")) {
             return;
         }
 
@@ -165,85 +162,106 @@ public class NuevaDevolucionClienteController {
                 new Label("Agrega los productos que deseas devolver."));
 
         txtCantidad.setTextFormatter(
-                new TextFormatter<String>(cambio -> cambio.getControlNewText().matches("\\d{0,4}")
-                        ? cambio
-                        : null));
+                new TextFormatter<String>(cambio ->
+                        cambio.getControlNewText().matches("\\d{0,4}")
+                                ? cambio
+                                : null));
 
         txtEmpleado.setText(
-                Sesion.haySesion() ? Sesion.getUsuario() : "Sin sesión iniciada");
+                Sesion.haySesion()
+                        ? Sesion.getUsuario()
+                        : "Sin sesión iniciada");
 
         String hoy = Formato.fecha(LocalDate.now());
+
         txtFecha.setText(hoy);
         lblFecha.setText("·  " + hoy);
 
         int siguienteId = devolucionDAO.obtenerSiguienteId();
+
         lblFolio.setText(siguienteId > 0
                 ? String.format("DC-%03d", siguienteId)
                 : "—");
 
         carrito.addListener(
-                (ListChangeListener<DetalleDevolucionCliente>) cambio -> actualizarResumen());
+                (ListChangeListener<DetalleDevolucionCliente>)
+                        cambio -> actualizarResumen());
 
         tableProductosVenta.getSelectionModel()
                 .selectedItemProperty()
                 .addListener((obs, anterior, actual) -> {
-                    if (actual != null)
+                    if (actual != null) {
                         txtCantidad.setText("1");
+                    }
                 });
 
         btnRegistrar.setDisable(true);
     }
 
-    // =========================================================
-    // CONFIGURACIÓN DE TABLAS
-    // =========================================================
-
     private void configurarTablaProductos() {
-        colProducto.setCellValueFactory(new PropertyValueFactory<>("nombreProducto"));
-        colVendidos.setCellValueFactory(new PropertyValueFactory<>("cantidadVendida"));
-        colDevueltos.setCellValueFactory(new PropertyValueFactory<>("cantidadDevuelta"));
-        colDisponibles.setCellValueFactory(new PropertyValueFactory<>("cantidadDisponible"));
 
-        colPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(
-                Formato.dinero(c.getValue().getPrecioUnitario())));
+        colProducto.setCellValueFactory(
+                new PropertyValueFactory<>("nombreProducto"));
+
+        colVendidos.setCellValueFactory(
+                new PropertyValueFactory<>("cantidadVendida"));
+
+        colDevueltos.setCellValueFactory(
+                new PropertyValueFactory<>("cantidadDevuelta"));
+
+        colDisponibles.setCellValueFactory(
+                new PropertyValueFactory<>("cantidadDisponible"));
+
+        colPrecio.setCellValueFactory(c ->
+                new ReadOnlyStringWrapper(
+                        Formato.dinero(c.getValue().getPrecioUnitario())));
     }
 
     private void configurarTablaCarrito() {
+
         colCarritoProducto.setCellValueFactory(
                 new PropertyValueFactory<>("nombreProducto"));
+
         colCarritoCantidad.setCellValueFactory(
                 new PropertyValueFactory<>("cantidad"));
 
-        colCarritoPrecio.setCellValueFactory(c -> new ReadOnlyStringWrapper(
-                Formato.dinero(c.getValue().getPrecio())));
+        colCarritoPrecio.setCellValueFactory(c ->
+                new ReadOnlyStringWrapper(
+                        Formato.dinero(c.getValue().getPrecio())));
 
-        colCarritoSubtotal.setCellValueFactory(c -> new ReadOnlyStringWrapper(
-                Formato.dinero(c.getValue().getSubtotal())));
+        colCarritoSubtotal.setCellValueFactory(c ->
+                new ReadOnlyStringWrapper(
+                        Formato.dinero(c.getValue().getSubtotal())));
 
         colCarritoMotivo.setCellValueFactory(
                 new PropertyValueFactory<>("motivo"));
 
-        colQuitar.setCellFactory(columna -> new CeldaQuitar<>(carrito::remove));
+        colQuitar.setCellFactory(
+                columna -> new CeldaQuitar<>(carrito::remove));
 
         tableCarrito.setOnKeyPressed(event -> {
+
             if (event.getCode() == KeyCode.DELETE) {
-                DetalleDevolucionCliente seleccionado = tableCarrito.getSelectionModel().getSelectedItem();
-                if (seleccionado != null)
+
+                DetalleDevolucionCliente seleccionado =
+                        tableCarrito.getSelectionModel().getSelectedItem();
+
+                if (seleccionado != null) {
                     carrito.remove(seleccionado);
+                }
             }
         });
     }
 
-    // =========================================================
-    // BUSCADOR DE VENTAS CON SUGERENCIAS
-    // =========================================================
-
     private void configurarBuscadorVentas() {
 
         listaSugerencias.setPrefHeight(180);
+
         listaSugerencias.setCellFactory(lista -> new ListCell<>() {
+
             @Override
             protected void updateItem(Venta venta, boolean vacio) {
+
                 super.updateItem(venta, vacio);
 
                 if (vacio || venta == null) {
@@ -251,10 +269,13 @@ public class NuevaDevolucionClienteController {
                     return;
                 }
 
-                String folio = String.format("V-%03d", venta.getIdVenta());
+                String folio = String.format(
+                        "V-%03d", venta.getIdVenta());
+
                 String cliente = venta.getNombreCliente() == null
                         ? "Cliente sin nombre"
                         : venta.getNombreCliente();
+
                 String fecha = venta.getFecha() == null
                         ? "Sin fecha"
                         : venta.getFecha().toLocalDate().format(FORMATO_FECHA);
@@ -268,58 +289,81 @@ public class NuevaDevolucionClienteController {
         popupVentas.setAutoFix(true);
         popupVentas.setHideOnEscape(true);
 
-        txtFolioVenta.textProperty().addListener((obs, anterior, actual) -> {
-            if (seleccionandoSugerencia)
-                return;
+        txtFolioVenta.textProperty().addListener(
+                (obs, anterior, actual) -> {
 
-            if (ventaSeleccionada != null) {
-                String folioCargado = String.format(
-                        "V-%03d", ventaSeleccionada.getIdVenta());
+                    if (seleccionandoSugerencia) {
+                        return;
+                    }
 
-                if (!folioCargado.equalsIgnoreCase(actual.trim())) {
-                    limpiarVenta();
-                }
-            }
+                    if (ventaSeleccionada != null) {
 
-            actualizarSugerencias(actual);
-        });
+                        String folioCargado = String.format(
+                                "V-%03d",
+                                ventaSeleccionada.getIdVenta());
+
+                        if (!folioCargado.equalsIgnoreCase(actual.trim())) {
+                            limpiarVenta();
+                        }
+                    }
+
+                    actualizarSugerencias(actual);
+                });
 
         listaSugerencias.setOnMouseClicked(event -> {
+
             if (event.getClickCount() == 1) {
+
                 Venta seleccionada = listaSugerencias
-                        .getSelectionModel().getSelectedItem();
-                if (seleccionada != null)
+                        .getSelectionModel()
+                        .getSelectedItem();
+
+                if (seleccionada != null) {
                     seleccionarVentaSugerida(seleccionada);
+                }
             }
         });
 
         listaSugerencias.setOnKeyPressed(event -> {
+
             if (event.getCode() == KeyCode.ENTER) {
+
                 Venta seleccionada = listaSugerencias
-                        .getSelectionModel().getSelectedItem();
-                if (seleccionada != null)
+                        .getSelectionModel()
+                        .getSelectedItem();
+
+                if (seleccionada != null) {
                     seleccionarVentaSugerida(seleccionada);
+                }
             }
         });
 
-        txtFolioVenta.focusedProperty().addListener((obs, anterior, enfocado) -> {
-            if (!enfocado) {
-                Platform.runLater(() -> {
-                    if (!listaSugerencias.isFocused())
-                        popupVentas.hide();
+        txtFolioVenta.focusedProperty().addListener(
+                (obs, anterior, enfocado) -> {
+
+                    if (!enfocado) {
+
+                        Platform.runLater(() -> {
+
+                            if (!listaSugerencias.isFocused()) {
+                                popupVentas.hide();
+                            }
+                        });
+                    }
                 });
-            }
-        });
     }
 
     private void actualizarSugerencias(String texto) {
+
         if (texto == null || texto.trim().isEmpty()) {
             popupVentas.hide();
             listaSugerencias.getItems().clear();
             return;
         }
 
-        List<Venta> resultados = ventaDAO.buscarVentasActivas(texto);
+        List<Venta> resultados =
+                ventaDAO.buscarVentasActivas(texto);
+
         listaSugerencias.getItems().setAll(resultados);
 
         if (resultados.isEmpty()) {
@@ -330,105 +374,188 @@ public class NuevaDevolucionClienteController {
         Bounds limites = txtFolioVenta.localToScreen(
                 txtFolioVenta.getBoundsInLocal());
 
-        if (limites == null || txtFolioVenta.getScene() == null)
+        if (limites == null || txtFolioVenta.getScene() == null) {
             return;
+        }
 
         listaSugerencias.setPrefWidth(
                 Math.max(txtFolioVenta.getWidth(), 300));
 
         if (!popupVentas.isShowing()) {
+
             popupVentas.show(
                     txtFolioVenta.getScene().getWindow(),
                     limites.getMinX(),
                     limites.getMaxY());
+
         } else {
+
             popupVentas.setX(limites.getMinX());
             popupVentas.setY(limites.getMaxY());
         }
     }
 
     private void seleccionarVentaSugerida(Venta venta) {
-        if (venta == null)
+
+        if (venta == null) {
             return;
+        }
 
         popupVentas.hide();
+
         seleccionandoSugerencia = true;
-        txtFolioVenta.setText(String.format("V-%03d", venta.getIdVenta()));
+
+        txtFolioVenta.setText(
+                String.format("V-%03d", venta.getIdVenta()));
+
         seleccionandoSugerencia = false;
 
         cargarVentaSeleccionada(venta);
     }
 
-    // =========================================================
-    // BUSCAR Y CARGAR VENTA
-    // =========================================================
-
     @FXML
     private void buscarVenta() {
+
         popupVentas.hide();
 
-        String folio = txtFolioVenta.getText().trim().toUpperCase();
+        String folio = txtFolioVenta.getText()
+                .trim()
+                .toUpperCase();
 
         if (folio.isEmpty()) {
-            mostrarAlerta("Folio obligatorio",
+
+            mostrarAlerta(
+                    "Folio obligatorio",
                     "Escribe el folio de la venta que deseas consultar.");
+
             return;
         }
 
-        Matcher matcher = Pattern.compile("^(?:V-)?(\\d+)$").matcher(folio);
+        Matcher matcher = Pattern.compile(
+                "^(?:V-)?(\\d+)$").matcher(folio);
+
         if (!matcher.matches()) {
-            mostrarAlerta("Venta no seleccionada",
+
+            mostrarAlerta(
+                    "Venta no seleccionada",
                     "Escribe un folio válido o selecciona una venta de las sugerencias.");
+
             return;
         }
 
         int idVenta;
+
         try {
             idVenta = Integer.parseInt(matcher.group(1));
+
         } catch (NumberFormatException e) {
-            mostrarAlerta("Folio inválido", "El número de venta no es válido.");
+
+            mostrarAlerta(
+                    "Folio inválido",
+                    "El número de venta no es válido.");
+
             return;
         }
 
         Venta venta = ventaDAO.obtenerVenta(idVenta);
+
         if (venta == null) {
+
             limpiarVenta();
-            mostrarAlerta("Venta no encontrada",
+
+            mostrarAlerta(
+                    "Venta no encontrada",
                     "No existe una venta con ese folio.");
+
             return;
         }
 
         cargarVentaSeleccionada(venta);
     }
 
-    private void cargarVentaSeleccionada(Venta venta) {
-        if (venta == null)
-            return;
+    // Comprueba que la venta siga dentro de sus primeras 24 horas.
+    private boolean ventaDentroDelPlazo(Venta venta) {
 
-        if (!Estados.esActivo(venta.getEstado())) {
-            limpiarVenta();
-            mostrarAlerta("Venta cancelada",
-                    "No se pueden registrar devoluciones de una venta cancelada.");
+        if (venta == null || venta.getFecha() == null) {
+            return false;
+        }
+
+        LocalDateTime limite = venta.getFecha().plusHours(24);
+
+        return !LocalDateTime.now().isAfter(limite);
+    }
+
+    private void cargarVentaSeleccionada(Venta venta) {
+
+        if (venta == null) {
             return;
         }
 
-        List<ProductoVentaDevolucion> productos = devolucionDAO.listarProductosVenta(venta.getIdVenta());
+        if (!Estados.esActivo(venta.getEstado())) {
+
+            limpiarVenta();
+
+            mostrarAlerta(
+                    "Venta cancelada",
+                    "No se pueden registrar devoluciones de una venta cancelada.");
+
+            return;
+        }
+
+        if (venta.getFecha() == null) {
+
+            limpiarVenta();
+
+            mostrarAlerta(
+                    "Fecha de venta inválida",
+                    "No se pudo determinar la fecha y hora de esta venta.");
+
+            return;
+        }
+
+        if (!ventaDentroDelPlazo(venta)) {
+
+            limpiarVenta();
+
+            String limite = venta.getFecha()
+                    .plusHours(24)
+                    .format(FORMATO_FECHA_HORA);
+
+            mostrarAlerta(
+                    "Plazo de devolución vencido",
+                    "Esta venta ya superó el plazo permitido de 24 horas.\n\n"
+                    + "El límite para devolverla era el "
+                    + limite + ".");
+
+            return;
+        }
+
+        List<ProductoVentaDevolucion> productos =
+                devolucionDAO.listarProductosVenta(venta.getIdVenta());
 
         if (productos == null || productos.isEmpty()) {
+
             limpiarVenta();
-            mostrarAlerta("Sin productos disponibles",
+
+            mostrarAlerta(
+                    "Sin productos disponibles",
                     "Esta venta no tiene productos que puedan devolverse.");
+
             return;
         }
 
         ventaSeleccionada = venta;
+
         productosVenta.setAll(productos);
         carrito.clear();
 
-        txtVenta.setText(String.format("V-%03d", venta.getIdVenta()));
+        txtVenta.setText(
+                String.format("V-%03d", venta.getIdVenta()));
+
         txtCliente.setText(venta.getNombreCliente());
 
         tableProductosVenta.refresh();
+
         actualizarResumen();
 
         lblEstadoFooter.setText(
@@ -436,67 +563,106 @@ public class NuevaDevolucionClienteController {
     }
 
     private void limpiarVenta() {
+
         ventaSeleccionada = null;
+
         productosVenta.clear();
         carrito.clear();
+
         txtVenta.clear();
         txtCliente.clear();
+
         actualizarResumen();
     }
 
-    // =========================================================
-    // AGREGAR PRODUCTOS
-    // =========================================================
-
     @FXML
     private void agregarProducto() {
+
         if (ventaSeleccionada == null) {
-            mostrarAlerta("Venta no seleccionada",
+
+            mostrarAlerta(
+                    "Venta no seleccionada",
                     "Primero debes buscar una venta.");
+
             return;
         }
 
-        ProductoVentaDevolucion producto = tableProductosVenta.getSelectionModel().getSelectedItem();
+        if (!ventaDentroDelPlazo(ventaSeleccionada)) {
+
+            limpiarVenta();
+
+            mostrarAlerta(
+                    "Plazo vencido",
+                    "La venta ya superó el plazo de 24 horas para devoluciones.");
+
+            return;
+        }
+
+        ProductoVentaDevolucion producto =
+                tableProductosVenta.getSelectionModel().getSelectedItem();
 
         if (producto == null) {
-            mostrarAlerta("Producto no seleccionado",
+
+            mostrarAlerta(
+                    "Producto no seleccionado",
                     "Selecciona un producto de la venta original.");
+
             return;
         }
 
         if (txtCantidad.getText().trim().isEmpty()) {
-            mostrarAlerta("Cantidad obligatoria",
+
+            mostrarAlerta(
+                    "Cantidad obligatoria",
                     "Escribe la cantidad que deseas devolver.");
+
             txtCantidad.requestFocus();
+
             return;
         }
 
         int cantidad;
+
         try {
             cantidad = Integer.parseInt(txtCantidad.getText().trim());
+
         } catch (NumberFormatException e) {
-            mostrarAlerta("Cantidad inválida",
+
+            mostrarAlerta(
+                    "Cantidad inválida",
                     "Ingresa una cantidad entera válida.");
+
             return;
         }
 
         if (cantidad <= 0) {
-            mostrarAlerta("Cantidad inválida",
+
+            mostrarAlerta(
+                    "Cantidad inválida",
                     "La cantidad debe ser mayor que cero.");
+
             return;
         }
 
         String motivo = txtMotivo.getText().trim();
+
         if (motivo.isEmpty()) {
-            mostrarAlerta("Motivo obligatorio",
+
+            mostrarAlerta(
+                    "Motivo obligatorio",
                     "Escribe el motivo de devolución del producto.");
+
             txtMotivo.requestFocus();
+
             return;
         }
 
         if (motivo.length() > 100) {
-            mostrarAlerta("Motivo demasiado largo",
+
+            mostrarAlerta(
+                    "Motivo demasiado largo",
                     "El motivo no puede superar los 100 caracteres.");
+
             return;
         }
 
@@ -505,55 +671,69 @@ public class NuevaDevolucionClienteController {
                 .mapToInt(DetalleDevolucionCliente::getCantidad)
                 .sum();
 
-        int restante = producto.getCantidadDisponible() - cantidadEnCarrito;
+        int restante =
+                producto.getCantidadDisponible() - cantidadEnCarrito;
 
         if (cantidad > restante) {
-            mostrarAlerta("Cantidad excedida",
+
+            mostrarAlerta(
+                    "Cantidad excedida",
                     "Solo puedes agregar " + restante
                             + " unidades adicionales de este producto.");
+
             return;
         }
 
         if (producto.getPrecioUnitario() == null
                 || producto.getPrecioUnitario().signum() <= 0) {
-            mostrarAlerta("Precio inválido",
+
+            mostrarAlerta(
+                    "Precio inválido",
                     "El producto no tiene un precio de venta válido.");
+
             return;
         }
 
-        DetalleDevolucionCliente detalle = new DetalleDevolucionCliente(
-                producto.getIdProducto(),
-                producto.getNombreProducto(),
-                cantidad,
-                producto.getPrecioUnitario(),
-                motivo);
+        DetalleDevolucionCliente detalle =
+                new DetalleDevolucionCliente(
+                        producto.getIdProducto(),
+                        producto.getNombreProducto(),
+                        cantidad,
+                        producto.getPrecioUnitario(),
+                        motivo);
 
         carrito.add(detalle);
+
         txtCantidad.setText("1");
         txtMotivo.clear();
 
         tableProductosVenta.refresh();
+
         tableCarrito.getSelectionModel().select(detalle);
         tableCarrito.scrollTo(detalle);
+
         actualizarResumen();
     }
 
-    // =========================================================
-    // RESUMEN
-    // =========================================================
-
     private void actualizarResumen() {
+
         int articulos = 0;
+
         for (DetalleDevolucionCliente detalle : carrito) {
             articulos += detalle.getCantidad();
         }
 
         int productos = carrito.size();
+
         lblNumProductos.setText(String.valueOf(productos));
         lblArticulos.setText(String.valueOf(articulos));
+
         lblTotal.setText(Formato.dinero(calcularTotal()));
 
-        boolean valido = ventaSeleccionada != null
+        boolean vigente = ventaSeleccionada != null
+                && ventaDentroDelPlazo(ventaSeleccionada);
+
+        boolean valido = vigente
                 && !carrito.isEmpty()
                 && Sesion.haySesion()
                 && calcularTotal().signum() > 0;
@@ -567,28 +747,46 @@ public class NuevaDevolucionClienteController {
     }
 
     private BigDecimal calcularTotal() {
+
         BigDecimal total = BigDecimal.ZERO;
+
         for (DetalleDevolucionCliente detalle : carrito) {
             total = total.add(detalle.getSubtotal());
         }
+
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
-    // =========================================================
-    // REGISTRAR DEVOLUCIÓN
-    // =========================================================
-
     @FXML
     private void registrarDevolucion() {
+
         if (!Sesion.haySesion()) {
-            mostrarAlerta("Sin sesión",
+
+            mostrarAlerta(
+                    "Sin sesión",
                     "Inicia sesión para registrar una devolución.");
+
             return;
         }
 
         if (ventaSeleccionada == null || carrito.isEmpty()) {
-            mostrarAlerta("Devolución incompleta",
+
+            mostrarAlerta(
+                    "Devolución incompleta",
                     "Selecciona una venta y agrega al menos un producto.");
+
+            return;
+        }
+
+        // Segunda comprobación justo antes de confirmar.
+        if (!ventaDentroDelPlazo(ventaSeleccionada)) {
+
+            limpiarVenta();
+
+            mostrarAlerta(
+                    "Plazo vencido",
+                    "La venta ya superó el plazo de 24 horas para devoluciones.");
+
             return;
         }
 
@@ -597,21 +795,27 @@ public class NuevaDevolucionClienteController {
                 "¿Deseas registrar esta devolución?\n\n"
                         + "Total devuelto: " + Formato.dinero(calcularTotal())
                         + "\n\nLas unidades se reintegrarán al inventario.")) {
+
             return;
         }
 
         DevolucionCliente devolucion = new DevolucionCliente();
+
         devolucion.setIdVenta(ventaSeleccionada.getIdVenta());
         devolucion.setIdEmpleado(Sesion.getIdEmpleado());
         devolucion.setFecha(LocalDate.now());
         devolucion.setEstado(Estados.ACTIVO);
 
         int idDevolucion = devolucionDAO.registrar(
-                devolucion, new ArrayList<>(carrito));
+                devolucion,
+                new ArrayList<>(carrito));
 
         if (idDevolucion <= 0) {
-            mostrarAlerta("No se pudo registrar la devolución",
+
+            mostrarAlerta(
+                    "No se pudo registrar la devolución",
                     devolucionDAO.getMensajeError());
+
             return;
         }
 
@@ -624,18 +828,16 @@ public class NuevaDevolucionClienteController {
         volverAGestion(idDevolucion);
     }
 
-    // =========================================================
-    // CANCELAR Y REGRESAR A GESTIÓN
-    // =========================================================
-
     @FXML
     private void cancelar() {
+
         popupVentas.hide();
 
         if (!carrito.isEmpty()
                 && !confirmar(
                         "Cancelar operación",
                         "¿Deseas salir? Se descartarán los productos agregados.")) {
+
             return;
         }
 
@@ -643,7 +845,9 @@ public class NuevaDevolucionClienteController {
     }
 
     private void volverAGestion(int idDevolucion) {
+
         try {
+
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource(
                             "/com/laroca/vista/devoluciones-clientes.fxml"));
@@ -656,26 +860,29 @@ public class NuevaDevolucionClienteController {
                     "La Roca - Devoluciones de Clientes");
 
             if (idDevolucion > 0) {
-                DevolucionClienteController gestion = loader.getController();
+
+                DevolucionClienteController gestion =
+                        loader.getController();
+
                 gestion.seleccionarPorId(idDevolucion);
             }
 
         } catch (IOException e) {
+
             e.printStackTrace();
-            mostrarAlerta("Error",
+
+            mostrarAlerta(
+                    "Error",
                     "No se pudo abrir la gestión de devoluciones.");
         }
     }
-
-    // =========================================================
-    // VENTANA, CONFIRMACIONES Y ALERTAS
-    // =========================================================
 
     private Window ventana() {
         return tableCarrito.getScene().getWindow();
     }
 
     private boolean confirmar(String titulo, String mensaje) {
+
         Alert alerta = new Alert(
                 Alert.AlertType.CONFIRMATION,
                 mensaje,
@@ -685,26 +892,33 @@ public class NuevaDevolucionClienteController {
         alerta.initOwner(ventana());
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
+
         alerta.showAndWait();
 
         return alerta.getResult() == ButtonType.YES;
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {
+
         Alert alerta = new Alert(Alert.AlertType.WARNING);
+
         alerta.initOwner(ventana());
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
+
         alerta.showAndWait();
     }
 
     private void mostrarInformacion(String titulo, String mensaje) {
+
         Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+
         alerta.initOwner(ventana());
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
+
         alerta.showAndWait();
     }
 }

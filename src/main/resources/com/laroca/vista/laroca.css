@@ -634,12 +634,26 @@
     -fx-background-color: white;
 }
 
-.grafico-ventas .chart-bar {
-    -fx-bar-fill: #9cbbd6;
+/* Línea principal de ventas por día. */
+.grafico-ventas .chart-series-line {
+    -fx-stroke: #2f6fa8;
+    -fx-stroke-width: 2px;
 }
 
-.grafico-ventas .barra-destacada {
-    -fx-bar-fill: #2f6fa8;
+/* Puntos de cada día. */
+.grafico-ventas .chart-line-symbol {
+    -fx-background-color: #2f6fa8, white;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 7px;
+    -fx-padding: 5px;
+}
+
+/* Punto correspondiente al día con mayores ventas. */
+.grafico-ventas .punto-destacado {
+    -fx-background-color: #c0392b, white;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 9px;
+    -fx-padding: 7px;
 }
 
 .grafico-ventas .axis {

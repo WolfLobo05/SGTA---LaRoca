@@ -11,6 +11,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +39,6 @@ public class DevolucionClienteDAO {
         return mensajeError;
     }
 
-    // Consulta todas las devoluciones.
     public List<DevolucionCliente> listar() {
 
         List<DevolucionCliente> devoluciones = new ArrayList<>();
@@ -51,7 +53,7 @@ public class DevolucionClienteDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql);
-                    ResultSet rs = ps.executeQuery()) {
+                 ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
                     devoluciones.add(leerDevolucion(rs));
@@ -66,7 +68,6 @@ public class DevolucionClienteDAO {
         return devoluciones;
     }
 
-    // Consulta una devolución específica.
     public DevolucionCliente obtenerDevolucion(int idDevolucion) {
 
         String sql = CONSULTA_DEVOLUCION
@@ -98,7 +99,6 @@ public class DevolucionClienteDAO {
         return null;
     }
 
-    // Consulta los productos incluidos en una devolución.
     public List<DetalleDevolucionCliente> listarDetalle(int idDevolucion) {
 
         List<DetalleDevolucionCliente> detalles = new ArrayList<>();
@@ -142,8 +142,6 @@ public class DevolucionClienteDAO {
         return detalles;
     }
 
-    // Consulta los productos vendidos y las cantidades que todavía
-    // pueden devolverse. Solo cuenta devoluciones activas.
     public List<ProductoVentaDevolucion> listarProductosVenta(int idVenta) {
 
         List<ProductoVentaDevolucion> productos = new ArrayList<>();
@@ -203,7 +201,6 @@ public class DevolucionClienteDAO {
         return productos;
     }
 
-    // Obtiene el siguiente ID.
     public int obtenerSiguienteId() {
 
         String sql = "SELECT COALESCE(MAX(id_devolucion_cliente), 0) + 1 "
@@ -216,7 +213,7 @@ public class DevolucionClienteDAO {
             }
 
             try (PreparedStatement ps = conexion.prepareStatement(sql);
-                    ResultSet rs = ps.executeQuery()) {
+                 ResultSet rs = ps.executeQuery()) {
 
                 if (rs.next()) {
                     return rs.getInt(1);
@@ -231,7 +228,6 @@ public class DevolucionClienteDAO {
         return -1;
     }
 
-    // Registra la devolución y reintegra las cantidades al inventario.
     public int registrar(
             DevolucionCliente devolucion,
             List<DetalleDevolucionCliente> detalles) {
@@ -299,9 +295,9 @@ public class DevolucionClienteDAO {
 
                 conexion.setAutoCommit(false);
 
-                // Bloquea la venta para evitar devoluciones simultáneas
-                // que superen las cantidades realmente vendidas.
-                String sqlBloqueo = "SELECT estado FROM Ventas "
+                // Bloquea la venta y comprueba su estado y fecha.
+                // La validación se realiza dentro de la transacción.
+                String sqlBloqueo = "SELECT estado, fecha FROM Ventas "
                         + "WHERE id_venta = ? FOR UPDATE";
 
                 try (PreparedStatement ps = conexion.prepareStatement(sqlBloqueo)) {
@@ -315,6 +311,35 @@ public class DevolucionClienteDAO {
 
                             conexion.rollback();
                             mensajeError = "La venta no existe o está cancelada.";
+                            return -1;
+                        }
+
+                        Timestamp fechaVenta = rs.getTimestamp("fecha");
+
+                        if (fechaVenta == null) {
+                            conexion.rollback();
+                            mensajeError = "No se pudo determinar la fecha de la venta.";
+                            return -1;
+                        }
+
+                        LocalDateTime fechaHoraVenta =
+                                fechaVenta.toLocalDateTime();
+
+                        LocalDateTime limiteDevolucion =
+                                fechaHoraVenta.plusHours(24);
+
+                        if (LocalDateTime.now().isAfter(limiteDevolucion)) {
+
+                            conexion.rollback();
+
+                            String limiteFormateado = limiteDevolucion.format(
+                                    DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+
+                            mensajeError = "El plazo para devolver esta venta ha vencido. "
+                                    + "Las devoluciones de clientes solo se permiten "
+                                    + "durante las primeras 24 horas posteriores a la venta. "
+                                    + "El límite era el " + limiteFormateado + ".";
+
                             return -1;
                         }
                     }
@@ -448,8 +473,6 @@ public class DevolucionClienteDAO {
         }
     }
 
-    // Cancela una devolución y descuenta del inventario las unidades
-    // que anteriormente se habían reintegrado.
     public boolean cancelar(int idDevolucion) {
 
         mensajeError = null;
@@ -507,7 +530,8 @@ public class DevolucionClienteDAO {
                             int idProducto = rs.getInt("id_producto");
                             int cantidad = rs.getInt("cantidad");
 
-                            try (PreparedStatement actualizar = conexion.prepareStatement(sqlExistencia)) {
+                            try (PreparedStatement actualizar =
+                                         conexion.prepareStatement(sqlExistencia)) {
 
                                 actualizar.setInt(1, cantidad);
                                 actualizar.setInt(2, idProducto);
@@ -568,7 +592,7 @@ public class DevolucionClienteDAO {
             throws SQLException {
 
         try (PreparedStatement ps = conexion.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+             ResultSet rs = ps.executeQuery()) {
 
             return rs.next() ? rs.getInt(1) : 1;
         }
