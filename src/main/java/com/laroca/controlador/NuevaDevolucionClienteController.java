@@ -679,11 +679,24 @@ public class NuevaDevolucionClienteController {
 
         if (cantidad > restante) {
 
-            mostrarAlerta(
-                    "Cantidad excedida",
-                    "Solo puedes agregar " + restante
-                            + " unidades adicionales de este producto.");
+            int cantidadDevueltaAnteriormente = Math.max(
+                    0,
+                    producto.getCantidadVendida()
+                            - producto.getCantidadDisponible());
 
+            String mensaje = "No puedes devolver " + cantidad + " unidad(es) de "
+                    + producto.getNombreProducto() + ".\n\n"
+                    + "Compraste: " + producto.getCantidadVendida() + ".\n"
+                    + "Devueltas anteriormente: " + cantidadDevueltaAnteriormente + ".\n"
+                    + "Agregadas en esta devolución: " + cantidadEnCarrito + ".\n"
+                    + "Disponibles para agregar: " + Math.max(0, restante) + ".\n\n"
+                    + (restante <= 0
+                            ? "Ya alcanzaste el límite de devolución de este producto."
+                            : "Puedes agregar como máximo " + restante + " unidad(es) más.");
+
+            mostrarAlerta("Cantidad excedida", mensaje);
+            txtCantidad.requestFocus();
+            txtCantidad.selectAll();
             return;
         }
 
@@ -774,10 +787,22 @@ public class NuevaDevolucionClienteController {
 
         if (encontrado.getCantidadDisponible() <= 0) {
             tableProductosVenta.getSelectionModel().select(encontrado);
+
+            int devueltasAnteriormente = Math.max(
+                    0,
+                    encontrado.getCantidadVendida()
+                            - encontrado.getCantidadDisponible());
+
             mostrarAlerta(
                     "Producto sin unidades disponibles",
-                    "Este producto ya fue devuelto en su totalidad para esta venta.");
+                    "Ya no quedan unidades de "
+                            + encontrado.getNombreProducto() + " disponibles para devolver.\n\n"
+                            + "Compraste: " + encontrado.getCantidadVendida() + ".\n"
+                            + "Devueltas anteriormente: " + devueltasAnteriormente + ".\n"
+                            + "Disponibles: 0.");
+
             txtCodigoProducto.requestFocus();
+            txtCodigoProducto.selectAll();
             return;
         }
 

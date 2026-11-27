@@ -12,6 +12,7 @@
 
 <BorderPane prefWidth="900.0" prefHeight="600.0"
             minWidth="900.0" minHeight="600.0"
+            maxWidth="900.0" maxHeight="600.0"
             styleClass="ventana"
             stylesheets="@laroca.css"
             xmlns="http://javafx.com/javafx/21"
@@ -151,6 +152,18 @@
                     <HBox spacing="8.0"
                           alignment="BOTTOM_LEFT"
                           styleClass="formulario-compacto">
+
+                        <VBox styleClass="campo"
+                              minWidth="150.0"
+                              prefWidth="190.0">
+
+                            <Label text="Código de barras"
+                                   styleClass="etiqueta"/>
+
+                            <TextField fx:id="txtCodigoProducto"
+                                       promptText="Escanea el producto"/>
+
+                        </VBox>
 
                         <VBox styleClass="campo"
                               minWidth="75.0"

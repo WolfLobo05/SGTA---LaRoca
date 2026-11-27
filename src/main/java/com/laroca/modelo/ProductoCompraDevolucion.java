@@ -6,6 +6,7 @@ public class ProductoCompraDevolucion {
 
     private int idProducto;
     private String nombreProducto;
+    private String codigoBarras;
     private int cantidadComprada;
     private int cantidadDevuelta;
     private int cantidadDisponible;
@@ -21,9 +22,22 @@ public class ProductoCompraDevolucion {
             int cantidadDevuelta,
             int cantidadDisponible,
             BigDecimal precioCompra) {
+        this(idProducto, nombreProducto, null, cantidadComprada,
+                cantidadDevuelta, cantidadDisponible, precioCompra);
+    }
+
+    public ProductoCompraDevolucion(
+            int idProducto,
+            String nombreProducto,
+            String codigoBarras,
+            int cantidadComprada,
+            int cantidadDevuelta,
+            int cantidadDisponible,
+            BigDecimal precioCompra) {
 
         this.idProducto = idProducto;
         this.nombreProducto = nombreProducto;
+        this.codigoBarras = codigoBarras;
         this.cantidadComprada = cantidadComprada;
         this.cantidadDevuelta = cantidadDevuelta;
         this.cantidadDisponible = cantidadDisponible;
@@ -44,6 +58,14 @@ public class ProductoCompraDevolucion {
 
     public void setNombreProducto(String nombreProducto) {
         this.nombreProducto = nombreProducto;
+    }
+
+    public String getCodigoBarras() {
+        return codigoBarras;
+    }
+
+    public void setCodigoBarras(String codigoBarras) {
+        this.codigoBarras = codigoBarras;
     }
 
     public int getCantidadComprada() {

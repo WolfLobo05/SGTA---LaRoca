@@ -77,6 +77,8 @@ public class NuevaDevolucionProveedorController {
     private TableColumn<ProductoCompraDevolucion, String> colPrecioCompra;
 
     @FXML
+    private TextField txtCodigoProducto;
+    @FXML
     private TextField txtCantidad;
     @FXML
     private TextField txtMotivo;
@@ -155,6 +157,7 @@ public class NuevaDevolucionProveedorController {
         tableCarrito.setItems(carrito);
 
         configurarBuscadorCompras();
+        configurarLectorCodigoBarras();
 
         tableProductosCompra.setPlaceholder(
                 new Label("Busca una compra para consultar sus productos."));
@@ -466,6 +469,9 @@ public class NuevaDevolucionProveedorController {
         compraSeleccionada = compra;
         productosCompra.setAll(productos);
         carrito.clear();
+        if (txtCodigoProducto != null) {
+            txtCodigoProducto.clear();
+        }
 
         txtCompra.setText(compra.getFolio());
         txtProveedor.setText(compra.getNombreProveedor());
@@ -479,11 +485,72 @@ public class NuevaDevolucionProveedorController {
 
     private void limpiarCompra() {
         compraSeleccionada = null;
+        if (txtCodigoProducto != null) {
+            txtCodigoProducto.clear();
+        }
         productosCompra.clear();
         carrito.clear();
         txtCompra.clear();
         txtProveedor.clear();
         actualizarResumen();
+    }
+
+    // =========================================================
+    // LECTOR DE CÓDIGOS DE BARRAS
+    // =========================================================
+
+    private void configurarLectorCodigoBarras() {
+        if (txtCodigoProducto == null) {
+            return;
+        }
+
+        // El lector USB-HID escribe el código como si fuera un teclado
+        // y envía ENTER al terminar la lectura.
+        txtCodigoProducto.setOnAction(event -> procesarCodigoEscaneado());
+    }
+
+    private void procesarCodigoEscaneado() {
+        String codigo = txtCodigoProducto.getText() == null
+                ? ""
+                : txtCodigoProducto.getText().trim();
+
+        if (codigo.isEmpty()) {
+            return;
+        }
+
+        if (compraSeleccionada == null) {
+            mostrarAlerta(
+                    "Compra no seleccionada",
+                    "Primero busca la compra del proveedor y después escanea el producto.");
+            txtCodigoProducto.requestFocus();
+            return;
+        }
+
+        ProductoCompraDevolucion producto = productosCompra.stream()
+                .filter(p -> p.getCodigoBarras() != null
+                        && p.getCodigoBarras().trim().equalsIgnoreCase(codigo))
+                .findFirst()
+                .orElse(null);
+
+        if (producto == null) {
+            mostrarAlerta(
+                    "Producto no disponible para devolución",
+                    "No se encontró el código de barras " + codigo
+                            + " entre los productos que todavía se pueden devolver de esta compra.\n\n"
+                            + "Comprueba que el producto pertenezca a esta compra. Si sí pertenece, "
+                            + "es posible que ya hayas devuelto todas las unidades permitidas.");
+            txtCodigoProducto.requestFocus();
+            txtCodigoProducto.selectAll();
+            return;
+        }
+
+        tableProductosCompra.getSelectionModel().select(producto);
+        tableProductosCompra.scrollTo(producto);
+        txtCantidad.setText("1");
+
+        // Se conserva el código visible mientras se captura la cantidad y el motivo.
+        txtCantidad.requestFocus();
+        txtCantidad.selectAll();
     }
 
     // =========================================================
@@ -551,12 +618,33 @@ public class NuevaDevolucionProveedorController {
                 .mapToInt(DetalleDevolucionProveedor::getCantidad)
                 .sum();
 
-        int restante = producto.getCantidadDisponible() - cantidadEnCarrito;
+        // La cantidad disponible que devuelve el DAO ya descuenta las
+        // devoluciones registradas anteriormente. Aquí también descontamos
+        // las unidades que ya se agregaron al carrito actual.
+        int restante = Math.max(0,
+                producto.getCantidadDisponible() - cantidadEnCarrito);
 
         if (cantidad > restante) {
-            mostrarAlerta("Cantidad excedida",
-                    "Solo puedes agregar " + restante
-                            + " unidades adicionales de este producto.");
+            int cantidadComprada = producto.getCantidadComprada();
+            int cantidadDevueltaAntes = producto.getCantidadDevuelta();
+            int cantidadEnEstaDevolucion = cantidadEnCarrito;
+
+            String mensaje = "No puedes devolver " + cantidad
+                    + " unidad(es) adicionales de " + producto.getNombreProducto() + ".\n\n"
+                    + "Compraste: " + cantidadComprada + " unidad(es).\n"
+                    + "Ya devueltas anteriormente: " + cantidadDevueltaAntes + ".\n"
+                    + "Agregadas en esta devolución: " + cantidadEnEstaDevolucion + ".\n"
+                    + "Disponibles para devolver: " + restante + ".\n\n";
+
+            if (restante == 0) {
+                mensaje += "Ya alcanzaste el límite de devolución de este producto.";
+            } else {
+                mensaje += "Reduce la cantidad a " + restante + " unidad(es) o menos para continuar.";
+            }
+
+            mostrarAlerta("Cantidad excedida", mensaje);
+            txtCantidad.requestFocus();
+            txtCantidad.selectAll();
             return;
         }
 
@@ -575,6 +663,7 @@ public class NuevaDevolucionProveedorController {
                 motivo);
 
         carrito.add(detalle);
+        txtCodigoProducto.clear();
         txtCantidad.setText("1");
         txtMotivo.clear();
 
